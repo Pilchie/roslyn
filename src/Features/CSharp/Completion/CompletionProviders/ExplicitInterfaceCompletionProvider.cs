@@ -19,22 +19,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
 {
     internal class ExplicitInterfaceCompletionProvider : AbstractCompletionProvider
     {
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
-        {
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar);
-        }
-
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
-            return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar);
-        }
-
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             return text[characterPosition] == '.';
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(
             Document document,
             int position,
             CompletionTriggerInfo triggerInfo,

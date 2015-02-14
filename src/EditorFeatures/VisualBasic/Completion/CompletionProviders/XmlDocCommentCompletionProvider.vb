@@ -3,6 +3,7 @@
 Imports System.Threading
 Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.Completion
+Imports Microsoft.CodeAnalysis.Completion.Providers
 Imports Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion.CompletionProviders.XmlDocCommentCompletion
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Text
@@ -14,20 +15,20 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.Completion.CompletionProvide
     Partial Friend Class XmlDocCommentCompletionProvider
         Inherits AbstractDocCommentCompletionProvider
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
+        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             If (ch = """"c OrElse ch = " "c) AndAlso
                 completionItem.DisplayText.Contains(ch) Then
                 Return False
             End If
 
-            Return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar)
+            Return MyBase.IsCommitCharacter(completionItem, ch, textTypedSoFar, workspace, languageName)
         End Function
 
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
+        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean
             Return text(characterPosition) = "<"c OrElse (text(characterPosition) = "/"c AndAlso characterPosition > 0 AndAlso text(characterPosition - 1) = "<"c)
         End Function
 
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
+        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             Return False
         End Function
 
@@ -41,7 +42,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.Completion.CompletionProvide
             Return token.IsKind(SyntaxKind.XmlNameToken, SyntaxKind.XmlTextLiteralToken, SyntaxKind.IdentifierToken)
         End Function
 
-        Protected Overrides Async Function GetItemsWorkerAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
+        Public Overrides Async Function GetItemsAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
             If triggerInfo.IsDebugger Then
                 Return Nothing
             End If

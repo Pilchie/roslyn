@@ -60,20 +60,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             Return Task.FromResult(otherInstances.Concat(enumType))
         End Function
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar)
-        End Function
-
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
+        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean
             Return text(characterPosition) = " "c OrElse
                 text(characterPosition) = "("c OrElse
                 (text.Length > 2 AndAlso text(characterPosition) = "="c AndAlso text(characterPosition - 1) = ":"c) OrElse
                 SyntaxFacts.IsIdentifierStartCharacter(text(characterPosition)) AndAlso
                 options.GetOption(CompletionOptions.TriggerOnTypingLetters, LanguageNames.VisualBasic)
-        End Function
-
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar)
         End Function
 
         Protected Overrides Function IsExclusiveAsync(documentOpt As Document, caretPosition As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of Boolean)

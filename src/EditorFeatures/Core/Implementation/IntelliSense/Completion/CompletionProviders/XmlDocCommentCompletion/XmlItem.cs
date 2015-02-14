@@ -15,14 +15,16 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion.C
         private readonly string _beforeCaretText;
         private readonly string _afterCaretText;
 
-        public XmlItem(ICompletionProvider provider,
+        public XmlItem(
+            AbstractCompletionProvider provider,
             TextSpan filterSpan,
             string displayText)
             : this(provider, filterSpan, displayText, displayText, string.Empty)
         {
         }
 
-        public XmlItem(ICompletionProvider provider,
+        public XmlItem(
+            AbstractCompletionProvider provider,
             TextSpan filterSpan,
             string displayText,
             string beforeCaretText,

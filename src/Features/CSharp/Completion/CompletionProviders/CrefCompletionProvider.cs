@@ -30,7 +30,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                     SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
                     SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar, Workspace workspace, string languageName)
         {
             if (ch == '{' && completionItem.DisplayText.Contains('{'))
             {
@@ -42,17 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                 return false;
             }
 
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar);
-        }
-
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
-            return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar);
-        }
-
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
-        {
-            return CompletionUtilities.IsTriggerCharacter(text, characterPosition, options);
+            return base.IsCommitCharacter(completionItem, ch, textTypedSoFar, workspace, languageName);
         }
 
         protected override Task<bool> IsExclusiveAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
@@ -60,7 +50,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             return SpecializedTasks.True;
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(Document document, int position, CompletionTriggerInfo triggerInfo, System.Threading.CancellationToken cancellationToken)
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(Document document, int position, CompletionTriggerInfo triggerInfo, System.Threading.CancellationToken cancellationToken)
         {
             var tree = await document.GetCSharpSyntaxTreeAsync(cancellationToken).ConfigureAwait(false);
             if (!tree.IsEntirelyWithinCrefSyntax(position, cancellationToken))

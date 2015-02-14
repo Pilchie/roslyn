@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class ObjectInitializerCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        internal override ICompletionProvider CreateCompletionProvider()
+        internal override AbstractCompletionProvider CreateCompletionProvider()
         {
             return new ObjectInitializerCompletionProvider();
         }
@@ -543,7 +543,7 @@ public class Foo
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void TestEnter()
         {
-            Assert.False(CompletionProvider.SendEnterThroughToEditor(null, null), "Expected false from SendEnterThroughToEditor()");
+            Assert.False(CompletionProvider.SendEnterThroughToEditor(null, null, null, null), "Expected false from SendEnterThroughToEditor()");
         }
 
         [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
@@ -589,7 +589,7 @@ End Class";
 
                 var triggerInfo = CompletionTriggerInfo.CreateTypeCharTriggerInfo('a');
 
-                var group = provider.GetGroupAsync(actualDocument, position, triggerInfo, CancellationToken.None).Result;
+                var group = GetGroup(actualDocument, position, triggerInfo);
 
                 if (group != null)
                 {

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,48 +20,9 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
 {
-    internal class SuggestionModeCompletionProvider : ICompletionProvider
+    internal class SuggestionModeCompletionProvider : AbstractSuggestionModeCompletionProvider
     {
-        public bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
-        {
-            return false;
-        }
-
-        public bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
-            return false;
-        }
-
-        public bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
-        {
-            return false;
-        }
-
-        public TextChange GetTextChange(CompletionItem selectedItem, char? ch = null, string textTypedSoFar = null)
-        {
-            return new TextChange(selectedItem.FilterSpan, selectedItem.DisplayText);
-        }
-
-        public async Task<CompletionItemGroup> GetGroupAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
-        {
-            if (!triggerInfo.IsAugment)
-            {
-                return null;
-            }
-
-            var builder = await this.GetBuilderAsync(document, position, triggerInfo, cancellationToken).ConfigureAwait(false);
-            if (builder == null)
-            {
-                return null;
-            }
-
-            return new CompletionItemGroup(
-                SpecializedCollections.EmptyEnumerable<CompletionItem>(),
-                builder,
-                isExclusive: false);
-        }
-
-        private async Task<CompletionItem> GetBuilderAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken = default(CancellationToken))
+        protected override async Task<CompletionItem> GetBuilderAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (triggerInfo.TriggerReason == CompletionTriggerReason.TypeCharCommand)
             {
@@ -68,7 +30,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
 
                 if (triggerInfo.IsDebugger && triggerInfo.IsImmediateWindow)
                 {
-                    // Aggressive Intellisense in the debugger: always show the builder 
+                    // Aggressive IntelliSense in the debugger: always show the builder 
                     return new CompletionItem(this, "", CompletionUtilities.GetTextChangeSpan(text, position), isBuilder: true);
                 }
 
@@ -155,7 +117,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                 return false;
             }
 
-            // We might be in the arguments to a parenthsized lambda
+            // We might be in the arguments to a parenthesized lambda
             if (token.Kind() == SyntaxKind.OpenParenToken || token.Kind() == SyntaxKind.CommaToken)
             {
                 if (token.Parent != null && token.Parent is ParameterListSyntax)
@@ -185,11 +147,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             var inferredTypes = typeInferrer.InferTypes(semanticModel, position, cancellationToken: cancellationToken);
 
             return inferredTypes.Any(type => type.GetDelegateType(semanticModel.Compilation).IsDelegateType());
-        }
-
-        public bool IsFilterCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
-        {
-            return false;
         }
     }
 }

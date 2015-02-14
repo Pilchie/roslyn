@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class SuggestionModeCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        internal override ICompletionProvider CreateCompletionProvider()
+        internal override AbstractCompletionProvider CreateCompletionProvider()
         {
             return new SuggestionModeCompletionProvider();
         }
@@ -576,22 +576,22 @@ class a
 
         private void CheckResults(Document document, int position, bool isBuilder)
         {
-            var triggerInfo = CompletionTriggerInfo.CreateTypeCharTriggerInfo('a', isAugment: true);
+            var triggerInfo = CompletionTriggerInfo.CreateTypeCharTriggerInfo('a').WithIsAugment(true);
             var provider = CreateCompletionProvider();
 
             if (isBuilder)
             {
-                var group = provider.GetGroupAsync(document, position, triggerInfo, CancellationToken.None).Result;
+                var group = GetGroup(document, position, triggerInfo);
                 Assert.NotNull(group);
                 Assert.NotNull(group.Builder);
             }
             else
             {
-                var group = provider.GetGroupAsync(document, position, triggerInfo, CancellationToken.None).Result;
+                var group = GetGroup(document, position, triggerInfo);
 
                 if (group != null)
                 {
-                    Assert.True(group.Builder == null, "group.Builder == " + group.Builder.DisplayText);
+                    Assert.True(group.Builder == null, "group.Builder == " + group.Builder?.DisplayText);
                 }
             }
         }

@@ -17,15 +17,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             Return CompletionUtilities.GetTextChangeSpan(text, position)
         End Function
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
+        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             Return ch = " "c OrElse ch = "("c
         End Function
 
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar)
-        End Function
-
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
+        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean
             Return CompletionUtilities.IsTriggerAfterSpaceOrStartOfWordCharacter(text, characterPosition, options)
         End Function
 

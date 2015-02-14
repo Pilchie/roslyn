@@ -27,7 +27,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             // We're exclusive if this context could only be an object initializer and not also a
             // collection initializer. If we're initializing something that could be initialized as
             // an object or as a collection, say we're not exclusive. That way the rest of
-            // intellisense can be used in the collection intitializer.
+            // IntelliSense can be used in the collection initializer.
             // 
             // Consider this case:
 
@@ -84,19 +84,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             return true;
         }
 
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName)
         {
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar);
-        }
-
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
+            // REVIEW: Why not standard behavior?
             return false;
         }
 
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
-            return CompletionUtilities.IsTriggerCharacter(text, characterPosition, options) || text[characterPosition] == ' ';
+            return base.IsTriggerCharacter(text, characterPosition, options, workspace, languageName) || text[characterPosition] == ' ';
         }
 
         protected override Tuple<ITypeSymbol, Location> GetInitializedType(

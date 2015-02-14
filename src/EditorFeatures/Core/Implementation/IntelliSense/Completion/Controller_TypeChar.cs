@@ -237,7 +237,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
         /// </summary>
         private static bool IsPotentionalFilterCharacter(TypeCharCommandArgs args)
         {
-            // TODO(cyrusn): Actually use the right unicode categories here.
+            // TODO(cyrusn): Actually use the right Unicode categories here.
             return char.IsLetter(args.TypedChar)
                 || char.IsNumber(args.TypedChar)
                 || args.TypedChar == '_';
@@ -350,9 +350,9 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
                 return char.IsLetterOrDigit(ch);
             }
 
+            var document = this.SubjectBuffer.CurrentSnapshot.GetOpenDocumentInCurrentContextWithChanges();
             var filterText = GetCurrentFilterText(model, selectedItem);
-
-            return selectedItem.CompletionProvider.IsCommitCharacter(selectedItem, ch, filterText);
+            return selectedItem.CompletionProvider.IsCommitCharacter(selectedItem, ch, filterText, document.Project.Solution.Workspace, document.Project.Language);
         }
 
         private bool IsFilterCharacter(char ch)

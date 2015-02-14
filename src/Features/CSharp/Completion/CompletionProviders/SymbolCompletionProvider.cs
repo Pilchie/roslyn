@@ -33,7 +33,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             return CompletionUtilities.GetTextChangeSpan(text, position);
         }
 
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar, Workspace workspace, string languageName)
         {
             var symbolItem = completionItem as SymbolCompletionItem;
             if (symbolItem != null && symbolItem.Context.IsInImportsDirective)
@@ -43,12 +43,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                 return ch == '.' || ch == ';';
             }
 
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar);
-        }
-
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
-        {
-            return CompletionUtilities.IsTriggerCharacter(text, characterPosition, options);
+            return base.IsCommitCharacter(completionItem, ch, textTypedSoFar, workspace, languageName);
         }
 
         protected override async Task<bool> IsSemanticTriggerCharacterAsync(Document document, int characterPosition, CancellationToken cancellationToken)
@@ -79,11 +74,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             }
 
             return token.Kind() != SyntaxKind.NumericLiteralToken;
-        }
-
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
-            return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar);
         }
 
         protected override async Task<AbstractSyntaxContext> CreateContext(Document document, int position, CancellationToken cancellationToken)

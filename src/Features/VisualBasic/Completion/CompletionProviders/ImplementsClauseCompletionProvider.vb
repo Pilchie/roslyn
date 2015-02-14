@@ -17,18 +17,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
     Friend Class ImplementsClauseCompletionProvider
         Inherits AbstractSymbolCompletionProvider
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar)
-        End Function
-
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar)
-        End Function
-
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
-            Return CompletionUtilities.IsDefaultTriggerCharacter(text, characterPosition, options)
-        End Function
-
         Protected Overrides Function IsExclusiveAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of Boolean)
             Return SpecializedTasks.True
         End Function

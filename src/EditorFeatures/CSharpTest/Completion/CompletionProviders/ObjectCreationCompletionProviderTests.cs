@@ -9,7 +9,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class ObjectCreationCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        internal override ICompletionProvider CreateCompletionProvider()
+        internal override AbstractCompletionProvider CreateCompletionProvider()
         {
             return new ObjectCreationCompletionProvider();
         }
@@ -111,12 +111,12 @@ class Program
 
             foreach (var ch in validCharacters)
             {
-                Assert.True(CompletionProvider.IsCommitCharacter(null, ch, null), "Expected '" + ch + "' to be a commit character");
+                Assert.True(CompletionProvider.IsCommitCharacter(null, ch, null, null, null), "Expected '" + ch + "' to be a commit character");
             }
 
             foreach (var ch in invalidCharacters)
             {
-                Assert.False(CompletionProvider.IsCommitCharacter(null, ch, null), "Expected '" + ch + "' to NOT be a commit character");
+                Assert.False(CompletionProvider.IsCommitCharacter(null, ch, null, null, null), "Expected '" + ch + "' to NOT be a commit character");
             }
         }
 

@@ -9,7 +9,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class ExplicitInterfaceCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        internal override ICompletionProvider CreateCompletionProvider()
+        internal override AbstractCompletionProvider CreateCompletionProvider()
         {
             return new ExplicitInterfaceCompletionProvider();
         }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeGeneration;
 using Microsoft.CodeAnalysis.Completion;
+using Microsoft.CodeAnalysis.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
@@ -46,12 +47,12 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders
             return CompletionUtilities.GetTextChangeSpan(text, position);
         }
 
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
+        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName)
         {
             return false;
         }
 
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             return CompletionUtilities.IsTriggerAfterSpaceOrStartOfWordCharacter(text, characterPosition, options);
         }

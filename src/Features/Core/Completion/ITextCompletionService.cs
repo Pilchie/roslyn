@@ -11,6 +11,6 @@ namespace Microsoft.CodeAnalysis.Completion
 {
     internal interface ITextCompletionService : ICompletionService
     {
-        Task<IEnumerable<CompletionItemGroup>> GetGroupsAsync(SourceText text, int position, CompletionTriggerInfo triggerInfo, IEnumerable<ICompletionProvider> completionProviders, OptionSet options, CancellationToken cancellationToken);
+        Task<IEnumerable<CompletionItemGroup>> GetGroupsAsync(SourceText text, int position, CompletionTriggerInfo triggerInfo, IEnumerable<ICompletionProvider> completionProviders, OptionSet options, Workspace workspace, CancellationToken cancellationToken);
     }
 }

@@ -8,7 +8,7 @@ Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Completio
 Public Class XmlDocCommentCompletionProviderTests
     Inherits AbstractVisualBasicCompletionProviderTests
 
-    Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+    Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
         Return New XmlDocCommentCompletionProvider()
     End Function
 

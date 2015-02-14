@@ -370,16 +370,16 @@ End Class
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub IsExclusive()
-            Dim group = completionProvider.GetGroupAsync(Nothing, 0, Nothing).Result
+            Dim group = GetGroup(Nothing, 0, Nothing)
             Assert.True(group Is Nothing OrElse group.IsExclusive, "Expected always exclusive")
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub SendEnterThroughToEditorTest()
-            Assert.False(completionProvider.SendEnterThroughToEditor(Nothing, Nothing), "Expected hardcoded false")
+            Assert.False(completionProvider.SendEnterThroughToEditor(Nothing, Nothing, Nothing, Nothing), "Expected hardcoded false")
         End Sub
 
-        Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+        Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
             Return New ObjectInitializerCompletionProvider()
         End Function
     End Class

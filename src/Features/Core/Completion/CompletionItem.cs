@@ -12,7 +12,7 @@ using Roslyn.Utilities;
 namespace Microsoft.CodeAnalysis.Completion
 {
     [DebuggerDisplay("{DisplayText}")]
-    internal class CompletionItem : IComparable<CompletionItem>
+    public class CompletionItem : IComparable<CompletionItem>
     {
         internal AsyncLazy<ImmutableArray<SymbolDisplayPart>> LazyDescription;
 
@@ -22,9 +22,9 @@ namespace Microsoft.CodeAnalysis.Completion
         public Glyph? Glyph { get; }
 
         /// <summary>
-        /// The ICompletionProvider that this CompletionItem was created from.
+        /// The <see cref="AbstractCompletionProvider"/> that this <see cref="CompletionItem "/> was created from.
         /// </summary>
-        public virtual ICompletionProvider CompletionProvider { get; }
+        public virtual AbstractCompletionProvider CompletionProvider { get; private set; }
 
         /// <summary>
         /// The text for the completion item should be presented to the user (for example, in a
@@ -69,7 +69,7 @@ namespace Microsoft.CodeAnalysis.Completion
         public TextSpan FilterSpan { get; }
 
         /// <summary>
-        /// A CompletionItem marked as a builder will be presented as an Intellisense Builder,
+        /// A CompletionItem marked as a builder will be presented as an IntelliSense Builder,
         /// initially with its display text, which will be replaced as the user types.
         /// </summary>
         public bool IsBuilder { get; }
@@ -88,8 +88,22 @@ namespace Microsoft.CodeAnalysis.Completion
         /// </summary>
         public bool ShouldFormatOnCommit { get; internal set; }
 
+        /// <summary>
+        /// Creates a new <see cref="CompletionItem"/>.
+        /// </summary>
+        /// <param name="completionProvider">The <see cref="AbstractCompletionProvider"/> that provides this item.</param>
+        /// <param name="displayText">The text to display in completion for this item.</param>
+        /// <param name="filterSpan">The span of text in the document that should be considered for filtering this item.</param>
+        /// <param name="description">A description of this item.</param>
+        /// <param name="glyph">The glyph to display for this item.</param>
+        /// <param name="sortText">The text to use as a sort key for this item.  If null, then <paramref name="displayText"/> is used.</param>
+        /// <param name="filterText">The text to use as filter text for this item.  If null, then <paramref name="displayText"/> is used.</param>
+        /// <param name="preselect">True if this item should be preselected.</param>
+        /// <param name="isBuilder">True if this item is a completion builder.</param>
+        /// <param name="showsWarningIcon">True if this item should show an availability warning.</param>
+        /// <param name="shouldFormatOnCommit">True if the resulting code should be formatted if this item is committed.</param>
         public CompletionItem(
-            ICompletionProvider completionProvider,
+            AbstractCompletionProvider completionProvider,
             string displayText,
             TextSpan filterSpan,
             ImmutableArray<SymbolDisplayPart> description = default(ImmutableArray<SymbolDisplayPart>),
@@ -106,8 +120,22 @@ namespace Microsoft.CodeAnalysis.Completion
         {
         }
 
+        /// <summary>
+        /// Creates a new <see cref="CompletionItem"/>.
+        /// </summary>
+        /// <param name="completionProvider">The <see cref="AbstractCompletionProvider"/> that provides this item.</param>
+        /// <param name="displayText">The text to display in completion for this item.</param>
+        /// <param name="filterSpan">The span of text in the document that should be considered for filtering this item.</param>
+        /// <param name="descriptionFactory">A way to generate a description for this item.</param>
+        /// <param name="glyph">The glyph to display for this item.</param>
+        /// <param name="sortText">The text to use as a sort key for this item.  If null, then <paramref name="displayText"/> is used.</param>
+        /// <param name="filterText">The text to use as filter text for this item.  If null, then <paramref name="displayText"/> is used.</param>
+        /// <param name="preselect">True if this item should be preselected.</param>
+        /// <param name="isBuilder">True if this item is a completion builder.</param>
+        /// <param name="showsWarningIcon">True if this item should show an availability warning.</param>
+        /// <param name="shouldFormatOnCommit">True if the resulting code should be formatted if this item is committed.</param>
         public CompletionItem(
-            ICompletionProvider completionProvider,
+            AbstractCompletionProvider completionProvider,
             string displayText,
             TextSpan filterSpan,
             Func<CancellationToken, Task<ImmutableArray<SymbolDisplayPart>>> descriptionFactory,

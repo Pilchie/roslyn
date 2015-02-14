@@ -22,7 +22,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         /// trigger completion. Implementers of this will be called on the main UI thread and should
         /// only do minimal textual checks to determine if they should be presented.
         /// </summary>
-        bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options);
+        bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName);
 
         /// <summary>
         /// Returns true if the character typed should be used to filter the specified completion
@@ -38,13 +38,13 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
         /// to see if it should commit that item.  If it does neither, then completion will be
         /// dismissed.
         /// </summary>
-        bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar);
+        bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar, Workspace workspace, string languageName);
 
         /// <summary>
         /// Returns true if the enter key that was typed should also be sent through to the editor
         /// after committing the provided completion item.
         /// </summary>
-        bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar);
+        bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName);
 
         /// <summary>
         /// The text change that will be made when this item is committed.  The text change includes

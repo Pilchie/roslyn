@@ -27,7 +27,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
         where TWorkspaceFixture : TestWorkspaceFixture, new()
     {
         protected readonly Mock<ICompletionSession> MockCompletionSession;
-        internal ICompletionProvider CompletionProvider;
+        internal AbstractCompletionProvider CompletionProvider;
         protected TWorkspaceFixture workspaceFixture;
 
         public AbstractCompletionProviderTests()
@@ -62,7 +62,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
                 completionTriggerInfo = CompletionTriggerInfo.CreateTypeCharTriggerInfo(triggerCharacter: code.ElementAt(position - 1));
             }
 
-            var group = CompletionProvider.GetGroupAsync(document, position, completionTriggerInfo).Result;
+            var group = GetGroup(document, position, completionTriggerInfo);
             var completions = group == null ? null : group.Items;
 
             if (checkForAbsence)
@@ -201,7 +201,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             }
         }
 
-        internal abstract ICompletionProvider CreateCompletionProvider();
+        internal abstract AbstractCompletionProvider CreateCompletionProvider();
 
         /// <summary>
         /// Override this to change parameters or return without verifying anything, e.g. for script sources. Or to test in other code contexts.
@@ -246,7 +246,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
         /// Override this to change parameters or return without verifying anything, e.g. for script sources. Or to test in other code contexts.
         /// </summary>
         /// <param name="codeBeforeCommit">The source code (not markup).</param>
-        /// <param name="position">Position where intellisense is invoked.</param>
+        /// <param name="position">Position where IntelliSense is invoked.</param>
         /// <param name="itemToCommit">The item to commit from the completion provider.</param>
         /// <param name="expectedCodeAfterCommit">The expected code after commit.</param>
         protected virtual void VerifyCustomCommitProviderWorker(string codeBeforeCommit, int position, string itemToCommit, string expectedCodeAfterCommit, SourceCodeKind sourceCodeKind, char? commitChar = null)
@@ -265,14 +265,14 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
         {
             var textBuffer = workspaceFixture.Workspace.Documents.Single().TextBuffer;
 
-            var completions = CompletionProvider.GetGroupAsync(document, position, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo()).Result.Items;
+            var completions = GetGroup(document, position, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo()).Items;
             var completionItem = completions.First(i => CompareItems(i.DisplayText, itemToCommit));
 
             var customCommitCompletionProvider = CompletionProvider as ICustomCommitCompletionProvider;
             if (customCommitCompletionProvider != null)
             {
                 var textView = workspaceFixture.Workspace.Documents.Single().GetTextView();
-                VerifyCustomCommitWorker(customCommitCompletionProvider, completionItem, textView, textBuffer, codeBeforeCommit, expectedCodeAfterCommit, commitChar);
+                VerifyCustomCommitWorker(customCommitCompletionProvider, document, completionItem, textView, textBuffer, codeBeforeCommit, expectedCodeAfterCommit, commitChar);
             }
             else
             {
@@ -280,7 +280,9 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             }
         }
 
-        internal virtual void VerifyCustomCommitWorker(ICustomCommitCompletionProvider customCommitCompletionProvider,
+        internal virtual void VerifyCustomCommitWorker(
+            ICustomCommitCompletionProvider customCommitCompletionProvider,
+            Document document,
             CompletionItem completionItem,
             ITextView textView,
             ITextBuffer textBuffer,
@@ -292,7 +294,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             string actualExpectedCode = null;
             MarkupTestFile.GetPosition(expectedCodeAfterCommit, out actualExpectedCode, out expectedCaretPosition);
 
-            if (commitChar.HasValue && !customCommitCompletionProvider.IsCommitCharacter(completionItem, commitChar.Value, string.Empty))
+            if (commitChar.HasValue && !customCommitCompletionProvider.IsCommitCharacter(completionItem, commitChar.Value, string.Empty, document.Project.Solution.Workspace, document.Project.Language))
             {
                 Assert.Equal(codeBeforeCommit, actualExpectedCode);
                 return;
@@ -311,7 +313,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
         /// Override this to change parameters or return without verifying anything, e.g. for script sources. Or to test in other code contexts.
         /// </summary>
         /// <param name="codeBeforeCommit">The source code (not markup).</param>
-        /// <param name="position">Position where intellisense is invoked.</param>
+        /// <param name="position">Position where IntelliSense is invoked.</param>
         /// <param name="itemToCommit">The item to commit from the completion provider.</param>
         /// <param name="expectedCodeAfterCommit">The expected code after commit.</param>
         protected virtual void VerifyProviderCommitWorker(string codeBeforeCommit, int position, string itemToCommit, string expectedCodeAfterCommit,
@@ -332,10 +334,10 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             var textBuffer = workspaceFixture.Workspace.Documents.Single().TextBuffer;
             var textSnapshot = textBuffer.CurrentSnapshot.AsText();
 
-            var completions = CompletionProvider.GetGroupAsync(document, position, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo()).Result.Items;
+            var completions = GetGroup(document, position, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo()).Items;
             var completionItem = completions.First(i => CompareItems(i.DisplayText, itemToCommit));
 
-            var textChange = CompletionProvider.IsCommitCharacter(completionItem, commitChar.HasValue ? commitChar.Value : ' ', textTypedSoFar)
+            var textChange = CompletionProvider.IsCommitCharacter(completionItem, commitChar.HasValue ? commitChar.Value : ' ', textTypedSoFar, document.Project.Solution.Workspace, document.Project.Language)
                 ? CompletionProvider.GetTextChange(completionItem, commitChar, textTypedSoFar)
                 : new TextChange();
 
@@ -450,7 +452,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
                 optionsService.SetOptions(optionsService.GetOptions().WithChangedOption(Microsoft.CodeAnalysis.Completion.CompletionOptions.HideAdvancedMembers, doc.Project.Language, hideAdvancedMembers));
 
                 CompletionTriggerInfo completionTriggerInfo = new CompletionTriggerInfo();
-                var completions = CompletionProvider.GetGroupAsync(doc, cursorPosition, completionTriggerInfo).Result;
+                var completions = GetGroup(doc, cursorPosition, completionTriggerInfo);
 
                 if (expectedSymbols >= 1)
                 {
@@ -502,7 +504,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
                 Document doc = solution.GetDocument(docId);
 
                 CompletionTriggerInfo completionTriggerInfo = new CompletionTriggerInfo();
-                var completions = CompletionProvider.GetGroupAsync(doc, cursorPosition, completionTriggerInfo).Result;
+                var completions = GetGroup(doc, cursorPosition, completionTriggerInfo);
                 var item = completions.Items.FirstOrDefault(i => i.DisplayText == expectedItem);
                 Assert.Equal(expectedDescription, item.GetDescriptionAsync().Result.GetFullText());
             }
@@ -532,7 +534,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
                 Document doc = solution.GetDocument(currentContextDocumentId);
 
                 CompletionTriggerInfo completionTriggerInfo = new CompletionTriggerInfo();
-                var completions = CompletionProvider.GetGroupAsync(doc, cursorPosition, completionTriggerInfo).WaitAndGetResult(CancellationToken.None);
+                var completions = GetGroup(doc, cursorPosition, completionTriggerInfo);
 
                 var item = completions.Items.Single(c => c.DisplayText == expectedItem);
                 Assert.NotNull(item);
@@ -542,6 +544,11 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
                     Assert.Equal(expectedDescription, actualDescription);
                 }
             }
+        }
+
+        internal CompletionItemGroup GetGroup(Document document, int position, CompletionTriggerInfo triggerInfo)
+        {
+            return ((ICompletionProvider)CompletionProvider).GetGroupAsync(document, position, triggerInfo, CancellationToken.None).Result;
         }
     }
 }

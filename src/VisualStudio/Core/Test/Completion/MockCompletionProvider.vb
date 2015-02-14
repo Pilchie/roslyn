@@ -11,37 +11,34 @@ Imports Roslyn.Utilities
 
 Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Completion
     Friend Class MockCompletionProvider
-        Implements ICompletionProvider
+        Inherits AbstractCompletionProvider
 
         Private ReadOnly _span As TextSpan
+        Private ReadOnly _itemsTask As Task(Of IEnumerable(Of CompletionItem))
 
         Public Sub New(span As TextSpan)
-            Me._span = span
+            _span = span
+            _itemsTask = Task.FromResult(SpecializedCollections.SingletonEnumerable(New CompletionItem(Me, "DisplayText", span)))
         End Sub
 
-        Public Function GetGroupAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, Optional cancellationToken As CancellationToken = Nothing) As Task(Of CompletionItemGroup) Implements ICompletionProvider.GetGroupAsync
-            Dim item = New CompletionItem(Me, "DisplayText", _span)
-            Return Task.FromResult(New CompletionItemGroup(SpecializedCollections.SingletonEnumerable(item)))
+        Public Overrides Function GetItemsAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
+            Return _itemsTask
         End Function
 
-        Public Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean Implements ICompletionProvider.IsCommitCharacter
+        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             Return False
         End Function
 
-        Public Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean Implements ICompletionProvider.IsTriggerCharacter
+        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean
             Return True
         End Function
 
-        Public Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean Implements ICompletionProvider.SendEnterThroughToEditor
+        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             Return False
         End Function
 
-        Public Function GetTextChange(selectedItem As CompletionItem, Optional ch As Char? = Nothing, Optional textTypedSoFar As String = Nothing) As TextChange Implements ICompletionProvider.GetTextChange
+        Public Overrides Function GetTextChange(selectedItem As CompletionItem, Optional ch As Char? = Nothing, Optional textTypedSoFar As String = Nothing) As TextChange
             Return New TextChange(selectedItem.FilterSpan, "InsertionText")
-        End Function
-
-        Public Function IsFilterCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean Implements ICompletionProvider.IsFilterCharacter
-            Return False
         End Function
     End Class
 End Namespace

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.Completion;
+using Microsoft.CodeAnalysis.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Completion.Providers;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
@@ -21,7 +22,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders.Xm
     [ExportCompletionProvider("DocCommentCompletionProvider", LanguageNames.CSharp)]
     internal partial class XmlDocCommentCompletionProvider : AbstractDocCommentCompletionProvider
     {
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar, Workspace workspace, string languageName)
         {
             if ((ch == '"' || ch == ' ')
                 && completionItem.DisplayText.Contains(ch))
@@ -29,20 +30,20 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders.Xm
                 return false;
             }
 
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar) || ch == '>' || ch == '\t';
+            return base.IsCommitCharacter(completionItem, ch, textTypedSoFar, workspace, languageName) || ch == '>' || ch == '\t';
         }
 
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             return text[characterPosition] == '<';
         }
 
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
+        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName)
         {
             return false;
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
         {
             if (triggerInfo.IsDebugger)
             {

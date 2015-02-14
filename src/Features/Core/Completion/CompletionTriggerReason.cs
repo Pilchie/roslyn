@@ -2,7 +2,7 @@
 
 namespace Microsoft.CodeAnalysis.Completion
 {
-    internal enum CompletionTriggerReason
+    public enum CompletionTriggerReason
     {
         /// <summary>
         /// Completion was triggered through the 'Invoke Completion' command

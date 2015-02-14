@@ -22,7 +22,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 miscellaneousOptions:=
                     SymbolDisplayMiscellaneousOptions.UseSpecialTypes)
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
+        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             If ch = "("c AndAlso completionItem.DisplayText.IndexOf("("c) <> -1 Then
                 Return False
             End If
@@ -32,18 +32,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 Return Not (textSoFar.Length >= 2 AndAlso Char.ToUpper(textSoFar(textSoFar.Length - 2)) = "O"c AndAlso Char.ToUpper(textSoFar(textSoFar.Length - 1)) = "F"c)
             End If
 
-            Return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar)
+            Return MyBase.IsCommitCharacter(completionItem, ch, textTypedSoFar, workspace, languageName)
         End Function
 
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
-            Return CompletionUtilities.IsDefaultTriggerCharacter(text, characterPosition, options)
-        End Function
-
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
+        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
+            ' REVIEW: Why not standard behavior?
             Return False
         End Function
 
-        Protected Overrides Async Function GetItemsWorkerAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
+        Public Overrides Async Function GetItemsAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
             Dim tree = Await document.GetVisualBasicSyntaxTreeAsync(cancellationToken).ConfigureAwait(False)
             Dim text = Await document.GetTextAsync(cancellationToken).ConfigureAwait(False)
 

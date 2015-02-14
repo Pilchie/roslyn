@@ -163,10 +163,31 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
             return SpecializedTasks.EmptyEnumerable<ISymbol>();
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(
+        protected virtual Task<bool> IsSemanticTriggerCharacterAsync(Document document, int characterPosition, CancellationToken cancellationToken)
+        {
+            return SpecializedTasks.True;
+        }
+
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(
             Document document, int position, CompletionTriggerInfo triggerInfo,
             CancellationToken cancellationToken)
         {
+            if (document == null)
+            {
+                return null;
+            }
+
+            // If we were triggered by typing a character, then do a semantic check to make sure
+            // we're still applicable.  If not, then return immediately.
+            if (triggerInfo.TriggerReason == CompletionTriggerReason.TypeCharCommand)
+            {
+                var isSemanticTriggerCharacter = await IsSemanticTriggerCharacterAsync(document, position - 1, cancellationToken).ConfigureAwait(false);
+                if (!isSemanticTriggerCharacter)
+                {
+                    return null;
+                }
+            }
+
             using (Logger.LogBlock(FunctionId.Completion_SymbolCompletionProvider_GetItemsWorker, cancellationToken))
             {
                 var regularItems = await GetItemsWorkerAsync(document, position, triggerInfo, preselect: false, cancellationToken: cancellationToken).ConfigureAwait(false);

@@ -11,7 +11,7 @@ Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Completio
 Public Class OverrideCompletionProviderTests
     Inherits AbstractVisualBasicCompletionProviderTests
 
-    Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+    Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
         Return New OverrideCompletionProvider(TestWaitIndicator.Default)
     End Function
 
@@ -1745,7 +1745,7 @@ public class C
             Dim caretPosition = hostDocument.CursorPosition.Value
             Dim document = workspace.CurrentSolution.GetDocument(hostDocument.Id)
             Dim triggerInfo = CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo()
-            Dim group = CompletionProvider.GetGroupAsync(document, caretPosition, triggerInfo).Result
+            Dim group = GetGroup(document, caretPosition, triggerInfo)
             Assert.False(group.Items.Any(Function(c) c.DisplayText = "e"))
         End Using
     End Sub

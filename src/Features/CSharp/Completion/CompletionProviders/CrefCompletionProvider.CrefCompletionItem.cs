@@ -17,7 +17,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
 
             public CrefCompletionItem(
                 Workspace workspace,
-                ICompletionProvider completionProvider,
+                AbstractCompletionProvider completionProvider,
                 string displayText,
                 string insertionText,
                 TextSpan textSpan,

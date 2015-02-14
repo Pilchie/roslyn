@@ -116,18 +116,22 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
         End Function
 
         Protected Sub TestCommonSendEnterThroughToEditor()
-            Assert.True(CompletionProvider.SendEnterThroughToEditor(Nothing, Nothing), "Expected hardcoded 'true' from SendEnterThroughToEditor")
+            Using workspace As New TestWorkspace
+                Assert.True(CompletionProvider.SendEnterThroughToEditor(Nothing, Nothing, workspace, LanguageNames.VisualBasic), "Expected hardcoded 'true' from SendEnterThroughToEditor")
+            End Using
         End Sub
 
         Protected Sub TestCommonIsCommitCharacter()
             Dim commitChararacters = {" "c, ";"c, "("c, ")"c, "["c, "]"c, "{"c, "}"c, "."c, ","c, ":"c, "+"c, "-"c, "*"c, "/"c, "\"c, "^"c, "<"c, ">"c, "'"c, "="c}
 
-            For Each ch In commitChararacters
-                Assert.True(CompletionProvider.IsCommitCharacter(Nothing, ch, Nothing), "Expected '" + ch + "' to be a commit character")
-            Next
+            Using workspace As New TestWorkspace
+                For Each ch In commitChararacters
+                    Assert.True(CompletionProvider.IsCommitCharacter(Nothing, ch, Nothing, workspace, LanguageNames.VisualBasic), "Expected '" + ch + "' to be a commit character")
+                Next
 
-            Dim chr = "x"c
-            Assert.False(CompletionProvider.IsCommitCharacter(Nothing, chr, Nothing), "Expected '" + chr + "' NOT to be a commit character")
+                Dim chr = "x"c
+                Assert.False(CompletionProvider.IsCommitCharacter(Nothing, chr, Nothing, workspace, LanguageNames.VisualBasic), "Expected '" + chr + "' NOT to be a commit character")
+            End Using
         End Sub
 
         Protected Sub TestCommonIsTextualTriggerCharacter()
@@ -181,7 +185,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
                 Dim text = document.TextBuffer.CurrentSnapshot.AsText()
                 Dim options = workspace.Options.WithChangedOption(CompletionOptions.TriggerOnTypingLetters, LanguageNames.VisualBasic, triggerOnLetter)
 
-                Dim isTextualTriggerCharacterResult = CompletionProvider.IsTriggerCharacter(text, position, options)
+                Dim isTextualTriggerCharacterResult = CompletionProvider.IsTriggerCharacter(text, position, options, workspace, LanguageNames.VisualBasic)
 
                 If expectedTriggerCharacter Then
                     Dim assertText = "'" & text.ToString(New TextSpan(position, 1)) & "' expected to be textual trigger character"

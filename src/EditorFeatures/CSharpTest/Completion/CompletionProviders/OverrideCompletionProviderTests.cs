@@ -17,7 +17,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class OverrideCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        internal override ICompletionProvider CreateCompletionProvider()
+        internal override AbstractCompletionProvider CreateCompletionProvider()
         {
             return new OverrideCompletionProvider(TestWaitIndicator.Default);
         }
@@ -2130,7 +2130,7 @@ End Class
                 Document doc = solution.GetDocument(docId);
 
                 CompletionTriggerInfo completionTriggerInfo = new CompletionTriggerInfo();
-                var completions = CompletionProvider.GetGroupAsync(doc, cursorPosition, completionTriggerInfo).Result;
+                var completions = GetGroup(doc, cursorPosition, completionTriggerInfo);
 
                 var completionItem = completions.Items.First(i => CompareItems(i.DisplayText, "Bar[int bay]"));
 
@@ -2390,7 +2390,7 @@ int bar;
                 Document doc = solution.GetDocument(docId);
 
                 CompletionTriggerInfo completionTriggerInfo = new CompletionTriggerInfo();
-                var completions = CompletionProvider.GetGroupAsync(doc, cursorPosition, completionTriggerInfo).Result;
+                var completions = GetGroup(doc, cursorPosition, completionTriggerInfo);
 
                 var completionItem = completions.Items.First(i => CompareItems(i.DisplayText, "Equals(object obj)"));
 
@@ -2449,7 +2449,7 @@ int bar;
                 Document doc = solution.GetDocument(docId);
 
                 CompletionTriggerInfo completionTriggerInfo = new CompletionTriggerInfo();
-                var completions = CompletionProvider.GetGroupAsync(doc, cursorPosition, completionTriggerInfo).Result;
+                var completions = GetGroup(doc, cursorPosition, completionTriggerInfo);
 
                 var completionItem = completions.Items.First(i => CompareItems(i.DisplayText, "Equals(object obj)"));
 
@@ -2552,8 +2552,7 @@ namespace ConsoleApplication46
             var provider = new OverrideCompletionProvider(TestWaitIndicator.Default);
             var testDocument = workspace.Documents.Single();
             var document = workspace.CurrentSolution.GetDocument(testDocument.Id);
-            var items = provider.GetGroupAsync(document, testDocument.CursorPosition.Value, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo(), CancellationToken.None)
-                                .WaitAndGetResult(CancellationToken.None);
+            var items = GetGroup(document, testDocument.CursorPosition.Value, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo());
 
             var oldTree = document.GetSyntaxTreeAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
 

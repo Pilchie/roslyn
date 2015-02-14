@@ -7,7 +7,7 @@ namespace Microsoft.CodeAnalysis.Completion
     /// <summary>
     /// Provides information about what triggered completion.
     /// </summary>
-    internal struct CompletionTriggerInfo
+    public struct CompletionTriggerInfo
     {
         /// <summary>
         /// Provides the reason that completion was triggered.
@@ -25,7 +25,7 @@ namespace Microsoft.CodeAnalysis.Completion
         /// Returns true if the reason completion was triggered was to augment an existing list of
         /// completion items.
         /// </summary>
-        public bool IsAugment { get; }
+        internal bool IsAugment { get; }
 
         /// <summary>
         ///  Returns true if completion was triggered by the debugger.
@@ -48,19 +48,19 @@ namespace Microsoft.CodeAnalysis.Completion
             this.IsImmediateWindow = isImmediateWindow;
         }
 
-        public static CompletionTriggerInfo CreateTypeCharTriggerInfo(char triggerCharacter, bool isAugment = false)
+        public static CompletionTriggerInfo CreateTypeCharTriggerInfo(char triggerCharacter)
         {
-            return new CompletionTriggerInfo(CompletionTriggerReason.TypeCharCommand, triggerCharacter, isAugment, isDebugger: false, isImmediateWindow: false);
+            return new CompletionTriggerInfo(CompletionTriggerReason.TypeCharCommand, triggerCharacter, isAugment: false, isDebugger: false, isImmediateWindow: false);
         }
 
-        public static CompletionTriggerInfo CreateInvokeCompletionTriggerInfo(bool isAugment = false)
+        public static CompletionTriggerInfo CreateInvokeCompletionTriggerInfo()
         {
-            return new CompletionTriggerInfo(CompletionTriggerReason.InvokeCompletionCommand, null, isAugment, isDebugger: false, isImmediateWindow: false);
+            return new CompletionTriggerInfo(CompletionTriggerReason.InvokeCompletionCommand, triggerCharacter: null, isAugment: false, isDebugger: false, isImmediateWindow: false);
         }
 
-        public static CompletionTriggerInfo CreateBackspaceTriggerInfo(char? triggerCharacter, bool isAugment = false)
+        public static CompletionTriggerInfo CreateBackspaceTriggerInfo(char? triggerCharacter)
         {
-            return new CompletionTriggerInfo(CompletionTriggerReason.BackspaceOrDeleteCommand, triggerCharacter, isAugment, isDebugger: false, isImmediateWindow: false);
+            return new CompletionTriggerInfo(CompletionTriggerReason.BackspaceOrDeleteCommand, triggerCharacter, isAugment: false, isDebugger: false, isImmediateWindow: false);
         }
 
         public static CompletionTriggerInfo CreateSnippetTriggerInfo()

@@ -342,7 +342,7 @@ End Class
             VerifyItemIsAbsent(markup, "e As E")
         End Sub
 
-        Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+        Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
             Return New CompletionListTagCompletionProvider()
         End Function
     End Class

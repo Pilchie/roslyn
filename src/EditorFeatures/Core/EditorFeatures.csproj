@@ -217,13 +217,11 @@
     <Compile Include="Extensibility\Commands\ICommandHandler.cs" />
     <Compile Include="Extensibility\Commands\PredefinedCommandHandlerNames.cs" />
     <Compile Include="Extensibility\Completion\CompletionItemEventArgs.cs" />
-    <Compile Include="Extensibility\Completion\ExportCompletionProviderAttribute.cs" />
     <Compile Include="Extensibility\Completion\IAsyncCompletionService.cs" />
     <Compile Include="Extensibility\Completion\ICompletionPresenterSession.cs" />
     <Compile Include="Extensibility\Completion\ICustomCommitCompletionProvider.cs" />
     <Compile Include="Extensibility\Completion\ISnippetCompletionProvider.cs" />
     <Compile Include="Extensibility\Completion\PredefinedCompletionPresenterNames.cs" />
-    <Compile Include="Extensibility\Completion\PredefinedCompletionProviderNames.cs" />
     <Compile Include="Extensibility\Completion\PredefinedCompletionRulesFactoryNames.cs" />
     <Compile Include="Extensibility\Composition\ContentTypeMetadata.cs" />
     <Compile Include="Extensibility\Composition\IContentTypeMetadata.cs" />

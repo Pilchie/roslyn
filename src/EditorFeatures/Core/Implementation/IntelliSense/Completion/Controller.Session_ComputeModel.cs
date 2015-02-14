@@ -138,8 +138,10 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
                 {
                     if (_documentOpt == null && completionService is ITextCompletionService)
                     {
+                        Workspace workspace;
+                        Workspace.TryGetWorkspace(_text.Container, out workspace);
                         var textCompletionService = (ITextCompletionService)completionService;
-                        return await textCompletionService.GetGroupsAsync(_text, _subjectBufferCaretPosition, triggerInfo, _completionProviders, _options, cancellationToken).ConfigureAwait(false);
+                        return await textCompletionService.GetGroupsAsync(_text, _subjectBufferCaretPosition, triggerInfo, _completionProviders, _options, workspace, cancellationToken).ConfigureAwait(false);
                     }
                     else if (_documentOpt != null)
                     {

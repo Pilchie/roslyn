@@ -36,9 +36,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
 
         Private Function IsTextChangeSpanEndCharacter(ch As Char) As Boolean
             Return ch = "]"c OrElse IsWordCharacter(ch)
-        End Function
-
-        Public Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
             Return s_commitChars.Contains(ch)
         End Function
 

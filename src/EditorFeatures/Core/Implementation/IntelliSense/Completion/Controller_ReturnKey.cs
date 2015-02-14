@@ -2,6 +2,7 @@
 
 using System;
 using Microsoft.CodeAnalysis.Editor.Commands;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
 {
@@ -87,7 +88,9 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion
             var textChange = selectedItem.CompletionProvider.GetTextChange(selectedItem);
 
             this.Commit(selectedItem, textChange, model, null);
-            sendThrough = selectedItem.CompletionProvider.SendEnterThroughToEditor(selectedItem, textTypedSoFar);
+
+            var document = SubjectBuffer.CurrentSnapshot.GetOpenDocumentInCurrentContextWithChanges();
+            sendThrough = selectedItem.CompletionProvider.SendEnterThroughToEditor(selectedItem, textTypedSoFar, document.Project.Solution.Workspace, document.Project.Language);
             committed = true;
         }
     }

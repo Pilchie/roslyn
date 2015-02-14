@@ -44,7 +44,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion.C
             return SpecializedTasks.True;
         }
 
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string text)
+        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string text, Workspace workspace, string languageName)
         {
             // Commit on tab, enter and (
             return ch == '(';
@@ -55,7 +55,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion.C
             return default(TextChange);
         }
 
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
+        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName)
         {
             return false;
         }

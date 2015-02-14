@@ -1388,7 +1388,7 @@ class C
                 Return Nothing
             End Function
 
-            Public Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean Implements ICompletionProvider.IsTriggerCharacter
+            Public Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean Implements ICompletionProvider.IsTriggerCharacter
                 Return True
             End Function
 
@@ -1396,11 +1396,11 @@ class C
                 Return False
             End Function
 
-            Public Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean Implements ICompletionProvider.IsCommitCharacter
+            Public Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean Implements ICompletionProvider.IsCommitCharacter
                 Return False
             End Function
 
-            Public Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean Implements ICompletionProvider.SendEnterThroughToEditor
+            Public Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean Implements ICompletionProvider.SendEnterThroughToEditor
                 Throw New NotImplementedException()
             End Function
 

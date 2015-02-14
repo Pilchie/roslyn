@@ -16,18 +16,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
     Friend Class ImplementsInheritsStatementCompletionProvider
         Inherits AbstractCompletionProvider
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar)
-        End Function
-
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
-            Return CompletionUtilities.IsDefaultTriggerCharacter(text, characterPosition, options)
-        End Function
-
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar)
-        End Function
-
         Protected Overrides Function IsExclusiveAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of Boolean)
             Return SpecializedTasks.True
         End Function
@@ -53,7 +41,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
 
         End Class
 
-        Protected Overrides Async Function GetItemsWorkerAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
+        Public Overrides Async Function GetItemsAsync(document As Document, position As Integer, triggerInfo As CompletionTriggerInfo, cancellationToken As CancellationToken) As Task(Of IEnumerable(Of CompletionItem))
             Dim syntaxTree = Await document.GetVisualBasicSyntaxTreeAsync(cancellationToken).ConfigureAwait(False)
             Dim token = syntaxTree.FindTokenOnLeftOfPosition(position, cancellationToken).GetPreviousTokenIfTouchingWord(position)
             If token.Kind = SyntaxKind.None Then

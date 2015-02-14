@@ -13,6 +13,7 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Microsoft.CodeAnalysis.Editor.Implementation.Intellisense.Completion.CompletionProviders
 Imports Microsoft.CodeAnalysis.Options
+Imports Microsoft.CodeAnalysis.Completion.Providers
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.Completion.CompletionProviders
     <ExportCompletionProvider("OverrideCompletionProvider", LanguageNames.VisualBasic)>
@@ -61,7 +62,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.Completion.CompletionProvide
             Return CompletionUtilities.GetTextChangeSpan(text, position)
         End Function
 
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
+        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean
             Return CompletionUtilities.IsTriggerAfterSpaceOrStartOfWordCharacter(text, characterPosition, options)
         End Function
 

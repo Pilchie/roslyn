@@ -454,7 +454,7 @@ End Class
             VerifyProviderCommit(markup, "E.A", expected, ","c, textTypedSoFar:="")
         End Sub
 
-        Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+        Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
             Return New EnumCompletionProvider()
         End Function
     End Class

@@ -25,7 +25,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             Return CompletionUtilities.GetTextChangeSpan(text, position)
         End Function
 
-        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean
+        Public Overrides Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean
             Dim symbolItem = TryCast(completionItem, SymbolCompletionItem)
             If symbolItem IsNot Nothing AndAlso symbolItem.Context.IsInImportsDirective Then
                 ' If the user is writing "Imports S" then the only commit character is <dot>
@@ -33,10 +33,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
                 Return ch = "."c
             End If
 
-            Return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar)
+            Return MyBase.IsCommitCharacter(completionItem, ch, textTypedSoFar, workspace, languageName)
         End Function
 
-        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean
+        Public Overrides Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean
             Return CompletionUtilities.IsDefaultTriggerCharacterOrParen(text, characterPosition, options)
         End Function
 
@@ -78,12 +78,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Completion.Providers
             Return True
         End Function
 
-        Public Overrides Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean
-            Return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar)
-        End Function
-
         Protected Overrides Function GetDisplayAndInsertionText(symbol As ISymbol, context As AbstractSyntaxContext) As ValueTuple(Of String, String)
-
             Return CompletionUtilities.GetDisplayAndInsertionText(symbol, context.IsAttributeNameContext, context.IsRightOfNameSeparator, DirectCast(context, VisualBasicSyntaxContext).WithinAsyncMethod, context.GetLanguageService(Of ISyntaxFactsService))
         End Function
 

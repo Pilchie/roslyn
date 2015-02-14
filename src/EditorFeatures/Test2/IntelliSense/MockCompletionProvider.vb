@@ -54,15 +54,15 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
             Return Task.FromResult(New CompletionItemGroup(items))
         End Function
 
-        Public Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String) As Boolean Implements ICompletionProvider.IsCommitCharacter
+        Public Function IsCommitCharacter(completionItem As CompletionItem, ch As Char, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean Implements ICompletionProvider.IsCommitCharacter
             Return False
         End Function
 
-        Public Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet) As Boolean Implements ICompletionProvider.IsTriggerCharacter
+        Public Function IsTriggerCharacter(text As SourceText, characterPosition As Integer, options As OptionSet, workspace As Workspace, languageName As String) As Boolean Implements ICompletionProvider.IsTriggerCharacter
             Return If(_isTriggerCharacter Is Nothing, Nothing, _isTriggerCharacter(text, characterPosition))
         End Function
 
-        Public Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String) As Boolean Implements ICompletionProvider.SendEnterThroughToEditor
+        Public Function SendEnterThroughToEditor(completionItem As CompletionItem, textTypedSoFar As String, workspace As Workspace, languageName As String) As Boolean Implements ICompletionProvider.SendEnterThroughToEditor
             Return False
         End Function
 

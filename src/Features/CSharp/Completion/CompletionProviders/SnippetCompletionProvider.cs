@@ -30,27 +30,23 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
             _snippetInfoService = snippetInfoService;
         }
 
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             if (!options.GetOption(CSharpCompletionOptions.IncludeSnippets))
             {
                 return false;
             }
 
-            return CompletionUtilities.IsTriggerCharacter(text, characterPosition, options);
+            return base.IsTriggerCharacter(text, characterPosition, options, workspace, languageName);
         }
 
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName)
         {
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar);
-        }
-
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
+            // REVIEW: Why not standard behavior?
             return false;
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
         {
             using (Logger.LogBlock(FunctionId.Completion_SnippetCompletionProvider_GetItemsWorker_CSharp, cancellationToken))
             {
@@ -67,7 +63,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                     return SpecializedCollections.EmptyEnumerable<CompletionItem>();
                 }
 
-                return await document.GetUnionResultsFromDocumentAndLinks(UnionCompletionItemComparer.Instance, async (d, c) => await GetSnippetsForDocumentAsync(d, position, workspace, c).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+                return await document.GetUnionResultsFromDocumentAndLinks(CompletionItemUnionComparer.Instance, async (d, c) => await GetSnippetsForDocumentAsync(d, position, workspace, c).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             }
         }
 

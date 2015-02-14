@@ -297,7 +297,7 @@ Class C1
     End Sub
 End Class
 </a>
-            VerifyBuilder(markup, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo(isAugment:=True).WithIsDebugger(True))
+            VerifyBuilder(markup, CompletionTriggerInfo.CreateInvokeCompletionTriggerInfo.WithIsAugment(True).WithIsDebugger(True))
         End Sub
 
         Private Sub VerifyNotBuilder(markup As XElement, Optional triggerInfo As CompletionTriggerInfo? = Nothing)
@@ -326,24 +326,24 @@ End Class
         End Sub
 
         Private Sub CheckResults(document As Document, position As Integer, isBuilder As Boolean, triggerInfo As CompletionTriggerInfo?)
-            triggerInfo = If(triggerInfo, CompletionTriggerInfo.CreateTypeCharTriggerInfo("a"c, isAugment:=True))
+            triggerInfo = If(triggerInfo, CompletionTriggerInfo.CreateTypeCharTriggerInfo("a"c).WithIsAugment(True))
 
             Dim provider = CreateCompletionProvider()
 
             If isBuilder Then
-                Dim group = provider.GetGroupAsync(document, position, triggerInfo.Value, CancellationToken.None).Result
+                Dim group = GetGroup(document, position, triggerInfo.Value)
                 Assert.NotNull(group)
                 Assert.NotNull(group.Builder)
             Else
-                Dim group = provider.GetGroupAsync(document, position, triggerInfo.Value, CancellationToken.None).Result
+                Dim group = GetGroup(document, position, triggerInfo.Value)
 
                 If group IsNot Nothing Then
-                    Assert.True(group.Builder Is Nothing, "group.Builder = " & group.Builder.DisplayText)
+                    Assert.True(group.Builder Is Nothing, "group.Builder = " & group.Builder?.DisplayText)
                 End If
             End If
         End Sub
 
-        Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+        Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
             Return New SuggestionModeCompletionProvider()
         End Function
     End Class

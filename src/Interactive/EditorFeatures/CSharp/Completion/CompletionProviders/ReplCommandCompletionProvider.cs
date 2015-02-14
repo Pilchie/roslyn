@@ -22,7 +22,6 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders
 {
-    [Order(Before = PredefinedCompletionProviderNames.Keyword)]
     [ExportCompletionProvider("ReplCommandCompletionProvider", LanguageNames.CSharp)]
     internal class ReplCommandCompletionProvider : AbstractCompletionProvider
     {
@@ -30,11 +29,6 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders
         {
             var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
             return CompletionUtilities.GetTextChangeSpan(text, position);
-        }
-
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
-        {
-            return CompletionUtilities.IsCommitCharacter(completionItem, ch, textTypedSoFar);
         }
 
         // TODO (tomat): REPL commands should have their own providers:
@@ -60,17 +54,12 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders
             return false;
         }
 
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             return CompletionUtilities.IsTriggerAfterSpaceOrStartOfWordCharacter(text, characterPosition, options);
         }
 
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
-            return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar);
-        }
-
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(
             Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
         {
             if (document != null && document.SourceCodeKind == SourceCodeKind.Interactive)

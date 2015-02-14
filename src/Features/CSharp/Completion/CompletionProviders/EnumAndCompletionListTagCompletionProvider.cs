@@ -19,19 +19,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
 {
     internal class EnumAndCompletionListTagCompletionProvider : AbstractCompletionProvider
     {
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar, Workspace workspace, string languageName)
         {
             // Only commit on dot.
             return ch == '.';
         }
 
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
-        {
-            // Standard enter behavior.
-            return CompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar);
-        }
-
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             // Bring up on space or at the start of a word, or after a ( or [.
             //
@@ -47,7 +41,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Completion.Providers
                 (options.GetOption(CompletionOptions.TriggerOnTypingLetters, LanguageNames.CSharp) && CompletionUtilities.IsStartingNewWord(text, characterPosition));
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(
             Document document, int position, CompletionTriggerInfo triggerInfo,
             CancellationToken cancellationToken)
         {

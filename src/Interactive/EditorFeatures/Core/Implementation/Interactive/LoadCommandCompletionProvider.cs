@@ -42,7 +42,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Interactive
             return null;
         }
 
-        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options)
+        public override bool IsTriggerCharacter(SourceText text, int characterPosition, OptionSet options, Workspace workspace, string languageName)
         {
             return PathCompletionUtilities.IsTriggerCharacter(text, characterPosition);
         }
@@ -59,12 +59,12 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Interactive
             return PathCompletionUtilities.IsFilterCharacter(completionItem, ch, textTypedSoFar);
         }
 
-        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar)
+        public override bool IsCommitCharacter(CompletionItem completionItem, char ch, string textTypedSoFar, Workspace workspace, string languageName)
         {
             return PathCompletionUtilities.IsCommitcharacter(completionItem, ch, textTypedSoFar);
         }
 
-        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar)
+        public override bool SendEnterThroughToEditor(CompletionItem completionItem, string textTypedSoFar, Workspace workspace, string languageName)
         {
             return PathCompletionUtilities.SendEnterThroughToEditor(completionItem, textTypedSoFar);
         }
@@ -146,7 +146,7 @@ namespace Microsoft.CodeAnalysis.Editor.Implementation.Interactive
             return helper.GetItems(pathThroughLastSlash, documentPath: null);
         }
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(Document document, int position, CompletionTriggerInfo triggerInfo, CancellationToken cancellationToken)
         {
             var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
             return GetItems(text, position, triggerInfo, cancellationToken);

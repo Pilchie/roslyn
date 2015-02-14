@@ -135,7 +135,7 @@ text;
                 var options = optionService.GetOptions().WithChangedOption(CSharpCompletionOptions.AddNewLineOnEnterAfterFullyTypedWord, sendThroughEnterEnabled);
                 optionService.SetOptions(options);
 
-                Assert.Equal(expected, CompletionProvider.SendEnterThroughToEditor(item, textTypedSoFar));
+                Assert.Equal(expected, CompletionProvider.SendEnterThroughToEditor(item, textTypedSoFar, workspace, LanguageNames.CSharp));
             }
         }
 
@@ -154,7 +154,7 @@ text;
                 var text = document.TextBuffer.CurrentSnapshot.AsText();
                 var options = workspace.Options.WithChangedOption(CompletionOptions.TriggerOnTypingLetters, LanguageNames.CSharp, triggerOnLetter);
 
-                var isTextualTriggerCharacterResult = CompletionProvider.IsTriggerCharacter(text, position, options);
+                var isTextualTriggerCharacterResult = CompletionProvider.IsTriggerCharacter(text, position, options, workspace, LanguageNames.CSharp);
 
                 if (expectedTriggerCharacter)
                 {
@@ -183,13 +183,16 @@ text;
 
         protected void TestCommitCharacters(char[] commitCharacters)
         {
-            foreach (var ch in commitCharacters)
+            using (var workspace = new TestWorkspace())
             {
-                Assert.True(CompletionProvider.IsCommitCharacter(null, ch, null), "Expected '" + ch + "' to be a commit character");
-            }
+                foreach (var ch in commitCharacters)
+                {
+                    Assert.True(CompletionProvider.IsCommitCharacter(null, ch, null, workspace, LanguageNames.CSharp), "Expected '" + ch + "' to be a commit character");
+                }
 
-            var chr = 'x';
-            Assert.False(CompletionProvider.IsCommitCharacter(null, chr, null), "Expected '" + chr + "' NOT to be a commit character");
+                var chr = 'x';
+                Assert.False(CompletionProvider.IsCommitCharacter(null, chr, null, workspace, LanguageNames.CSharp), "Expected '" + chr + "' NOT to be a commit character");
+            }
         }
 
         protected void TestCommonIsTextualTriggerCharacter()

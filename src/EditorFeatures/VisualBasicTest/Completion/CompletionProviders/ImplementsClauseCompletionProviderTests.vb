@@ -9,7 +9,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
     Public Class ImplementsClauseCompletionProviderTests
         Inherits AbstractVisualBasicCompletionProviderTests
 
-        Friend Overrides Function CreateCompletionProvider() As ICompletionProvider
+        Friend Overrides Function CreateCompletionProvider() As AbstractCompletionProvider
             Return New ImplementsClauseCompletionProvider()
         End Function
 
@@ -641,7 +641,7 @@ End Interface
                 Dim document = testWorkspace.CurrentSolution.GetDocument(testWorkspace.Documents.Single().Id)
                 Dim triggerInfo = New CompletionTriggerInfo()
 
-                Dim completions = completionProvider.GetGroupAsync(document, caretPosition, triggerInfo).Result
+                Dim completions = GetGroup(document, caretPosition, triggerInfo)
                 AssertEx.Any(completions.Items, Function(c) c.DisplayText = "Workcover")
 
             End Using

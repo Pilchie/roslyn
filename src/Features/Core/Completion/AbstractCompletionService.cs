@@ -81,7 +81,7 @@ namespace Microsoft.CodeAnalysis.Completion
             CancellationToken cancellationToken)
         {
             var text = await document.GetTextAsync(cancellationToken).ConfigureAwait(false);
-            return await GetGroupsAsync(document, text, position, triggerInfo, completionProviders, document.Project.Solution.Workspace.Options, cancellationToken).ConfigureAwait(false);
+            return await GetGroupsAsync(document, text, position, triggerInfo, completionProviders, document.Project.Solution.Workspace.Options, document.Project.Solution.Workspace, document.Project.Language, cancellationToken).ConfigureAwait(false);
         }
 
         public Task<IEnumerable<CompletionItemGroup>> GetGroupsAsync(
@@ -90,9 +90,10 @@ namespace Microsoft.CodeAnalysis.Completion
             CompletionTriggerInfo triggerInfo,
             IEnumerable<ICompletionProvider> completionProviders,
             OptionSet options,
+            Workspace workspace,
             CancellationToken cancellationToken)
         {
-            return GetGroupsAsync(null, text, position, triggerInfo, completionProviders, options, cancellationToken);
+            return GetGroupsAsync(null, text, position, triggerInfo, completionProviders, options, workspace, GetLanguageName(), cancellationToken);
         }
 
         private class ProviderGroup
@@ -108,6 +109,8 @@ namespace Microsoft.CodeAnalysis.Completion
             CompletionTriggerInfo triggerInfo,
             IEnumerable<ICompletionProvider> completionProviders,
             OptionSet options,
+            Workspace workspace,
+            string languageName,
             CancellationToken cancellationToken)
         {
             completionProviders = completionProviders ?? this.GetDefaultCompletionProviders();
@@ -117,7 +120,7 @@ namespace Microsoft.CodeAnalysis.Completion
             switch (triggerInfo.TriggerReason)
             {
                 case CompletionTriggerReason.TypeCharCommand:
-                    triggeredProviders = completionProviders.Where(p => p.IsTriggerCharacter(text, position - 1, options)).ToList();
+                    triggeredProviders = completionProviders.Where(p => p.IsTriggerCharacter(text, position - 1, options, workspace, languageName)).ToList();
                     break;
                 case CompletionTriggerReason.BackspaceOrDeleteCommand:
                     triggeredProviders = this.TriggerOnBackspace(text, position, triggerInfo, options)
@@ -177,11 +180,15 @@ namespace Microsoft.CodeAnalysis.Completion
                     }
                 }
 
-                var allGroups = nonExclusiveGroups.Concat(nonUsedNonExclusiveProviders).ToList();
-                if (allGroups.Count == 0)
+                var count = nonExclusiveGroups.Count + nonUsedNonExclusiveProviders.Count;
+                if (count == 0)
                 {
                     return null;
                 }
+
+                var allGroups = new List<ProviderGroup>(count);
+                allGroups.AddRange(nonExclusiveGroups);
+                allGroups.AddRange(nonUsedNonExclusiveProviders);
 
                 // Providers are ordered, but we processed them in our own order.  Ensure that the
                 // groups are properly ordered based on the original providers.
@@ -226,8 +233,9 @@ namespace Microsoft.CodeAnalysis.Completion
                 return false;
             }
 
+            var document = text.GetOpenDocumentInCurrentContextWithChanges();
             completionProviders = completionProviders ?? GetDefaultCompletionProviders();
-            return completionProviders.Any(p => p.IsTriggerCharacter(text, characterPosition, options));
+            return completionProviders.Any(p => p.IsTriggerCharacter(text, characterPosition, options, document.Project.Solution.Workspace, document.Project.Language));
         }
 
         protected abstract bool TriggerOnBackspace(SourceText text, int position, CompletionTriggerInfo triggerInfo, OptionSet options);

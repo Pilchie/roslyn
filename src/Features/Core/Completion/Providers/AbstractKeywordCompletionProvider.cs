@@ -44,7 +44,7 @@ namespace Microsoft.CodeAnalysis.Completion.Providers
 
         private static Comparer s_comparer = new Comparer();
 
-        protected override async Task<IEnumerable<CompletionItem>> GetItemsWorkerAsync(
+        public override async Task<IEnumerable<CompletionItem>> GetItemsAsync(
             Document document, int position, CompletionTriggerInfo triggerInfo,
             CancellationToken cancellationToken)
         {

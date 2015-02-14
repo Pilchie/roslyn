@@ -210,7 +210,9 @@
     <Compile Include="Completion\CompletionProviders\PartialCompletionProviderTests.cs" />
     <Compile Include="Completion\CompletionProviders\SnippetCompletionProviderTests.cs" />
     <Compile Include="Completion\CompletionProviders\SpeculativeTCompletionProviderTests.cs" />
-    <Compile Include="Completion\CompletionProviders\SuggestionModeCompletionProviderTests.cs" />
+    <Compile Include="Completion\CompletionProviders\SuggestionModeCompletionProviderTests.cs">
+      <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
+    </Compile>
     <Compile Include="Completion\CompletionProviders\SymbolCompletionProviderTests.cs" />
     <Compile Include="Completion\CompletionProviders\SymbolCompletionProviderTests_NoInteractive.cs" />
     <Compile Include="Completion\CompletionProviders\XmlDocumentationCommentCompletionProviderTests.cs" />
