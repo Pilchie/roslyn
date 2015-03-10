@@ -1,15 +1,10 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.FxCopAnalyzers.Shared.Extensions;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
 {
@@ -24,15 +19,15 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
     {
         internal const string RuleId = "CA2213";
         internal const string Dispose = "Dispose";
-        private static LocalizableString localizableMessageAndTitle = new LocalizableResourceString(nameof(FxCopRulesResources.DisposableFieldsShouldBeDisposed), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableMessageAndTitle = new LocalizableResourceString(nameof(FxCopRulesResources.DisposableFieldsShouldBeDisposed), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
 
         internal static DiagnosticDescriptor Rule = new DiagnosticDescriptor(RuleId,
-                                                                         localizableMessageAndTitle,
-                                                                         localizableMessageAndTitle,
+                                                                         s_localizableMessageAndTitle,
+                                                                         s_localizableMessageAndTitle,
                                                                          FxCopDiagnosticCategory.Usage,
                                                                          DiagnosticSeverity.Warning,
                                                                          isEnabledByDefault: true,
-                                                                         helpLink: "http://msdn.microsoft.com/library/ms182328.aspx",
+                                                                         helpLinkUri: "http://msdn.microsoft.com/library/ms182328.aspx",
                                                                          customTags: DiagnosticCustomTags.Microsoft);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
@@ -42,7 +37,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
                 return ImmutableArray.Create(Rule);
             }
         }
-        
+
         protected abstract AbstractAnalyzer GetAnalyzer(CompilationStartAnalysisContext context, INamedTypeSymbol disposableType);
 
         public override void Initialize(AnalysisContext analysisContext)
@@ -62,17 +57,17 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
 
         protected abstract class AbstractAnalyzer
         {
-            private INamedTypeSymbol disposableType;
-            private ConcurrentDictionary<IFieldSymbol, bool> fieldDisposedMap = new ConcurrentDictionary<IFieldSymbol, bool>();
+            private INamedTypeSymbol _disposableType;
+            private ConcurrentDictionary<IFieldSymbol, bool> _fieldDisposedMap = new ConcurrentDictionary<IFieldSymbol, bool>();
 
             public AbstractAnalyzer(INamedTypeSymbol disposableType)
             {
-                this.disposableType = disposableType;
+                _disposableType = disposableType;
             }
 
-            public void AnalyzeCompilation(CompilationEndAnalysisContext context)
+            public void AnalyzeCompilation(CompilationAnalysisContext context)
             {
-                foreach (var item in this.fieldDisposedMap)
+                foreach (var item in _fieldDisposedMap)
                 {
                     if (!item.Value)
                     {
@@ -85,17 +80,17 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
             {
                 Debug.Assert(context.Symbol.Kind == SymbolKind.Field);
                 var fieldSymbol = (IFieldSymbol)context.Symbol;
-                if (fieldSymbol.Type.Inherits(this.disposableType))
+                if (fieldSymbol.Type.Inherits(_disposableType))
                 {
                     // Note that we found a disposable field declaration and it has not yet been disposed
                     // If a call to dispose this field is found in a method body, that will be noted by the language specific INodeInCodeBodyAnalyzer
-                    this.fieldDisposedMap.AddOrUpdate(fieldSymbol, false, (s, alreadyDisposed) => alreadyDisposed);
+                    _fieldDisposedMap.AddOrUpdate(fieldSymbol, false, (s, alreadyDisposed) => alreadyDisposed);
                 }
             }
 
             protected void NoteFieldDisposed(IFieldSymbol fieldSymbol)
             {
-                this.fieldDisposedMap.AddOrUpdate(fieldSymbol, true, (s, alreadyDisposed) => true);
+                _fieldDisposedMap.AddOrUpdate(fieldSymbol, true, (s, alreadyDisposed) => true);
             }
         }
     }

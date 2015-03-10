@@ -331,13 +331,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Protected Sub New(reader As ObjectReader)
                 MyBase.New(reader)
-                Me._children = ArrayElement(Of VisualBasicSyntaxNode).MakeElementArray(DirectCast(reader.ReadValue(), VisualBasicSyntaxNode()))
+
+                Dim length = reader.ReadInt32()
+
+                Me._children = New ArrayElement(Of VisualBasicSyntaxNode)(length - 1) {}
+                For i = 0 To length - 1
+                    Me._children(i).Value = DirectCast(reader.ReadValue(), VisualBasicSyntaxNode)
+                Next
+
                 InitChildren()
             End Sub
 
             Friend Overrides Sub WriteTo(writer As ObjectWriter)
                 MyBase.WriteTo(writer)
-                writer.WriteValue(ArrayElement(Of VisualBasicSyntaxNode).MakeArray(Me._children))
+
+                ' PERF Write the array out manually.Profiling shows that this Is cheaper than converting to 
+                ' an array in order to use writer.WriteValue.
+                writer.WriteInt32(Me._children.Length)
+
+                For i = 0 To Me._children.Length - 1
+                    writer.WriteValue(Me._children(i).Value)
+                Next
             End Sub
 
             Friend Overrides Sub CopyTo(nodes As ArrayElement(Of VisualBasicSyntaxNode)(), offset As Integer)
@@ -439,6 +453,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
             Public Overrides Function GetSlotOffset(index As Integer) As Integer
                 Return _childOffsets(index)
+            End Function
+
+            ''' <summary>
+            ''' Find the slot that contains the given offset.
+            ''' </summary>
+            ''' <param name="offset">The target offset. Must be between 0 and <see cref="GreenNode.FullWidth"/>.</param>
+            ''' <returns>The slot index of the slot containing the given offset.</returns>
+            ''' <remarks>
+            ''' This implementation uses a binary search to find the first slot that contains
+            ''' the given offset.
+            ''' </remarks>
+            Public Overrides Function FindSlotIndexContainingOffset(offset As Integer) As Integer
+                Debug.Assert(offset >= 0 AndAlso offset < FullWidth)
+                Return _childOffsets.BinarySearchUpperBound(offset) - 1
             End Function
 
             Friend Overrides Function SetDiagnostics(errors() As DiagnosticInfo) As GreenNode

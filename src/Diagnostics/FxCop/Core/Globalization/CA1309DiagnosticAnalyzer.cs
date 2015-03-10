@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 
@@ -12,16 +11,16 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Globalization
     {
         internal const string RuleId = "CA1309";
 
-        private static LocalizableString localizableMessageAndTitle = new LocalizableResourceString(nameof(FxCopRulesResources.StringComparisonShouldBeOrdinalOrOrdinalIgnoreCase), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
-        private static LocalizableString localizableDescription = new LocalizableResourceString(nameof(FxCopRulesResources.StringComparisonShouldBeOrdinalDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableMessageAndTitle = new LocalizableResourceString(nameof(FxCopRulesResources.StringComparisonShouldBeOrdinalOrOrdinalIgnoreCase), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableDescription = new LocalizableResourceString(nameof(FxCopRulesResources.StringComparisonShouldBeOrdinalDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
         internal static DiagnosticDescriptor Rule = new DiagnosticDescriptor(RuleId,
-                                                                             localizableMessageAndTitle,
-                                                                             localizableMessageAndTitle,
+                                                                             s_localizableMessageAndTitle,
+                                                                             s_localizableMessageAndTitle,
                                                                              FxCopDiagnosticCategory.Globalization,
                                                                              DiagnosticSeverity.Warning,
                                                                              isEnabledByDefault: false,
-                                                                             description: localizableDescription,
-                                                                             helpLink: "http://msdn.microsoft.com/library/bb385972.aspx",
+                                                                             description: s_localizableDescription,
+                                                                             helpLinkUri: "http://msdn.microsoft.com/library/bb385972.aspx",
                                                                              customTags: DiagnosticCustomTags.Microsoft);
 
         internal const string CompareMethodName = "Compare";
@@ -56,7 +55,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Globalization
 
         protected abstract class AbstractCodeBlockAnalyzer
         {
-            protected INamedTypeSymbol StringComparisonType { get; private set; }
+            protected INamedTypeSymbol StringComparisonType { get; }
 
             public AbstractCodeBlockAnalyzer(INamedTypeSymbol stringComparisonType)
             {

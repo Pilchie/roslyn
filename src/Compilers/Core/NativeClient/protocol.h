@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 // Licensed under the Apache License, Version 2.0.  
 // See License.txt in the project root for license information.
 
@@ -13,7 +13,7 @@
 using namespace std;
 
 // The version of the protocol
-const int PROTOCOL_VERSION = 1;
+const int PROTOCOL_VERSION = 2;
 
 // The id numbers below are just random. It's useful to use id numbers
 // that won't occur accidentally for debugging.
@@ -35,7 +35,7 @@ enum ArgumentId
     // The "LIB" environment variable of the client
     LIBENVVARIABLE,
     // How long to extend compiler server lifetime
-    KEEPALIVE
+    KEEPALIVE,
 };
 
 enum KeepAlive 

@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,8 +11,8 @@ namespace Microsoft.CodeAnalysis
     [Serializable]
     public sealed class SerializableProjectId
     {
-        private readonly Guid guid;
-        private readonly string debugName;
+        private readonly Guid _guid;
+        private readonly string _debugName;
 
         public SerializableProjectId(ProjectId projectId)
         {
@@ -19,15 +21,15 @@ namespace Microsoft.CodeAnalysis
                 throw new ArgumentNullException(nameof(projectId));
             }
 
-            guid = projectId.Id;
-            debugName = projectId.DebugName;
+            _guid = projectId.Id;
+            _debugName = projectId.DebugName;
         }
 
         public ProjectId ProjectId
         {
             get
             {
-                return new ProjectId(guid, debugName);
+                return new ProjectId(_guid, _debugName);
             }
         }
     }

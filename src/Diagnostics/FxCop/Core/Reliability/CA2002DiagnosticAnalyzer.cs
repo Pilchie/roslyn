@@ -1,12 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.FxCopAnalyzers.Shared.Extensions;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
-using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Reliability
 {
@@ -24,15 +21,15 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Reliability
     public abstract class CA2002DiagnosticAnalyzer : DiagnosticAnalyzer
     {
         internal const string RuleId = "CA2002";
-        private static LocalizableString localizableTitle = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotLockOnObjectsWithWeakIdentity), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
-        private static LocalizableString localizableMessage = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotLockOnWeakIdentity), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableTitle = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotLockOnObjectsWithWeakIdentity), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableMessage = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotLockOnWeakIdentity), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
         internal static DiagnosticDescriptor Rule = new DiagnosticDescriptor(RuleId,
-                                                                         localizableTitle,
-                                                                         localizableMessage,
+                                                                         s_localizableTitle,
+                                                                         s_localizableMessage,
                                                                          FxCopDiagnosticCategory.Reliability,
                                                                          DiagnosticSeverity.Warning,
                                                                          isEnabledByDefault: true,
-                                                                         helpLink: "http://msdn.microsoft.com/library/ms182290.aspx",
+                                                                         helpLinkUri: "http://msdn.microsoft.com/library/ms182290.aspx",
                                                                          customTags: DiagnosticCustomTags.Microsoft);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
@@ -78,7 +75,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Reliability
                         type.Inherits(memberInfoTypeSymbol) ||
                         type.Inherits(parameterInfoTypeSymbol) ||
                         type.Inherits(threadTypeSymbol);
-                
+
                 // What about struct types?
                 default:
                     return false;

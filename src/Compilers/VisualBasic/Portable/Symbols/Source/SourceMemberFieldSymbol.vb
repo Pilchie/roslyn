@@ -311,14 +311,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                     If initializer IsNot Nothing Then
                         Dim diagnostics = DiagnosticBag.GetInstance()
                         Dim constantTuple = ConstantValueUtils.EvaluateFieldConstant(Me, initializer, inProgress, diagnostics)
-                        If sourceModule.AtomicStoreReferenceAndDiagnostics(m_constantTuple, constantTuple, diagnostics, CompilationStage.Declare) Then
-                            sourceModule.DeclaringCompilation.SymbolDeclaredEvent(Me)
-                        End If
+                        sourceModule.AtomicStoreReferenceAndDiagnostics(m_constantTuple, constantTuple, diagnostics, CompilationStage.Declare)
                         diagnostics.Free()
                     Else
-                        If sourceModule.AtomicStoreReferenceAndDiagnostics(m_constantTuple, EvaluatedConstant.None, Nothing, CompilationStage.Declare) Then
-                            sourceModule.DeclaringCompilation.SymbolDeclaredEvent(Me)
-                        End If
+                        sourceModule.AtomicStoreReferenceAndDiagnostics(m_constantTuple, EvaluatedConstant.None, Nothing, CompilationStage.Declare)
                     End If
                 End If
 
@@ -581,11 +577,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                             Else
                                 If initializerOpt Is Nothing Then
                                     ' Array declaration with implicit initializer.
-                                    Dim initializer = New FieldOrPropertyInitializer(fieldSymbol, modifiedIdentifierRef)
+                                    Dim initializer = Function(precedingInitializersLength As Integer)
+                                                          Return New FieldOrPropertyInitializer(fieldSymbol, modifiedIdentifierRef, precedingInitializersLength)
+                                                      End Function
                                     If fieldSymbol.IsShared Then
-                                        SourceNamedTypeSymbol.AddInitializer(staticInitializers, initializer)
+                                        SourceNamedTypeSymbol.AddInitializer(staticInitializers, initializer, members.StaticSyntaxLength)
                                     Else
-                                        SourceNamedTypeSymbol.AddInitializer(instanceInitializers, initializer)
+                                        SourceNamedTypeSymbol.AddInitializer(instanceInitializers, initializer, members.InstanceSyntaxLength)
                                     End If
                                 Else
                                     ' Array declaration with implicit and explicit initializers.
@@ -615,16 +613,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
                 Next
 
                 If initializerOptRef IsNot Nothing Then
-                    Dim initializer = New FieldOrPropertyInitializer(fieldOrWithEventSymbols.AsImmutableOrNull, initializerOptRef)
+                    Dim initializer = Function(precedingInitializersLength As Integer)
+                                          Return New FieldOrPropertyInitializer(fieldOrWithEventSymbols.AsImmutableOrNull, initializerOptRef, precedingInitializersLength)
+                                      End Function
 
                     ' all symbols are the same regarding the sharedness
                     Dim symbolsAreShared = nameCount > 0 AndAlso fieldOrWithEventSymbols(0).IsShared
 
                     If symbolsAreShared Then
                         ' const fields are implicitly shared and get into this list.
-                        SourceNamedTypeSymbol.AddInitializer(staticInitializers, initializer)
+                        SourceNamedTypeSymbol.AddInitializer(staticInitializers, initializer, members.StaticSyntaxLength)
                     Else
-                        SourceNamedTypeSymbol.AddInitializer(instanceInitializers, initializer)
+                        SourceNamedTypeSymbol.AddInitializer(instanceInitializers, initializer, members.InstanceSyntaxLength)
                     End If
                 End If
             Next

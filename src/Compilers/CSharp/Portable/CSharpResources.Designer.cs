@@ -4760,6 +4760,15 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Constructor &apos;{0}&apos; cannot call itself through another constructor.
+        /// </summary>
+        internal static string ERR_IndirectRecursiveConstructorCall {
+            get {
+                return ResourceManager.GetString("ERR_IndirectRecursiveConstructorCall", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &apos;in&apos; expected.
         /// </summary>
         internal static string ERR_InExpected {
@@ -5777,6 +5786,15 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Compilation options &apos;{0}&apos; and &apos;{1}&apos; can&apos;t both be specified at the same time..
+        /// </summary>
+        internal static string ERR_MutuallyExclusiveOptions {
+            get {
+                return ResourceManager.GetString("ERR_MutuallyExclusiveOptions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Named attribute argument expected.
         /// </summary>
         internal static string ERR_NamedArgumentExpected {
@@ -6682,15 +6700,6 @@ namespace Microsoft.CodeAnalysis.CSharp {
         internal static string ERR_ParameterIsStaticClass {
             get {
                 return ResourceManager.GetString("ERR_ParameterIsStaticClass", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Parameterless instance constructors in structs must be public.
-        /// </summary>
-        internal static string ERR_ParameterlessStructCtorsMustBePublic {
-            get {
-                return ResourceManager.GetString("ERR_ParameterlessStructCtorsMustBePublic", resourceCulture);
             }
         }
         
@@ -8207,6 +8216,15 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unexpected token &apos;{0}&apos;.
+        /// </summary>
+        internal static string ERR_UnexpectedToken {
+            get {
+                return ResourceManager.GetString("ERR_UnexpectedToken", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unexpected use of an unbound generic name.
         /// </summary>
         internal static string ERR_UnexpectedUnboundGenericName {
@@ -8621,7 +8639,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unused extern alias..
+        ///   Looks up a localized string similar to Unused extern alias.
         /// </summary>
         internal static string HDN_UnusedExternAlias_Title {
             get {
@@ -8639,7 +8657,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unnecessary using directive..
+        ///   Looks up a localized string similar to Unnecessary using directive.
         /// </summary>
         internal static string HDN_UnusedUsingDirective_Title {
             get {
@@ -9072,15 +9090,6 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to struct instance parameterless constructors.
-        /// </summary>
-        internal static string IDS_FeatureStructParameterlessConstructors {
-            get {
-                return ResourceManager.GetString("IDS_FeatureStructParameterlessConstructors", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to switch on boolean type.
         /// </summary>
         internal static string IDS_FeatureSwitchOnBool {
@@ -9468,7 +9477,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Skip loading types in analyzer assembly that fail due to a ReflectionTypeLoadException..
+        ///   Looks up a localized string similar to Skip loading types in analyzer assembly that fail due to a ReflectionTypeLoadException.
         /// </summary>
         internal static string INF_UnableToLoadSomeTypesInAnalyzer_Title {
             get {
@@ -9756,7 +9765,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Alignment value has a magnitude that may result in a large formatted string..
+        ///   Looks up a localized string similar to Alignment value has a magnitude that may result in a large formatted string.
         /// </summary>
         internal static string WRN_AlignmentMagnitude_Title {
             get {
@@ -10458,7 +10467,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to &apos;Base type is not CLS-compliant.
+        ///   Looks up a localized string similar to Base type is not CLS-compliant.
         /// </summary>
         internal static string WRN_CLS_BadBase_Title {
             get {
@@ -11810,7 +11819,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The entry point of the program is global script code; ignoring entry point..
+        ///   Looks up a localized string similar to The entry point of the program is global script code; ignoring entry point.
         /// </summary>
         internal static string WRN_MainIgnored_Title {
             get {
@@ -12138,7 +12147,7 @@ namespace Microsoft.CodeAnalysis.CSharp {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No source files specified..
+        ///   Looks up a localized string similar to No source files specified.
         /// </summary>
         internal static string WRN_NoSources_Title {
             get {

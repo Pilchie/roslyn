@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 #pragma warning disable CS0618 // MetadataCache to be removed
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -161,7 +160,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
             var mscorlibRef = new MetadataFileReference(mscorlibPath);
 
-            Assert.True(mscorlibRef.Properties.Aliases.IsDefault);
+            Assert.True(mscorlibRef.Properties.Aliases.IsEmpty);
             Assert.Equal(false, mscorlibRef.Properties.EmbedInteropTypes);
             Assert.Equal(mscorlibPath, mscorlibRef.FilePath, StringComparer.OrdinalIgnoreCase);
             Assert.Equal(MetadataImageKind.Assembly, mscorlibRef.Properties.Kind);
@@ -391,7 +390,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
                 var varC1Ref = new CSharpCompilationReference(tc1);
 
-                Assert.True(varC1Ref.Properties.Aliases.IsDefault);
+                Assert.True(varC1Ref.Properties.Aliases.IsEmpty);
                 Assert.Equal(false, varC1Ref.Properties.EmbedInteropTypes);
                 Assert.Same(varC1Ref.Compilation, tc1);
                 Assert.Equal(MetadataImageKind.Assembly, varC1Ref.Properties.Kind);
@@ -513,7 +512,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
                 var module1Path = Temp.CreateFile().WriteAllBytes(TestResources.SymbolsTests.netModule.netModule1).Path;
                 var module1Ref = new MetadataFileReference(module1Path, MetadataImageKind.Module);
-                Assert.True(module1Ref.Properties.Aliases.IsDefault);
+                Assert.True(module1Ref.Properties.Aliases.IsEmpty);
                 Assert.Equal(false, module1Ref.Properties.EmbedInteropTypes);
                 Assert.Equal(MetadataImageKind.Module, module1Ref.Properties.Kind);
 
@@ -1098,7 +1097,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 GC.KeepAlive(c2);
             }
         }
-        
+
         [Fact]
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         public void CompactRetargetingCache1()

@@ -1797,7 +1797,6 @@ System.Exception");
   IL_002e:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -2162,7 +2161,6 @@ True");
   IL_0058:  callvirt   ""void System.IDisposable.Dispose()""
   IL_005d:  ret
 }");
-
         }
 
         [Fact]
@@ -2262,7 +2260,6 @@ True");
   IL_006d:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -2337,7 +2334,6 @@ True
   IL_002d:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -2410,7 +2406,6 @@ True");
   IL_002a:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -2512,7 +2507,6 @@ False");
   IL_006d:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -2584,7 +2578,6 @@ True");
   IL_002b:  ret
 }
 ");
-
         }
 
 
@@ -2645,7 +2638,6 @@ class Program
 True
 False
 False");
-
         }
 
         [Fact]
@@ -2771,7 +2763,6 @@ class Program
 True
 False
 True");
-
         }
 
         [Fact]
@@ -2841,7 +2832,6 @@ class Program
 True
 False
 False");
-
         }
 
         [Fact]
@@ -2925,7 +2915,6 @@ True
 False
 True
 False");
-
         }
 
         [Fact]
@@ -3009,7 +2998,6 @@ True
 False
 True
 False");
-
         }
 
         [Fact]
@@ -3093,7 +3081,6 @@ False
 True
 False
 True");
-
         }
 
 
@@ -3141,7 +3128,6 @@ static class Ext
   IL_0014:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -3269,7 +3255,6 @@ class Test
   IL_0033:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -4191,7 +4176,7 @@ class Program
             var comp = CompileAndVerify(source, expectedOutput: @"Success");
         }
 
-        [Fact]
+        [Fact(Skip = "836"), WorkItem(836, "GitHub")]
         public void ConditionalMemberAccessRace002()
         {
             var source = @"
@@ -4989,5 +4974,625 @@ M
 }");
         }
 
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_01()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+        System.Console.WriteLine(""---"");
+        C.F1(null);
+        System.Console.WriteLine(""---"");
+        C.F1(new C());
+        System.Console.WriteLine(""---"");
+        C.F2(null);
+        System.Console.WriteLine(""---"");
+        C.F2(new C());
+        System.Console.WriteLine(""---"");
+    }
+}
+
+class C 
+{
+    static public void F1(C c) 
+    {
+        System.Console.WriteLine(""F1"");
+        Action a = () => c?.M();
+        a();
+    }
+
+    static public void F2(C c) => c?.M();
+
+    void M() => System.Console.WriteLine(""M"");
+}
+";
+            var verifier = CompileAndVerify(source, options: TestOptions.DebugExe, expectedOutput: @"---
+F1
+---
+F1
+M
+---
+---
+M
+---");
+
+            verifier.VerifyIL("C.<>c__DisplayClass0_0.<F1>b__0", @"
+{
+  // Code size       21 (0x15)
+  .maxstack  2
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      ""C C.<>c__DisplayClass0_0.c""
+  IL_0006:  dup
+  IL_0007:  brtrue.s   IL_000c
+  IL_0009:  pop
+  IL_000a:  br.s       IL_0012
+  IL_000c:  call       ""void C.M()""
+  IL_0011:  nop
+  IL_0012:  br.s       IL_0014
+  IL_0014:  ret
+}");
+
+            verifier.VerifyIL("C.F2", @"
+{
+  // Code size       15 (0xf)
+  .maxstack  1
+  IL_0000:  ldarg.0
+  IL_0001:  brtrue.s   IL_0005
+  IL_0003:  br.s       IL_000c
+  IL_0005:  ldarg.0
+  IL_0006:  call       ""void C.M()""
+  IL_000b:  nop
+  IL_000c:  br.s       IL_000e
+  IL_000e:  ret
+}");
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_02()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+    }
+}
+
+class C 
+{
+    static public void F1(C c) 
+    {
+        System.Console.WriteLine(""F1"");
+        Func<object> a = () => c?.M();
+    }
+
+    static public object F2(C c) => c?.M();
+
+    static public object P1 => (new C())?.M();
+
+    void M() => System.Console.WriteLine(""M"");
+}
+";
+            var compilation = CreateCompilationWithMscorlib(source);
+
+            compilation.VerifyDiagnostics(
+    // (16,32): error CS0029: Cannot implicitly convert type 'void' to 'object'
+    //         Func<object> a = () => c?.M();
+    Diagnostic(ErrorCode.ERR_NoImplicitConv, "c?.M()").WithArguments("void", "object").WithLocation(16, 32),
+    // (16,32): error CS1662: Cannot convert lambda expression to intended delegate type because some of the return types in the block are not implicitly convertible to the delegate return type
+    //         Func<object> a = () => c?.M();
+    Diagnostic(ErrorCode.ERR_CantConvAnonMethReturns, "c?.M()").WithArguments("lambda expression").WithLocation(16, 32),
+    // (19,37): error CS0029: Cannot implicitly convert type 'void' to 'object'
+    //     static public object F2(C c) => c?.M();
+    Diagnostic(ErrorCode.ERR_NoImplicitConv, "c?.M()").WithArguments("void", "object").WithLocation(19, 37),
+    // (21,32): error CS0029: Cannot implicitly convert type 'void' to 'object'
+    //     static public object P1 => (new C())?.M();
+    Diagnostic(ErrorCode.ERR_NoImplicitConv, "(new C())?.M()").WithArguments("void", "object").WithLocation(21, 32)
+                );
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_03()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+        System.Console.WriteLine(""---"");
+        C<int>.F1(null);
+        System.Console.WriteLine(""---"");
+        C<int>.F1(new C<int>());
+        System.Console.WriteLine(""---"");
+        C<int>.F2(null);
+        System.Console.WriteLine(""---"");
+        C<int>.F2(new C<int>());
+        System.Console.WriteLine(""---"");
+    }
+}
+
+class C<T> 
+{
+    static public void F1(C<T> c) 
+    {
+        System.Console.WriteLine(""F1"");
+        Action a = () => c?.M();
+        a();
+    }
+
+    static public void F2(C<T> c) => c?.M();
+
+    T M() 
+    {
+        System.Console.WriteLine(""M"");
+        return default(T);
+    }
+}
+";
+            var verifier = CompileAndVerify(source, options: TestOptions.DebugExe, expectedOutput: @"---
+F1
+---
+F1
+M
+---
+---
+M
+---");
+
+            verifier.VerifyIL("C<T>.<>c__DisplayClass0_0.<F1>b__0()", @"
+{
+  // Code size       21 (0x15)
+  .maxstack  2
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      ""C<T> C<T>.<>c__DisplayClass0_0.c""
+  IL_0006:  dup
+  IL_0007:  brtrue.s   IL_000c
+  IL_0009:  pop
+  IL_000a:  br.s       IL_0012
+  IL_000c:  call       ""T C<T>.M()""
+  IL_0011:  pop
+  IL_0012:  br.s       IL_0014
+  IL_0014:  ret
+}");
+
+            verifier.VerifyIL("C<T>.F2", @"
+{
+  // Code size       15 (0xf)
+  .maxstack  1
+  IL_0000:  ldarg.0
+  IL_0001:  brtrue.s   IL_0005
+  IL_0003:  br.s       IL_000c
+  IL_0005:  ldarg.0
+  IL_0006:  call       ""T C<T>.M()""
+  IL_000b:  pop
+  IL_000c:  br.s       IL_000e
+  IL_000e:  ret
+}");
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_04()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+    }
+}
+
+class C<T> 
+{
+    static public void F1(C<T> c) 
+    {
+        Func<object> a = () => c?.M();
+    }
+
+    static public object F2(C<T> c) => c?.M();
+
+    static public object P1 => (new C<T>())?.M();
+
+    T M() 
+    {
+        return default(T);
+    }
+}
+";
+
+            var compilation = CreateCompilationWithMscorlib(source);
+
+            compilation.VerifyDiagnostics(
+    // (15,33): error CS0023: Operator '?' cannot be applied to operand of type 'T'
+    //         Func<object> a = () => c?.M();
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "T").WithLocation(15, 33),
+    // (18,41): error CS0023: Operator '?' cannot be applied to operand of type 'T'
+    //     static public object F2(C<T> c) => c?.M();
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "T").WithLocation(18, 41),
+    // (20,44): error CS0023: Operator '?' cannot be applied to operand of type 'T'
+    //     static public object P1 => (new C<T>())?.M();
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "T").WithLocation(20, 44)
+                );
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_05()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+        System.Console.WriteLine(""---"");
+        C.F1(null);
+        System.Console.WriteLine(""---"");
+        C.F1(new C());
+        System.Console.WriteLine(""---"");
+        C.F2(null);
+        System.Console.WriteLine(""---"");
+        C.F2(new C());
+        System.Console.WriteLine(""---"");
+    }
+}
+
+unsafe class C 
+{
+    static public void F1(C c) 
+    {
+        System.Console.WriteLine(""F1"");
+        Action<object> a = o => c?.M();
+        a(null);
+    }
+
+    static public void F2(C c) => c?.M();
+
+    void* M() 
+    {
+        System.Console.WriteLine(""M"");
+        return null;
+    }
+}
+";
+            var verifier = CompileAndVerify(source, options: TestOptions.DebugExe.WithAllowUnsafe(true), expectedOutput: @"---
+F1
+---
+F1
+M
+---
+---
+M
+---");
+
+            verifier.VerifyIL("C.<>c__DisplayClass0_0.<F1>b__0", @"
+{
+  // Code size       21 (0x15)
+  .maxstack  2
+  IL_0000:  ldarg.0
+  IL_0001:  ldfld      ""C C.<>c__DisplayClass0_0.c""
+  IL_0006:  dup
+  IL_0007:  brtrue.s   IL_000c
+  IL_0009:  pop
+  IL_000a:  br.s       IL_0012
+  IL_000c:  call       ""void* C.M()""
+  IL_0011:  pop
+  IL_0012:  br.s       IL_0014
+  IL_0014:  ret
+}");
+
+            verifier.VerifyIL("C.F2", @"
+{
+  // Code size       15 (0xf)
+  .maxstack  1
+  IL_0000:  ldarg.0
+  IL_0001:  brtrue.s   IL_0005
+  IL_0003:  br.s       IL_000c
+  IL_0005:  ldarg.0
+  IL_0006:  call       ""void* C.M()""
+  IL_000b:  pop
+  IL_000c:  br.s       IL_000e
+  IL_000e:  ret
+}");
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_06()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+    }
+}
+
+unsafe class C 
+{
+    static public void F1(C c) 
+    {
+        System.Console.WriteLine(""F1"");
+        Func<object, object> a = o => c?.M();
+    }
+
+    static public object F2(C c) => c?.M();
+
+    static public object P1 => (new C())?.M();
+
+    void* M() 
+    {
+        System.Console.WriteLine(""M"");
+        return null;
+    }
+}
+";
+
+            var compilation = CreateCompilationWithMscorlib(source, options: TestOptions.DebugExe.WithAllowUnsafe(true));
+
+            compilation.VerifyDiagnostics(
+    // (16,40): error CS0023: Operator '?' cannot be applied to operand of type 'void*'
+    //         Func<object, object> a = o => c?.M();
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "void*").WithLocation(16, 40),
+    // (19,38): error CS0023: Operator '?' cannot be applied to operand of type 'void*'
+    //     static public object F2(C c) => c?.M();
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "void*").WithLocation(19, 38),
+    // (21,41): error CS0023: Operator '?' cannot be applied to operand of type 'void*'
+    //     static public object P1 => (new C())?.M();
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "void*").WithLocation(21, 41)
+                );
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_07()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+        C<int>.Test();
+    }
+}
+
+class C<T> 
+{
+    public static void Test()
+    {
+        var x = new [] {null, new C<T>()};
+
+        for (int i = 0; i < 2; x[i-1]?.M())
+        {
+            System.Console.WriteLine(""---"");
+            System.Console.WriteLine(""Loop"");
+            i++;
+        }
+
+        System.Console.WriteLine(""---"");
+    }
+
+    public T M() 
+    {
+        System.Console.WriteLine(""M"");
+        return default(T);
+    }
+}
+";
+            var verifier = CompileAndVerify(source, options: TestOptions.DebugExe, expectedOutput: @" ---
+Loop
+---
+Loop
+M
+---");
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_08()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+        C<int>.Test();
+    }
+}
+
+class C<T> 
+{
+    public static void Test()
+    {
+        var x = new [] {null, new C<T>()};
+        
+        System.Console.WriteLine(""---"");
+        for (x[0]?.M(); false;)
+        {
+        }
+
+        System.Console.WriteLine(""---"");
+        for (x[1]?.M(); false;)
+        {
+        }
+
+        System.Console.WriteLine(""---"");
+    }
+
+    public T M() 
+    {
+        System.Console.WriteLine(""M"");
+        return default(T);
+    }
+}
+";
+            var verifier = CompileAndVerify(source, options: TestOptions.DebugExe, expectedOutput: @"---
+---
+M
+---");
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_09()
+        {
+            var source = @"
+class Test
+{
+    static void Main()
+    {
+    }
+}
+
+class C<T> 
+{
+    public static void Test()
+    {
+        C<T> x = null;
+        
+        for (; x?.M();)
+        {
+        }
+    }
+
+    public T M() 
+    {
+        return default(T);
+    }
+}
+";
+            var compilation = CreateCompilationWithMscorlib(source);
+
+            compilation.VerifyDiagnostics(
+    // (15,17): error CS0023: Operator '?' cannot be applied to operand of type 'T'
+    //         for (; x?.M();)
+    Diagnostic(ErrorCode.ERR_BadUnaryOp, "?").WithArguments("?", "T").WithLocation(15, 17)
+                );
+        }
+
+        [WorkItem(1109164, "DevDiv")]
+        [Fact]
+        public void Bug1109164_10()
+        {
+            var source = @"
+using System;
+
+class Test
+{
+    static void Main()
+    {
+        C<int>.Test();
+    }
+}
+
+class C<T> 
+{
+    public static void Test()
+    {
+        System.Console.WriteLine(""---"");
+        M1(a => a?.M(), null);
+        System.Console.WriteLine(""---"");
+        M1((a) => a?.M(), new C<T>());
+        System.Console.WriteLine(""---"");
+    }
+
+    static void M1(Action<C<T>> x, C<T> y)
+    {
+        System.Console.WriteLine(""M1(Action<C<T>> x)"");
+        x(y);
+    }
+
+    static void M1(Func<C<T>, object> x, C<T> y)
+    {
+        System.Console.WriteLine(""M1(Func<C<T>, object> x)"");
+        x(y);
+    }
+
+    public T M() 
+    {
+        System.Console.WriteLine(""M"");
+        return default(T);
+    }
+}
+";
+            var verifier = CompileAndVerify(source, options: TestOptions.DebugExe, expectedOutput: @"---
+M1(Action<C<T>> x)
+---
+M1(Action<C<T>> x)
+M
+---");
+        }
+
+        [WorkItem(74, "https://github.com/dotnet/roslyn/issues/74")]
+        [Fact]
+        public void ConditionalInAsyncTask()
+        {
+            var source = @"
+#pragma warning disable CS1998 // suppress 'no await in async' warning
+using System;
+using System.Threading.Tasks;
+
+class Foo<T>
+{
+    public T Method(int i)
+    {
+        Console.Write(i);
+        return default(T); // returns value of unconstrained type parameter type
+    }
+    public void M1(Foo<T> x) => x?.Method(4);
+    public async void M2(Foo<T> x) => x?.Method(5);
+    public async Task M3(Foo<T> x) => x?.Method(6);
+    public async Task M4() {
+        Foo<T> a = new Foo<T>();
+        Foo<T> b = null;
+
+        Action f1 = async () => a?.Method(1);
+        f1();
+        f1 = async () => b?.Method(0);
+        f1();
+
+        Func<Task> f2 = async () => a?.Method(2);
+        await f2();
+        Func<Task> f3 = async () => b?.Method(3);
+        await f3();
+
+        M1(a); M1(b);
+        M2(a); M2(b);
+        await M3(a);
+        await M3(b);
+    }
+}
+class Program
+{
+    public static void Main()
+    {
+        // this will complete synchronously as there are no truly async ops.
+        new Foo<int>().M4();
+    }
+}";
+            var compilation = CreateCompilationWithMscorlib45(
+                source, references: new[] { SystemRef_v4_0_30319_17929, SystemCoreRef_v4_0_30319_17929, CSharpRef }, options: TestOptions.DebugExe);
+            CompileAndVerify(compilation, expectedOutput: "12456");
+        }
     }
 }

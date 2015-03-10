@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.ErrorReporting;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Internal.Log;
 using Microsoft.CodeAnalysis.LanguageServices;
@@ -18,10 +19,10 @@ namespace Microsoft.CodeAnalysis
 {
     internal partial class DocumentState : TextDocumentState
     {
-        private readonly HostLanguageServices languageServices;
-        private readonly ParseOptions options;
+        private readonly HostLanguageServices _languageServices;
+        private readonly ParseOptions _options;
 
-        private readonly ValueSource<TreeAndVersion> treeSource;
+        private readonly ValueSource<TreeAndVersion> _treeSource;
 
         private DocumentState(
             HostLanguageServices languageServices,
@@ -32,9 +33,9 @@ namespace Microsoft.CodeAnalysis
             ValueSource<TreeAndVersion> treeSource)
             : base(solutionServices, info, textSource)
         {
-            this.languageServices = languageServices;
-            this.options = options;
-            this.treeSource = treeSource;
+            _languageServices = languageServices;
+            _options = options;
+            _treeSource = treeSource;
         }
 
         public static DocumentState Create(
@@ -110,7 +111,7 @@ namespace Microsoft.CodeAnalysis
                 if (mode == PreservationMode.PreserveValue && solutionServices.SupportsCachingRecoverableObjects)
                 {
                     var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
-                    tree = treeFactory.CreateRecoverableTree(cacheKey, tree.FilePath, tree.Options, newTextSource, root);
+                    tree = treeFactory.CreateRecoverableTree(cacheKey, tree.FilePath, tree.Options, newTextSource, text.Encoding, root);
                 }
 
                 Contract.ThrowIfNull(tree);
@@ -134,19 +135,26 @@ namespace Microsoft.CodeAnalysis
             ValueSource<TextAndVersion> newTextSource,
             CancellationToken cancellationToken)
         {
-            using (Logger.LogBlock(FunctionId.Workspace_Document_State_IncrementallyParseSyntaxTree, cancellationToken))
+            try
             {
-                var newTextAndVersion = await newTextSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                var newText = newTextAndVersion.Text;
+                using (Logger.LogBlock(FunctionId.Workspace_Document_State_IncrementallyParseSyntaxTree, cancellationToken))
+                {
+                    var newTextAndVersion = await newTextSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    var newText = newTextAndVersion.Text;
 
-                var oldTreeAndVersion = await oldTreeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
-                var oldTree = oldTreeAndVersion.Tree;
-                var oldText = await oldTree.GetTextAsync(cancellationToken).ConfigureAwait(false);
+                    var oldTreeAndVersion = await oldTreeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                    var oldTree = oldTreeAndVersion.Tree;
+                    var oldText = await oldTree.GetTextAsync(cancellationToken).ConfigureAwait(false);
 
-                var newTree = oldTree.WithChangedText(newText);
-                Contract.ThrowIfNull(newTree);
+                    var newTree = oldTree.WithChangedText(newText);
+                    Contract.ThrowIfNull(newTree);
 
-                return MakeNewTreeAndVersion(oldTree, oldText, oldTreeAndVersion.Version, newTree, newText, newTextAndVersion.Version);
+                    return MakeNewTreeAndVersion(oldTree, oldText, oldTreeAndVersion.Version, newTree, newText, newTextAndVersion.Version);
+                }
+            }
+            catch (Exception e) when (FatalError.ReportUnlessCanceled(e))
+            {
+                throw ExceptionUtilities.Unreachable;
             }
         }
 
@@ -218,7 +226,7 @@ namespace Microsoft.CodeAnalysis
                 this.Id.ProjectId,
                 GetSyntaxTreeFilePath(this.info),
                 options,
-                this.languageServices,
+                _languageServices,
                 this.solutionServices);
 
             return new DocumentState(
@@ -243,12 +251,12 @@ namespace Microsoft.CodeAnalysis
         public DocumentState UpdateFolders(IList<string> folders)
         {
             return new DocumentState(
-                this.languageServices,
+                _languageServices,
                 this.solutionServices,
                 this.info.WithFolders(folders),
-                this.options,
+                _options,
                 this.textSource,
-                this.treeSource);
+                _treeSource);
         }
 
         public new DocumentState UpdateText(SourceText newText, PreservationMode mode)
@@ -262,7 +270,7 @@ namespace Microsoft.CodeAnalysis
             // this helps reduce duplicate parsing when typing.
             if (mode == PreservationMode.PreserveIdentity)
             {
-                var br = this.firstBranch;
+                var br = _firstBranch;
                 if (br != null && br.Text == newText)
                 {
                     return br.State;
@@ -274,15 +282,15 @@ namespace Microsoft.CodeAnalysis
 
             var newState = this.UpdateText(newTextAndVersion, mode);
 
-            if (mode == PreservationMode.PreserveIdentity && this.firstBranch == null)
+            if (mode == PreservationMode.PreserveIdentity && _firstBranch == null)
             {
-                Interlocked.CompareExchange(ref this.firstBranch, new DocumentBranch(newText, newState), null);
+                Interlocked.CompareExchange(ref _firstBranch, new DocumentBranch(newText, newState), null);
             }
 
             return newState;
         }
 
-        private DocumentBranch firstBranch;
+        private DocumentBranch _firstBranch;
 
         private class DocumentBranch
         {
@@ -310,13 +318,13 @@ namespace Microsoft.CodeAnalysis
             // always chain incremental parsing request, it will internally put 
             // appropriate request such as full parsing request if there are too many pending 
             // incremental parsing requests hanging around.
-            var newTreeSource = CreateLazyIncrementallyParsedTree(this.treeSource, newTextSource);
+            var newTreeSource = CreateLazyIncrementallyParsedTree(_treeSource, newTextSource);
 
             return new DocumentState(
                 this.LanguageServices,
                 this.solutionServices,
                 this.info,
-                this.options,
+                _options,
                 newTextSource,
                 newTreeSource);
         }
@@ -336,8 +344,8 @@ namespace Microsoft.CodeAnalysis
                 newTextSource,
                 this.Id.ProjectId,
                 GetSyntaxTreeFilePath(this.info),
-                this.options,
-                this.languageServices,
+                _options,
+                _languageServices,
                 this.solutionServices,
                 mode);
 
@@ -345,7 +353,7 @@ namespace Microsoft.CodeAnalysis
                 this.LanguageServices,
                 this.solutionServices,
                 this.info,
-                this.options,
+                _options,
                 textSource: newTextSource,
                 treeSource: newTreeSource);
         }
@@ -360,15 +368,34 @@ namespace Microsoft.CodeAnalysis
             var newTextVersion = this.GetNewerVersion();
             var newTreeVersion = GetNewTreeVersionForUpdatedTree(newRoot, newTextVersion, mode);
 
-            var syntaxTreeFactory = this.languageServices.GetService<ISyntaxTreeFactoryService>();
+            // determine encoding
+            Encoding encoding;
+            SyntaxTree priorTree;
+            SourceText priorText;
+            if (this.TryGetSyntaxTree(out priorTree))
+            {
+                // this is most likely available since UpdateTree is normally called after modifying the existing tree.
+                encoding = priorTree.Encoding;
+            }
+            else if (this.TryGetText(out priorText))
+            {
+                encoding = priorText.Encoding;
+            }
+            else
+            {
+                // the existing encoding was never observed so is unknown.
+                encoding = null;
+            }
 
-            var result = CreateRecoverableTextAndTree(newRoot, newTextVersion, newTreeVersion, this.info, this.options, syntaxTreeFactory, mode, this.solutionServices);
+            var syntaxTreeFactory = _languageServices.GetService<ISyntaxTreeFactoryService>();
+
+            var result = CreateRecoverableTextAndTree(newRoot, newTextVersion, newTreeVersion, encoding, this.info, _options, syntaxTreeFactory, mode, this.solutionServices);
 
             return new DocumentState(
                 this.LanguageServices,
                 this.solutionServices,
                 this.info,
-                this.options,
+                _options,
                 textSource: result.Item1,
                 treeSource: new ConstantValueSource<TreeAndVersion>(result.Item2));
         }
@@ -382,7 +409,7 @@ namespace Microsoft.CodeAnalysis
 
             TreeAndVersion oldTreeAndVersion;
             SyntaxNode oldRoot;
-            if (!this.treeSource.TryGetValue(out oldTreeAndVersion) || !oldTreeAndVersion.Tree.TryGetRoot(out oldRoot))
+            if (!_treeSource.TryGetValue(out oldTreeAndVersion) || !oldTreeAndVersion.Tree.TryGetRoot(out oldRoot))
             {
                 return newTextVersion;
             }
@@ -392,16 +419,11 @@ namespace Microsoft.CodeAnalysis
 
         // use static method so we don't capture references to this
         private static Tuple<AsyncLazy<TextAndVersion>, TreeAndVersion> CreateRecoverableTextAndTree(
-            SyntaxNode newRoot, VersionStamp textVersion, VersionStamp treeVersion,
+            SyntaxNode newRoot, VersionStamp textVersion, VersionStamp treeVersion, Encoding encoding,
             DocumentInfo info, ParseOptions options, ISyntaxTreeFactoryService factory, PreservationMode mode, SolutionServices solutionServices)
         {
             string filePath = info.FilePath;
             TreeAndVersion lazyTree = null;
-
-            // Since this text will be created from a tree, it doesn't have an explicit encoding.
-            // We'll check for this case when writing out the file, and look at the original file's
-            // encoding.
-            Encoding encoding = null;
 
             // this captures the lazyTree local
             var lazyText = new AsyncLazy<TextAndVersion>(
@@ -411,8 +433,8 @@ namespace Microsoft.CodeAnalysis
 
             lazyTree = TreeAndVersion.Create(
                 (mode == PreservationMode.PreserveIdentity) || !solutionServices.SupportsCachingRecoverableObjects
-                    ? factory.CreateSyntaxTree(GetSyntaxTreeFilePath(info), options, newRoot, encoding)
-                    : factory.CreateRecoverableTree(info.Id.ProjectId, GetSyntaxTreeFilePath(info), options, lazyText, newRoot),
+                    ? factory.CreateSyntaxTree(GetSyntaxTreeFilePath(info), options, encoding, newRoot)
+                    : factory.CreateRecoverableTree(info.Id.ProjectId, GetSyntaxTreeFilePath(info), options, lazyText, encoding, newRoot),
                 treeVersion);
 
             return Tuple.Create(lazyText, lazyTree);
@@ -441,7 +463,7 @@ namespace Microsoft.CodeAnalysis
             }
 
             TreeAndVersion treeAndVersion;
-            if (this.treeSource.TryGetValue(out treeAndVersion) && treeAndVersion != null)
+            if (_treeSource.TryGetValue(out treeAndVersion) && treeAndVersion != null)
             {
                 return treeAndVersion.Version.GetNewerVersion();
             }
@@ -454,7 +476,7 @@ namespace Microsoft.CodeAnalysis
             syntaxTree = default(SyntaxTree);
 
             TreeAndVersion treeAndVersion;
-            if (this.treeSource.TryGetValue(out treeAndVersion) && treeAndVersion != null)
+            if (_treeSource.TryGetValue(out treeAndVersion) && treeAndVersion != null)
             {
                 syntaxTree = treeAndVersion.Tree;
                 BindSyntaxTreeToId(syntaxTree, this.Id);
@@ -466,7 +488,7 @@ namespace Microsoft.CodeAnalysis
 
         public async Task<SyntaxTree> GetSyntaxTreeAsync(CancellationToken cancellationToken)
         {
-            var treeAndVersion = await this.treeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var treeAndVersion = await _treeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
             // make sure there is an association between this tree and this doc id before handing it out
             BindSyntaxTreeToId(treeAndVersion.Tree, this.Id);
@@ -476,7 +498,7 @@ namespace Microsoft.CodeAnalysis
         public bool TryGetTopLevelChangeTextVersion(out VersionStamp version)
         {
             TreeAndVersion treeAndVersion;
-            if (this.treeSource.TryGetValue(out treeAndVersion))
+            if (_treeSource.TryGetValue(out treeAndVersion))
             {
                 version = treeAndVersion.Version;
                 return true;
@@ -491,7 +513,7 @@ namespace Microsoft.CodeAnalysis
         public override async Task<VersionStamp> GetTopLevelChangeTextVersionAsync(CancellationToken cancellationToken)
         {
             TreeAndVersion treeAndVersion;
-            if (this.treeSource.TryGetValue(out treeAndVersion))
+            if (_treeSource.TryGetValue(out treeAndVersion))
             {
                 return treeAndVersion.Version;
             }
@@ -502,36 +524,36 @@ namespace Microsoft.CodeAnalysis
                 return await this.GetTextVersionAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            treeAndVersion = await this.treeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            treeAndVersion = await _treeSource.GetValueAsync(cancellationToken).ConfigureAwait(false);
             return treeAndVersion.Version;
         }
 
-        private static readonly ReaderWriterLockSlim syntaxTreeToIdMapLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
-        private static readonly ConditionalWeakTable<SyntaxTree, DocumentId> syntaxTreeToIdMap =
+        private static readonly ReaderWriterLockSlim s_syntaxTreeToIdMapLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
+        private static readonly ConditionalWeakTable<SyntaxTree, DocumentId> s_syntaxTreeToIdMap =
             new ConditionalWeakTable<SyntaxTree, DocumentId>();
 
         private static void BindSyntaxTreeToId(SyntaxTree tree, DocumentId id)
         {
-            using (syntaxTreeToIdMapLock.DisposableWrite())
+            using (s_syntaxTreeToIdMapLock.DisposableWrite())
             {
                 DocumentId existingId;
-                if (syntaxTreeToIdMap.TryGetValue(tree, out existingId))
+                if (s_syntaxTreeToIdMap.TryGetValue(tree, out existingId))
                 {
                     Contract.ThrowIfFalse(existingId == id);
                 }
                 else
                 {
-                    syntaxTreeToIdMap.Add(tree, id);
+                    s_syntaxTreeToIdMap.Add(tree, id);
                 }
             }
         }
 
         public static DocumentId GetDocumentIdForTree(SyntaxTree tree)
         {
-            using (syntaxTreeToIdMapLock.DisposableRead())
+            using (s_syntaxTreeToIdMapLock.DisposableRead())
             {
                 DocumentId id;
-                syntaxTreeToIdMap.TryGetValue(tree, out id);
+                s_syntaxTreeToIdMap.TryGetValue(tree, out id);
                 return id;
             }
         }

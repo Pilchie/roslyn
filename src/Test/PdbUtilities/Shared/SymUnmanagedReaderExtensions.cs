@@ -11,7 +11,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.VisualStudio.SymReaderInterop
 {
-    public struct AsyncStepInfo : IEquatable<AsyncStepInfo>
+    internal struct AsyncStepInfo : IEquatable<AsyncStepInfo>
     {
         public readonly int YieldOffset;
         public readonly int ResumeOffset;
@@ -31,8 +31,8 @@ namespace Microsoft.VisualStudio.SymReaderInterop
 
         public bool Equals(AsyncStepInfo other)
         {
-            return YieldOffset == other.YieldOffset 
-                && ResumeMethod == other.ResumeMethod 
+            return YieldOffset == other.YieldOffset
+                && ResumeMethod == other.ResumeMethod
                 && ResumeOffset == other.ResumeOffset;
         }
 
@@ -47,8 +47,9 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         internal const int S_OK = 0x0;
         internal const int S_FALSE = 0x1;
         internal const int E_FAIL = unchecked((int)0x80004005);
+        internal const int E_NOTIMPL = unchecked((int)0x80004001);
 
-        private static readonly IntPtr IgnoreIErrorInfo = new IntPtr(-1);
+        private static readonly IntPtr s_ignoreIErrorInfo = new IntPtr(-1);
 
         // The name of the attribute containing the byte array of custom debug info.
         // MSCUSTOMDEBUGINFO in Dev10.
@@ -163,9 +164,9 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// Get the blob of binary custom debug info for a given method.
         /// TODO: consume <paramref name="methodVersion"/> (DevDiv #1068138).
         /// </summary>
-        public static byte[] GetCustomDebugInfo(this ISymUnmanagedReader reader, int methodToken, int methodVersion)
+        public static byte[] GetCustomDebugInfoBytes(this ISymUnmanagedReader reader, int methodToken, int methodVersion)
         {
-            return GetItems(reader, new SymbolToken(methodToken), CdiAttributeName, 
+            return GetItems(reader, new SymbolToken(methodToken), CdiAttributeName,
                 (ISymUnmanagedReader a, SymbolToken b, string c, int d, out int e, byte[] f) => a.GetSymAttribute(b, c, d, out e, f));
         }
 
@@ -186,7 +187,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
 
         public static ImmutableArray<ISymUnmanagedDocument> GetDocuments(this ISymUnmanagedReader reader)
         {
-            return ToImmutableOrEmpty(GetItems(reader, 
+            return ToImmutableOrEmpty(GetItems(reader,
                 (ISymUnmanagedReader a, int b, out int c, ISymUnmanagedDocument[] d) => a.GetDocuments(b, out c, d)));
         }
 
@@ -233,15 +234,12 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         {
             ISymUnmanagedMethod method = null;
             int hr = reader.GetMethodByVersion(new SymbolToken(methodToken), methodVersion, out method);
-            if (hr == E_FAIL)
+            ThrowExceptionForHR(hr);
+
+            if (hr < 0)
             {
                 // method has no symbol info
                 return null;
-            }
-
-            if (hr != 0)
-            {
-                throw new ArgumentException(string.Format("Invalid method token '0x{0:x8}' or version '{1}' (hresult = 0x{2:x8})", methodToken, methodVersion, hr), "methodToken");
             }
 
             Debug.Assert(method != null);
@@ -388,7 +386,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
 
         private static ISymUnmanagedScope[] GetScopesInternal(ISymUnmanagedScope scope)
         {
-            return GetItems(scope, 
+            return GetItems(scope,
                 (ISymUnmanagedScope a, int b, out int c, ISymUnmanagedScope[] d) => a.GetChildren(b, out c, d));
         }
 
@@ -433,7 +431,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
 
         public static string GetName(this ISymUnmanagedVariable local)
         {
-            return ToString(GetItems(local, 
+            return ToString(GetItems(local,
                 (ISymUnmanagedVariable a, int b, out int c, char[] d) => a.GetName(b, out c, d)));
         }
 
@@ -482,9 +480,10 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         internal static void ThrowExceptionForHR(int hr)
         {
             // E_FAIL indicates "no info".
-            if (hr != E_FAIL)
+            // E_NOTIMPL indicates a lack of ISymUnmanagedReader support (in a particular implementation).
+            if (hr < 0 && hr != E_FAIL && hr != E_NOTIMPL)
             {
-                Marshal.ThrowExceptionForHR(hr, IgnoreIErrorInfo);
+                Marshal.ThrowExceptionForHR(hr, s_ignoreIErrorInfo);
             }
         }
 

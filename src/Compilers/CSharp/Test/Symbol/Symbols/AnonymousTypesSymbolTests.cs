@@ -1494,7 +1494,7 @@ class Class3
                     symbolValidator: module =>
                     {
                         var types = module.GlobalNamespace.GetTypeMembers()
-                                        .Where(t => t.Name.StartsWith("<>"))
+                                        .Where(t => t.Name.StartsWith("<>", StringComparison.Ordinal))
                                         .Select(t => t.ToDisplayString())
                                         .OrderBy(t => t)
                                         .ToArray();
@@ -1510,7 +1510,7 @@ class Class3
 
                 // do some speculative semantic query
                 var model = compilation.GetSemanticModel(compilation.SyntaxTrees[0]);
-                var position = source1.IndexOf("var d") - 1;
+                var position = source1.IndexOf("var d", StringComparison.Ordinal) - 1;
                 var expr1 = SyntaxFactory.ParseExpression("new { x = 1, y" + i.ToString() + " = \"---\" }");
                 var info1 = model.GetSpeculativeTypeInfo(position, expr1, SpeculativeBindingOption.BindAsExpression);
                 Assert.NotNull(info1.Type);
@@ -1739,7 +1739,7 @@ class Program
             Assert.True(statement2.Span.Contains(typeA4.Locations[0].SourceSpan));
         }
 
-        private static SyntaxTree EqualityComparerSourceTree = Parse(@"
+        private static SyntaxTree s_equalityComparerSourceTree = Parse(@"
 namespace System.Collections
 {
   public interface IEqualityComparer
@@ -1790,7 +1790,7 @@ class Program
             // Dev11: omits methods that are not defined on Object (see also Dev10 bug 487707)
             // Roslyn: we require Equals, ToString, GetHashCode, Format to be defined
 
-            var comp = CreateCompilation(new[] { Parse(source), EqualityComparerSourceTree }, new[] { MinCorlibRef });
+            var comp = CreateCompilation(new[] { Parse(source), s_equalityComparerSourceTree }, new[] { MinCorlibRef });
             var result = comp.Emit(new MemoryStream());
 
             result.Diagnostics.Verify(
@@ -1844,7 +1844,7 @@ class Program
     }
 }";
 
-            var comp = CreateCompilation(new[] { Parse(source), EqualityComparerSourceTree }, new[] { MinCorlibRef, attributeLib.ToMetadataReference() });
+            var comp = CreateCompilation(new[] { Parse(source), s_equalityComparerSourceTree }, new[] { MinCorlibRef, attributeLib.ToMetadataReference() });
             var result = comp.Emit(new MemoryStream());
 
             result.Diagnostics.Verify(

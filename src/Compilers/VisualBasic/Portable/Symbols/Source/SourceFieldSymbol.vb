@@ -27,7 +27,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         Private m_lazyDocComment As String
         Private m_lazyCustomAttributesBag As CustomAttributesBag(Of VisualBasicAttributeData)
 
-        Private m_lazyLexicalSortKey As LexicalSortKey = LexicalSortKey.NotInitialized
+        ' Set to 1 when the compilation event has been produced
+        Private m_eventProduced As Integer
 
         Protected Sub New(container As SourceMemberContainerTypeSymbol,
                           syntaxRef As SyntaxReference,
@@ -50,6 +51,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
             Dim unusedType = Me.Type
             GetConstantValue(SymbolsInProgress(Of FieldSymbol).Empty)
+
+            ' We want declaration events to be last, after all compilation analysis is done, so we produce them here
+            Dim sourceModule = DirectCast(Me.ContainingModule, SourceModuleSymbol)
+            If Interlocked.CompareExchange(m_eventProduced, 1, 0) = 0 AndAlso Not Me.IsImplicitlyDeclared Then
+                sourceModule.DeclaringCompilation.SymbolDeclaredEvent(Me)
+            End If
         End Sub
 
         ''' <summary>
@@ -183,10 +190,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
         Friend Overrides Function GetLexicalSortKey() As LexicalSortKey
             ' WARNING: this should not allocate memory!
-            If Not m_lazyLexicalSortKey.IsInitialized Then
-                m_lazyLexicalSortKey.SetFrom(New LexicalSortKey(m_syntaxRef, Me.DeclaringCompilation))
-            End If
-            Return m_lazyLexicalSortKey
+            Return New LexicalSortKey(m_syntaxRef, Me.DeclaringCompilation)
         End Function
 
         Public Overrides ReadOnly Property Locations As ImmutableArray(Of Location)

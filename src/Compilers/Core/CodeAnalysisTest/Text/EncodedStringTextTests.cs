@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
 {
     public sealed class EncodedStringTextTests : TestBase
     {
-        private static EncodedStringText CreateMemoryStreamBasedEncodedText(string text, Encoding writeEncoding, Encoding readEncodingOpt, SourceHashAlgorithm algorithm = SourceHashAlgorithm.Sha1)
+        private static SourceText CreateMemoryStreamBasedEncodedText(string text, Encoding writeEncoding, Encoding readEncodingOpt, SourceHashAlgorithm algorithm = SourceHashAlgorithm.Sha1)
         {
             byte[] bytes = writeEncoding.GetBytesWithPreamble(text);
 
@@ -94,42 +94,6 @@ namespace Microsoft.CodeAnalysis.UnitTests
         }
 
         [Fact]
-        public void TryReadByteOrderMark()
-        {
-            Assert.Null(EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[0])));
-
-            Assert.Null(EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xef })));
-            Assert.Null(EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xef, 0xbb })));
-            Assert.Equal(Encoding.UTF8, EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xef, 0xBB, 0xBF })));
-
-            Assert.Null(EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xff })));
-            Assert.Equal(Encoding.Unicode, EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xff, 0xfe })));
-
-            Assert.Null(EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xfe })));
-            Assert.Equal(Encoding.BigEndianUnicode, EncodedStringText.TryReadByteOrderMark(new MemoryStream(new byte[] { 0xfe, 0xff })));
-        }
-
-        [Fact]
-        public void IsBinary()
-        {
-            Assert.False(EncodedStringText.IsBinary(""));
-
-            Assert.False(EncodedStringText.IsBinary("\0abc"));
-            Assert.False(EncodedStringText.IsBinary("a\0bc"));
-            Assert.False(EncodedStringText.IsBinary("abc\0"));
-            Assert.False(EncodedStringText.IsBinary("a\0b\0c"));
-
-            Assert.True(EncodedStringText.IsBinary("\0\0abc"));
-            Assert.True(EncodedStringText.IsBinary("a\0\0bc"));
-            Assert.True(EncodedStringText.IsBinary("abc\0\0"));
-
-            var encoding = Encoding.GetEncoding(1252);
-            Assert.False(EncodedStringText.IsBinary(encoding.GetString(new byte[] { 0x81, 0x8D, 0x8F, 0x90, 0x9D })));
-            Assert.False(EncodedStringText.IsBinary("abc def baz aeiouy äëïöüû"));
-            Assert.True(EncodedStringText.IsBinary(encoding.GetString(ProprietaryTestResources.NetFX.v4_0_30319.System)));
-        }
-
-        [Fact]
         public void Decode_NonUtf8()
         {
             var utf8 = new UTF8Encoding(false, true);
@@ -141,8 +105,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             {
                 Assert.Throws(typeof(DecoderFallbackException), () =>
                 {
-                    Encoding actualEncoding;
-                    EncodedStringText.Decode(stream, utf8, out actualEncoding);
+                    EncodedStringText.Decode(stream, utf8, SourceHashAlgorithm.Sha1);
                 });
 
                 Assert.True(stream.CanRead);
@@ -162,7 +125,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public void Decode_Utf8()
         {
             var utf8 = new UTF8Encoding(false, true);
-            var text = "abc def baz aeiouy äëïöüû";
+            var text = "abc def baz aeiouy \u00E4\u00EB\u00EF\u00F6\u00FC\u00FB";
             var bytes = utf8.GetBytesWithPreamble(text);
 
             // Detect encoding should correctly pick UTF-8
@@ -251,6 +214,55 @@ namespace Microsoft.CodeAnalysis.UnitTests
                     Assert.Equal(1, text.Lines.Count);
                     Assert.Equal(3, text.Lines[0].Span.Length);
                 }
+            }
+        }
+
+        [Fact]
+        public void FileStreamEncodedText()
+        {
+            const string expectedText =
+                "\r\n" +
+                "class Program\r\n" +
+                "{\r\n" +
+                "    static void Main()\r\n" +
+                "    {\r\n" +
+                "        string s = \"class C { \u0410\u0411\u0412 x; }\";\r\n" +
+                "        foreach (char ch in s) System.Console.WriteLine(\"{0:x2}\", (int)ch);\r\n" +
+                "    }\r\n" +
+                "}\r\n";
+
+
+            var encodings = new Encoding[]
+            {
+                new UnicodeEncoding(bigEndian: true, byteOrderMark: true),
+                new UnicodeEncoding(bigEndian: false, byteOrderMark: true),
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: true),
+            };
+
+            foreach (var encoding in encodings)
+            {
+                var tmpFile = Temp.CreateFile();
+
+                File.WriteAllText(tmpFile.Path, expectedText, encoding);
+
+                using (FileStream fs = new FileStream(tmpFile.Path, FileMode.Open, FileAccess.Read))
+                {
+                    var encodedText = EncodedStringText.Create(fs);
+                    Assert.Equal(encoding.CodePage, encodedText.Encoding.CodePage);
+                    Assert.Equal(expectedText, encodedText.ToString());
+                }
+            }
+        }
+
+        [Fact]
+        public void FileStreamEncodedTextEmpty()
+        {
+            var tmpFile = Temp.CreateFile();
+
+            using (FileStream fs = new FileStream(tmpFile.Path, FileMode.Open, FileAccess.Read))
+            {
+                var encodedText = EncodedStringText.Create(fs);
+                Assert.Equal(0, encodedText.Length);
             }
         }
     }

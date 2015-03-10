@@ -15,23 +15,23 @@ namespace Microsoft.CodeAnalysis
     [DebuggerDisplay("{GetDebuggerDisplay(),nq}")]
     public class ProjectId : IEquatable<ProjectId>
     {
-        private string debugName;
+        private string _debugName;
 
         /// <summary>
         /// The system generated unique id.
         /// </summary>
-        public Guid Id { get; private set; }
+        public Guid Id { get; }
 
         private ProjectId(string debugName)
         {
             this.Id = Guid.NewGuid();
-            this.debugName = debugName;
+            _debugName = debugName;
         }
 
         internal ProjectId(Guid guid, string debugName)
         {
             this.Id = guid;
-            this.debugName = debugName;
+            _debugName = debugName;
         }
 
         /// <summary>
@@ -45,12 +45,12 @@ namespace Microsoft.CodeAnalysis
 
         private string GetDebuggerDisplay()
         {
-            return string.Format("({0}, #{1} - {2})", this.GetType().Name, this.Id, this.debugName);
+            return string.Format("({0}, #{1} - {2})", this.GetType().Name, this.Id, _debugName);
         }
 
         internal string DebugName
         {
-            get { return debugName; }
+            get { return _debugName; }
         }
 
         public override string ToString()

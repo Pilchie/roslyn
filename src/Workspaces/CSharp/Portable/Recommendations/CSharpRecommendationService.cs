@@ -75,8 +75,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Recommendations
                 // Script and interactive
                 return GetSymbolsForGlobalStatementContext(context, cancellationToken);
             }
-            else if (context.IsAnyExpressionContext || context.IsStatementContext)
+            else if (context.IsAnyExpressionContext ||
+                     context.IsStatementContext ||
+                     context.SyntaxTree.IsDefiniteCastTypeContext(context.Position, context.LeftToken, cancellationToken))
             {
+                // GitHub #717: With automatic brace completion active, typing '(i' produces "(i)", which gets parsed as
+                // as cast. The user might be trying to type a parenthesized expression, so even though a cast
+                // is a type-only context, we'll show all symbols anyway.
                 return GetSymbolsForExpressionOrStatementContext(context, filterOutOfScopeLocals, cancellationToken);
             }
             else if (context.IsTypeContext || context.IsNamespaceContext)
@@ -93,7 +98,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Recommendations
             }
             else if (context.IsDestructorTypeContext)
             {
-                return SpecializedCollections.SingletonEnumerable(context.SemanticModel.GetDeclaredSymbol(context.ContainingTypeOrEnumDeclaration));
+                return SpecializedCollections.SingletonEnumerable(context.SemanticModel.GetDeclaredSymbol(context.ContainingTypeOrEnumDeclaration, cancellationToken));
             }
 
             return SpecializedCollections.EmptyEnumerable<ISymbol>();
@@ -124,7 +129,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Recommendations
             }
             else if (node.Kind() == SyntaxKind.MemberBindingExpression)
             {
-                var parentConditionalAccess = node.GetAncestor<ConditionalAccessExpressionSyntax>();
+                var parentConditionalAccess = node.GetParentConditionalAccessExpression();
                 return GetSymbolsOffOfConditionalReceiver(context, parentConditionalAccess.Expression, cancellationToken);
             }
             else
@@ -173,7 +178,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Recommendations
         {
             var enclosingSymbol = context.LeftToken.Parent
                 .AncestorsAndSelf()
-                .Select(n => context.SemanticModel.GetDeclaredSymbol(n))
+                .Select(n => context.SemanticModel.GetDeclaredSymbol(n, cancellationToken))
                 .WhereNotNull()
                 .FirstOrDefault();
 

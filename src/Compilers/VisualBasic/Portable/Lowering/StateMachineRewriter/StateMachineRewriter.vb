@@ -2,13 +2,9 @@
 
 Imports System.Collections.Immutable
 Imports System.Runtime.InteropServices
-Imports Microsoft.Cci
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Collections
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports TypeKind = Microsoft.CodeAnalysis.TypeKind
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
 
@@ -198,7 +194,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If parameter.IsMe Then
                 Dim typeName As String = parameter.ContainingSymbol.ContainingType.Name
-                Dim isMeOfClosureType As Boolean = typeName.StartsWith(StringConstants.DisplayClassPrefix)
+                Dim isMeOfClosureType As Boolean = typeName.StartsWith(StringConstants.DisplayClassPrefix, StringComparison.Ordinal)
 
                 ' NOTE: even though 'Me' is 'ByRef' in structures, Dev11 does capture it by value
                 ' NOTE: without generation of any errors/warnings. Roslyn has to match this behavior
@@ -295,8 +291,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim ordinal As Integer = SynthesizedLocalOrdinals.AssignLocalOrdinal(local.SynthesizedKind, syntaxOffset)
                 id = New LocalDebugId(syntaxOffset, ordinal)
 
-                If SlotAllocatorOpt IsNot Nothing Then
-                    slotIndex = SlotAllocatorOpt.GetPreviousHoistedLocalSlotIndex(declaratorSyntax, DirectCast(fieldType, Cci.ITypeReference), local.SynthesizedKind, id)
+                Dim previousSlotIndex = -1
+                If SlotAllocatorOpt IsNot Nothing AndAlso SlotAllocatorOpt.TryGetPreviousHoistedLocalSlotIndex(declaratorSyntax, DirectCast(fieldType, Cci.ITypeReference), local.SynthesizedKind, id, previousSlotIndex) Then
+                    slotIndex = previousSlotIndex
                 End If
             End If
 

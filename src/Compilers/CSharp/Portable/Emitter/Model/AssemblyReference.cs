@@ -18,18 +18,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         public readonly AssemblyIdentity MetadataIdentity;
 
         // assembly symbol that represents the target assembly:
-        private readonly AssemblySymbol targetAssembly;
+        private readonly AssemblySymbol _targetAssembly;
 
         internal AssemblyReference(AssemblySymbol assemblySymbol, Func<AssemblySymbol, AssemblyIdentity> symbolMapper)
         {
             Debug.Assert((object)assemblySymbol != null);
             this.MetadataIdentity = (symbolMapper != null) ? symbolMapper(assemblySymbol) : assemblySymbol.Identity;
-            this.targetAssembly = assemblySymbol;
+            _targetAssembly = assemblySymbol;
         }
 
         public override string ToString()
         {
-            return targetAssembly.ToString();
+            return _targetAssembly.ToString();
         }
 
         #region Cci.IAssemblyReference
@@ -73,6 +73,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             get { return MetadataIdentity.Version; }
         }
 
+        string Cci.IAssemblyReference.GetDisplayName()
+        {
+            return MetadataIdentity.GetDisplayName();
+        }
+
         string Cci.INamedEntity.Name
         {
             get { return MetadataIdentity.Name; }
@@ -92,7 +97,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         {
             return null;
         }
-
 
         #endregion
     }

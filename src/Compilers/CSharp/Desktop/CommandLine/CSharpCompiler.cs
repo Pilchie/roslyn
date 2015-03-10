@@ -19,18 +19,18 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         internal const string ResponseFileName = "csc.rsp";
 
-        private readonly string responseFile;
-        private CommandLineDiagnosticFormatter diagnosticFormatter;
+        private readonly string _responseFile;
+        private CommandLineDiagnosticFormatter _diagnosticFormatter;
 
         protected CSharpCompiler(CSharpCommandLineParser parser, string responseFile, string[] args, string baseDirectory, string additionalReferencePaths)
             : base(parser, responseFile, args, baseDirectory, additionalReferencePaths)
         {
             Debug.Assert(responseFile == null || Path.IsPathRooted(responseFile));
-            this.responseFile = responseFile;
-            this.diagnosticFormatter = new CommandLineDiagnosticFormatter(baseDirectory, Arguments.PrintFullPaths, Arguments.ShouldIncludeErrorEndLocation);
+            _responseFile = responseFile;
+            _diagnosticFormatter = new CommandLineDiagnosticFormatter(baseDirectory, Arguments.PrintFullPaths, Arguments.ShouldIncludeErrorEndLocation);
         }
 
-        public override DiagnosticFormatter DiagnosticFormatter { get { return this.diagnosticFormatter; } }
+        public override DiagnosticFormatter DiagnosticFormatter { get { return _diagnosticFormatter; } }
         protected internal new CSharpCommandLineArguments Arguments { get { return (CSharpCommandLineArguments)base.Arguments; } }
 
         public override int Run(TextWriter consoleOutput, CancellationToken cancellationToken = default(CancellationToken))
@@ -60,45 +60,18 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (Arguments.CompilationOptions.ConcurrentBuild)
             {
-                int threadId = Thread.CurrentThread.ManagedThreadId;
-                System.Globalization.CultureInfo uiCulture = Thread.CurrentThread.CurrentUICulture;
-
-                Parallel.For(0, sourceFiles.Length, i =>
+                Parallel.For(0, sourceFiles.Length, UICultureUtilities.WithCurrentUICulture<int>(i =>
                 {
-                    var currentThread = Thread.CurrentThread;
-                    var currentThreadId = currentThread.ManagedThreadId;
-                    System.Globalization.CultureInfo saveUICulture = null;
-                    if (currentThreadId != threadId)
-                    {
-                        // New threads created by Parallel.For do not inherit CurrentUICulture by default.
-                        saveUICulture = currentThread.CurrentUICulture;
-                        currentThread.CurrentUICulture = uiCulture;
-                    }
-
-                    try
-                    {
-                        var file = sourceFiles[i];
-
-                        //NOTE: order of trees is important!!
-                        trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, file, out normalizedFilePaths[i]);
-                    }
-                    finally
-                    {
-                        if (currentThreadId != threadId)
-                        {
-                            currentThread.CurrentUICulture = saveUICulture;
-                        }
-                    }
-                });
+                    //NOTE: order of trees is important!!
+                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], out normalizedFilePaths[i]);
+                }));
             }
             else
             {
                 for (int i = 0; i < sourceFiles.Length; i++)
                 {
-                    var file = sourceFiles[i];
-
                     //NOTE: order of trees is important!!
-                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, file, out normalizedFilePaths[i]);
+                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], out normalizedFilePaths[i]);
                 }
             }
 
@@ -121,7 +94,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     // warning CS2002: Source file '{0}' specified multiple times
                     diagnostics.Add(new DiagnosticInfo(MessageProvider, (int)ErrorCode.WRN_FileAlreadyIncluded,
-                        Arguments.PrintFullPaths ? normalizedFilePath : this.diagnosticFormatter.RelativizeNormalizedPath(normalizedFilePath)));
+                        Arguments.PrintFullPaths ? normalizedFilePath : _diagnosticFormatter.RelativizeNormalizedPath(normalizedFilePath)));
 
                     trees[i] = null;
                 }
@@ -164,7 +137,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             var externalReferenceResolver = GetExternalMetadataResolver(touchedFilesLogger);
             MetadataFileReferenceResolver referenceDirectiveResolver;
             var resolvedReferences = ResolveMetadataReferences(externalReferenceResolver, metadataProvider, diagnostics, assemblyIdentityComparer, touchedFilesLogger, out referenceDirectiveResolver);
-            if (PrintErrors(diagnostics, consoleOutput))    
+            if (PrintErrors(diagnostics, consoleOutput))
             {
                 return null;
             }
@@ -210,7 +183,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         private static SyntaxTree ParseFile(
-            CSharpParseOptions parseOptions, 
+            CSharpParseOptions parseOptions,
             CSharpParseOptions scriptParseOptions,
             SourceText content,
             CommandLineSourceFile file)

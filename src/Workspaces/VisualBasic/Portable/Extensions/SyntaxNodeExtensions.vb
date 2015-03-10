@@ -795,7 +795,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
 #End If
 
                     Return SyntaxFactory.MultiLineSubLambdaExpression(
-                        singleLineLambda.Begin,
+                        singleLineLambda.SubOrFunctionHeader,
                         statements,
                         SyntaxFactory.EndSubStatement()).WithAdditionalAnnotations(annotations)
                 End If
@@ -906,7 +906,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 ElseIf current.Kind = SyntaxKind.SingleLineSubLambdaExpression Then
                     Dim singleLineLambda = DirectCast(current, SingleLineLambdaExpressionSyntax)
                     Dim multiLineLambda = SyntaxFactory.MultiLineSubLambdaExpression(
-                        singleLineLambda.Begin,
+                        singleLineLambda.SubOrFunctionHeader,
                         statements,
                         SyntaxFactory.EndSubStatement()).WithAdditionalAnnotations(annotations)
 
@@ -1016,7 +1016,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 Return False
             End If
 
-            Dim blockSpan = TextSpan.FromBounds(block.Begin.Span.End, block.End.SpanStart)
+            Dim blockSpan = TextSpan.FromBounds(block.BlockStatement.Span.End, block.EndBlockStatement.SpanStart)
             Return blockSpan.Contains(textSpan)
         End Function
 
@@ -1102,6 +1102,60 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                     End If
                 Next
             Next
+        End Function
+
+        ''' <summary>
+        ''' Given an expression within a tree of <see cref="ConditionalAccessExpressionSyntax"/>s, 
+        ''' finds the <see cref="ConditionalAccessExpressionSyntax"/> that it is part of.
+        ''' </summary>
+        ''' <param name="node"></param>
+        ''' <returns></returns>
+        <Extension>
+        Friend Function GetCorrespondingConditionalAccessExpression(node As ExpressionSyntax) As ConditionalAccessExpressionSyntax
+            Dim access As SyntaxNode = node
+            Dim parent As SyntaxNode = access.Parent
+
+            While parent IsNot Nothing
+                Select Case parent.Kind
+                    Case SyntaxKind.DictionaryAccessExpression,
+                         SyntaxKind.SimpleMemberAccessExpression
+
+                        If DirectCast(parent, MemberAccessExpressionSyntax).Expression IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case SyntaxKind.XmlElementAccessExpression,
+                         SyntaxKind.XmlDescendantAccessExpression,
+                         SyntaxKind.XmlAttributeAccessExpression
+
+                        If DirectCast(parent, XmlMemberAccessExpressionSyntax).Base IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case SyntaxKind.InvocationExpression
+
+                        If DirectCast(parent, InvocationExpressionSyntax).Expression IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case SyntaxKind.ConditionalAccessExpression
+
+                        Dim conditional = DirectCast(parent, ConditionalAccessExpressionSyntax)
+                        If conditional.WhenNotNull Is access Then
+                            Return conditional
+                        ElseIf conditional.Expression IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case Else
+                        Return Nothing
+                End Select
+
+                access = parent
+                parent = access.Parent
+            End While
+
+            Return Nothing
         End Function
     End Module
 End Namespace

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Globalization;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Interoperability;
@@ -39,7 +39,7 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Globalization
             {
                 // could be either a [DllImport] or [MarshalAs] attribute
                 var attribute = (AttributeSyntax)nodeToFix;
-                var attributeType = model.GetSymbolInfo(attribute).Symbol;
+                var attributeType = model.GetSymbolInfo(attribute, cancellationToken).Symbol;
                 var arguments = attribute.ArgumentList.Arguments;
                 if (dllImportType.Equals(attributeType.ContainingType))
                 {

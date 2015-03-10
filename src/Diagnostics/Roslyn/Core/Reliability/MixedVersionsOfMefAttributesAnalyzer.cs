@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -12,15 +14,15 @@ namespace Roslyn.Diagnostics.Analyzers.Reliability
     [DiagnosticAnalyzer(LanguageNames.CSharp, LanguageNames.VisualBasic)]
     public class MixedVersionsOfMefAttributesAnalyzer : DiagnosticAnalyzer
     {
-        private static readonly string[] MefNamespaces = new[] { "System.ComponentModel.Composition", "System.Composition" };
+        private static readonly string[] s_mefNamespaces = new[] { "System.ComponentModel.Composition", "System.Composition" };
 
-        private static LocalizableString localizableTitle = new LocalizableResourceString(nameof(RoslynDiagnosticsResources.MixedVersionsOfMefAttributesDescription), RoslynDiagnosticsResources.ResourceManager, typeof(RoslynDiagnosticsResources));
-        private static LocalizableString localizableMessage = new LocalizableResourceString(nameof(RoslynDiagnosticsResources.MixedVersionsOfMefAttributesMessage), RoslynDiagnosticsResources.ResourceManager, typeof(RoslynDiagnosticsResources));
+        private static LocalizableString s_localizableTitle = new LocalizableResourceString(nameof(RoslynDiagnosticsResources.MixedVersionsOfMefAttributesDescription), RoslynDiagnosticsResources.ResourceManager, typeof(RoslynDiagnosticsResources));
+        private static LocalizableString s_localizableMessage = new LocalizableResourceString(nameof(RoslynDiagnosticsResources.MixedVersionsOfMefAttributesMessage), RoslynDiagnosticsResources.ResourceManager, typeof(RoslynDiagnosticsResources));
 
         public static DiagnosticDescriptor Rule = new DiagnosticDescriptor(
             RoslynDiagnosticIds.MixedVersionsOfMefAttributesRuleId,
-            localizableTitle,
-            localizableMessage,
+            s_localizableTitle,
+            s_localizableMessage,
             "Reliability",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true,
@@ -40,7 +42,7 @@ namespace Roslyn.Diagnostics.Analyzers.Reliability
                 {
                     var exportAttributes = new List<INamedTypeSymbol>();
 
-                    foreach (var mefNamespace in MefNamespaces)
+                    foreach (var mefNamespace in s_mefNamespaces)
                     {
                         var exportAttribute = compilationContext.Compilation.GetTypeByMetadataName(mefNamespace + ".ExportAttribute");
 

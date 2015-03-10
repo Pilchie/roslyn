@@ -6,10 +6,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.FxCopAnalyzers.Shared.Extensions;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 using Microsoft.CodeAnalysis.Shared.Extensions;
-using Microsoft.CodeAnalysis.Shared.Utilities;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Naming
@@ -30,7 +28,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Naming
                                                                                       DiagnosticSeverity.Warning,
                                                                                       isEnabledByDefault: false,
                                                                                       description: new LocalizableResourceString(nameof(FxCopRulesResources.IdentifiersShouldDifferByMoreThanCaseDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources)),
-                                                                                      helpLink: "http://msdn.microsoft.com/library/ms182242.aspx",
+                                                                                      helpLinkUri: "http://msdn.microsoft.com/library/ms182242.aspx",
                                                                                       customTags: DiagnosticCustomTags.Microsoft);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
@@ -45,10 +43,10 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Naming
         {
             base.Initialize(analysisContext);
 
-            analysisContext.RegisterCompilationEndAction(AnalyzeCompilation);
+            analysisContext.RegisterCompilationAction(AnalyzeCompilation);
         }
 
-        private void AnalyzeCompilation(CompilationEndAnalysisContext context)
+        private void AnalyzeCompilation(CompilationAnalysisContext context)
         {
             var globalNamespaces = context.Compilation.GlobalNamespace.GetNamespaceMembers()
                 .Where(item => item.ContainingAssembly == context.Compilation.Assembly);
@@ -60,7 +58,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Naming
             CheckTypeNames(globalTypes, context.ReportDiagnostic);
             CheckNamespaceMembers(globalNamespaces, context.Compilation, context.ReportDiagnostic);
         }
-        
+
         protected override void AnalyzeSymbol(INamedTypeSymbol namedTypeSymbol, Compilation compilation, Action<Diagnostic> addDiagnostic, AnalyzerOptions options, CancellationToken cancellationToken)
         {
             // Do not descent into non-publicly visible types
@@ -249,7 +247,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Naming
 
         private static string GetSymbolDisplayString(IGrouping<string, ISymbol> group)
         {
-            return string.Join(", ", group.Select(s => s.ToDisplayString()).OrderBy(StringComparer.InvariantCulture));
+            return string.Join(", ", group.Select(s => s.ToDisplayString()).OrderBy(k => k, StringComparer.InvariantCulture));
         }
 
         public static bool IsExternallyVisible(ISymbol symbol)

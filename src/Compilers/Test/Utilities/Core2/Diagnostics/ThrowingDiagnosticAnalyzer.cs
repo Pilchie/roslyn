@@ -24,25 +24,25 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             }
         }
 
-        private readonly List<string> throwOnList = new List<string>();
+        private readonly List<string> _throwOnList = new List<string>();
 
         public bool Thrown { get; private set; }
 
         public void ThrowOn(string method)
         {
-            throwOnList.Add(method);
+            _throwOnList.Add(method);
         }
 
         protected override void OnAbstractMember(string abstractMemberName, SyntaxNode node, ISymbol symbol, string methodName)
         {
-            if (throwOnList.Contains(methodName))
+            if (_throwOnList.Contains(methodName))
             {
                 Thrown = true;
                 throw new DeliberateException();
             }
         }
 
-        public static void VerifyAnalyzerEngineIsSafeAgainstExceptions(Func<DiagnosticAnalyzer, IEnumerable<Diagnostic>> runAnalysis, string exceptionDiagnosticId)
+        public static void VerifyAnalyzerEngineIsSafeAgainstExceptions(Func<DiagnosticAnalyzer, IEnumerable<Diagnostic>> runAnalysis)
         {
             var handled = new bool?[AllAnalyzerMemberNames.Length];
             for (int i = 0; i < AllAnalyzerMemberNames.Length; i++)
@@ -52,18 +52,15 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
                 analyzer.ThrowOn(member);
                 try
                 {
-                    var diagnosticIds = runAnalysis(analyzer).Select(d => d.Id).Distinct();
+                    var diagnostics = runAnalysis(analyzer).Distinct();
                     handled[i] = analyzer.Thrown ? true : (bool?)null;
                     if (analyzer.Thrown)
                     {
-                        if (diagnosticIds.Any())
-                        {
-                            Assert.Equal(exceptionDiagnosticId, diagnosticIds.Single());
-                        }
+                        Assert.True(diagnostics.Any(AnalyzerExecutor.IsAnalyzerExceptionDiagnostic));
                     }
                     else
                     {
-                        Assert.False(diagnosticIds.Any());
+                        Assert.False(diagnostics.Any(AnalyzerExecutor.IsAnalyzerExceptionDiagnostic));
                     }
                 }
                 catch (DeliberateException)
@@ -75,8 +72,8 @@ namespace Microsoft.CodeAnalysis.Test.Utilities
             var membersHandled = AllAnalyzerMemberNames.Zip(handled, (m, h) => new { Member = m, Handled = h });
             Assert.True(!handled.Any(h => h == false) && handled.Any(h => true), Environment.NewLine +
                 "  Exceptions thrown by analyzers in these members were *NOT* handled:" + Environment.NewLine + string.Join(Environment.NewLine, membersHandled.Where(mh => mh.Handled == false).Select(mh => mh.Member)) + Environment.NewLine + Environment.NewLine +
-                "  Exceptions thrown from these members were handled gracefully:"       + Environment.NewLine + string.Join(Environment.NewLine, membersHandled.Where(mh => mh.Handled == true) .Select(mh => mh.Member)) + Environment.NewLine + Environment.NewLine +
-                "  These members were not called/accessed by analyzer engine:"          + Environment.NewLine + string.Join(Environment.NewLine, membersHandled.Where(mh => mh.Handled == null) .Select(mh => mh.Member)));
+                "  Exceptions thrown from these members were handled gracefully:" + Environment.NewLine + string.Join(Environment.NewLine, membersHandled.Where(mh => mh.Handled == true).Select(mh => mh.Member)) + Environment.NewLine + Environment.NewLine +
+                "  These members were not called/accessed by analyzer engine:" + Environment.NewLine + string.Join(Environment.NewLine, membersHandled.Where(mh => mh.Handled == null).Select(mh => mh.Member)));
         }
     }
 }

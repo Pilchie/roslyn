@@ -108,11 +108,11 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public override ReportDiagnostic GetDiagnosticReport(DiagnosticInfo diagnosticInfo, CompilationOptions options)
         {
-            return CSharpDiagnosticFilter.GetDiagnosticReport(diagnosticInfo.Severity, 
-                                                              true, 
-                                                              diagnosticInfo.MessageIdentifier, 
-                                                              diagnosticInfo.WarningLevel, 
-                                                              Location.None, 
+            return CSharpDiagnosticFilter.GetDiagnosticReport(diagnosticInfo.Severity,
+                                                              true,
+                                                              diagnosticInfo.MessageIdentifier,
+                                                              diagnosticInfo.WarningLevel,
+                                                              Location.None,
                                                               diagnosticInfo.Category,
                                                               options.WarningLevel,
                                                               options.GeneralDiagnosticOption,
@@ -137,6 +137,9 @@ namespace Microsoft.CodeAnalysis.CSharp
         public override int WRN_UnableToLoadAnalyzer { get { return (int)ErrorCode.WRN_UnableToLoadAnalyzer; } }
         public override int INF_UnableToLoadSomeTypesInAnalyzer { get { return (int)ErrorCode.INF_UnableToLoadSomeTypesInAnalyzer; } }
         public override int ERR_CantReadRulesetFile { get { return (int)ErrorCode.ERR_CantReadRulesetFile; } }
+
+        // compilation options:
+        public override int ERR_BadCompilationOptionValue { get { return (int)ErrorCode.ERR_BadCompilationOptionValue; } }
 
         // emit options:
         public override int ERR_InvalidDebugInformationFormat { get { return (int)ErrorCode.ERR_InvalidDebugInformationFormat; } }

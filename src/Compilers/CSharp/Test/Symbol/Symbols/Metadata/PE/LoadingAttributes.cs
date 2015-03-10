@@ -221,7 +221,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
             var sub1 = (MethodSymbol)c1.GetMember("Sub1");
             sub1.GetAttributes().First().VerifyValue(0, TypedConstantKind.Primitive, "Sub1");
 
-            var sub1P1 = sub1.Parameters.Where(p => p.Name == "p1").Single();
+            var sub1P1 = sub1.Parameters.Single(p => p.Name == "p1");
             sub1P1.GetAttributes().First().VerifyValue(0, TypedConstantKind.Primitive, "p1");
 
             var function1 = (MethodSymbol)c1.GetMember("Function1");
@@ -1060,7 +1060,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         [Fact]
         public void TestAttributesMultiples()
         {
-            var assemblies = MetadataTestHelpers.GetSymbolsForReferences(mrefs: new []{
+            var assemblies = MetadataTestHelpers.GetSymbolsForReferences(mrefs: new[]{
                 TestReferences.SymbolsTests.Metadata.AttributeTestLib01,
                 TestReferences.SymbolsTests.Metadata.AttributeTestDef01,
                 TestReferences.NetFx.v4_0_21006.mscorlib
@@ -1476,6 +1476,5 @@ public class Class1
             Assert.Empty(m1.Parameters[1].GetAttributes());
             Assert.Equal("System.Runtime.CompilerServices.DateTimeConstantAttribute(634925952000000000)", m1.Parameters[1].GetCustomAttributesToEmit(state).Single().ToString());
         }
-
     }
 }

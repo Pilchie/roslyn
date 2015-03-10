@@ -237,4 +237,34 @@
   <data name="RemoveDeletedApiDescription" xml:space="preserve">
     <value>When removing a public type or member the corresponding entry in PublicAPI.txt should also be removed. This draws attention to API changes in the code reviews and source control history, and helps prevent breaking changes.</value>
   </data>
+  <data name="UnusedDeclarationsCodeFixTitle" xml:space="preserve">
+    <value>Remove unused code</value>
+    <comment>The title of the fix</comment>
+  </data>
+  <data name="UnusedDeclarationsMessage" xml:space="preserve">
+    <value>'{0}' is not used in solution.</value>
+    <comment>The format-able message the diagnostic displays.</comment>
+  </data>
+  <data name="UnusedDeclarationsTitle" xml:space="preserve">
+    <value>unused code</value>
+    <comment>The title of the diagnostic.</comment>
+  </data>
+  <data name="DoNotCreateTasksWithoutTaskSchedulerDescription" xml:space="preserve">
+    <value>Do not create tasks unless you are using one of the overloads that takes a TaskScheduler. The default is to schedule on TaskScheduler.Current, which would lead to deadlocks. Either use TaskScheduler.Default to schedule on the thread pool, or explicitly pass TaskScheduler.Current to make your intentions clear.</value>
+  </data>
+  <data name="DoNotCreateTasksWithoutTaskSchedulerTitle" xml:space="preserve">
+    <value>Do not create tasks without passing a TaskScheduler</value>
+  </data>
+  <data name="DoNotCreateTasksWithoutTaskSchedulerMessage" xml:space="preserve">
+    <value>Do not call {0} without passing a TaskScheduler</value>
+  </data>
+  <data name="SymbolDeclaredEventRuleTitle" xml:space="preserve">
+    <value>SymbolDeclaredEvent must be generated for source symbols</value>
+  </data>
+  <data name="SymbolDeclaredEventRuleMessage" xml:space="preserve">
+    <value>Symbol '{0}' seems to be a source symbol, but neither the symbol nor any of it's base types invoke method '{1}.{2}' to register a symbol declared event.</value>
+  </data>
+  <data name="SymbolDeclaredEventRuleDescription" xml:space="preserve">
+    <value>Compilation event queue is required to generate symbol declared events for all declared source symbols. Hence, every source symbol type or one of it's base types must generate a symbol declared event.</value>
+  </data>
 </root>

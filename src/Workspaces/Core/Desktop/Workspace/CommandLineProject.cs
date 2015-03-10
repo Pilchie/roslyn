@@ -86,7 +86,7 @@ namespace Microsoft.CodeAnalysis
                     : Path.GetFullPath(Path.Combine(projectDirectory, fileArg.Path));
 
                 var relativePath = FilePathUtilities.GetRelativePath(projectDirectory, absolutePath);
-                var isWithinProject = !Path.IsPathRooted(relativePath);
+                var isWithinProject = FilePathUtilities.IsNestedPath(projectDirectory, absolutePath);
 
                 var folderRoot = isWithinProject ? Path.GetDirectoryName(relativePath) : "";
                 var folders = isWithinProject ? GetFolders(relativePath) : null;
@@ -113,7 +113,7 @@ namespace Microsoft.CodeAnalysis
                         : Path.GetFullPath(Path.Combine(projectDirectory, fileArg.Path));
 
                 var relativePath = FilePathUtilities.GetRelativePath(projectDirectory, absolutePath);
-                var isWithinProject = !Path.IsPathRooted(relativePath);
+                var isWithinProject = FilePathUtilities.IsNestedPath(projectDirectory, absolutePath);
 
                 var folderRoot = isWithinProject ? Path.GetDirectoryName(relativePath) : "";
                 var folders = isWithinProject ? GetFolders(relativePath) : null;
@@ -169,7 +169,7 @@ namespace Microsoft.CodeAnalysis
             return CreateProjectInfo(projectName, language, args, baseDirectory, workspace);
         }
 
-        private static readonly char[] folderSplitters = new char[] { Path.DirectorySeparatorChar };
+        private static readonly char[] s_folderSplitters = new char[] { Path.DirectorySeparatorChar };
 
         private static IList<string> GetFolders(string path)
         {
@@ -180,7 +180,7 @@ namespace Microsoft.CodeAnalysis
             }
             else
             {
-                return directory.Split(folderSplitters, StringSplitOptions.RemoveEmptyEntries).ToImmutableArray();
+                return directory.Split(s_folderSplitters, StringSplitOptions.RemoveEmptyEntries).ToImmutableArray();
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using Roslyn.Utilities;
 using System;
@@ -139,6 +139,8 @@ namespace Microsoft.Cci
         /// The version of the assembly reference.
         /// </summary>
         Version Version { get; }
+
+        string GetDisplayName();
     }
 
     /// <summary>
@@ -146,6 +148,20 @@ namespace Microsoft.Cci
     /// </summary>
     internal interface IModule : IUnit, IModuleReference
     {
+        /// <summary>
+        /// Used to distinguish which style to pick while writing native PDB information.
+        /// </summary>
+        /// <remarks>
+        /// The PDB content for custom debug information is different between Visual Basic and CSharp.
+        /// E.g. C# always includes a CustomMetadata Header (MD2) that contains the namespace scope counts, where 
+        /// as VB only outputs namespace imports into the namespace scopes. 
+        /// C# defines forwards in that header, VB includes them into the scopes list.
+        /// 
+        /// Currently the compiler doesn't allow mixing C# and VB method bodies. Thus this flag can be per module.
+        /// It is possible to move this flag to per-method basis but native PDB CDI forwarding would need to be adjusted accordingly.
+        /// </remarks>
+        bool GenerateVisualBasicStylePdb { get; }
+
         /// <summary>
         /// Public types defined in other modules making up this assembly and to which other assemblies may refer to via this assembly.
         /// </summary>
@@ -184,7 +200,6 @@ namespace Microsoft.Cci
         ulong BaseAddress
         {
             get;
-
             // ^ ensures result > uint.MaxValue ==> this.Requires64bits;
         }
 
@@ -204,7 +219,6 @@ namespace Microsoft.Cci
         IMethodReference EntryPoint
         {
             get;
-
             // ^ requires this.Kind == ModuleKind.ConsoleApplication || this.Kind == ModuleKind.WindowsApplication;
         }
 
@@ -319,7 +333,6 @@ namespace Microsoft.Cci
         ulong SizeOfHeapCommit
         {
             get;
-
             // ^ ensures result > uint.MaxValue ==> this.Requires64bits;
         }
 
@@ -329,7 +342,6 @@ namespace Microsoft.Cci
         ulong SizeOfHeapReserve
         {
             get;
-
             // ^ ensures result > uint.MaxValue ==> this.Requires64bits;
         }
 
@@ -339,7 +351,6 @@ namespace Microsoft.Cci
         ulong SizeOfStackCommit
         {
             get;
-
             // ^ ensures result > uint.MaxValue ==> this.Requires64bits;
         }
 
@@ -349,7 +360,6 @@ namespace Microsoft.Cci
         ulong SizeOfStackReserve
         {
             get;
-
             // ^ ensures result > uint.MaxValue ==> this.Requires64bits;
         }
 
@@ -391,7 +401,25 @@ namespace Microsoft.Cci
         /// </summary>
         MultiDictionary<DebugSourceDocument, DefinitionWithLocation> GetSymbolToLocationMap();
 
-        ImmutableArray<ExternNamespace> ExternNamespaces { get; }
+        /// <summary>
+        /// Assembly reference aliases (C# only).
+        /// </summary>
+        ImmutableArray<AssemblyReferenceAlias> GetAssemblyReferenceAliases(EmitContext context);
+
+        /// <summary>
+        /// Linked assembly names to be stored to native PDB (VB only).
+        /// </summary>
+        IEnumerable<string> LinkedAssembliesDebugInfo { get; }
+
+        /// <summary>
+        /// Project level imports (VB only, TODO: C# scripts).
+        /// </summary>
+        ImmutableArray<UsedNamespaceOrType> GetImports(EmitContext context);
+
+        /// <summary>
+        /// Default namespace (VB only).
+        /// </summary>
+        string DefaultNamespace { get; }
 
         ushort MajorSubsystemVersion { get; }
         ushort MinorSubsystemVersion { get; }

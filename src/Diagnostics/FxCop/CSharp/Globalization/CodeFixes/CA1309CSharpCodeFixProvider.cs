@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Globalization;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -21,7 +21,7 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Globalization
             // if nothing can be fixed, return the unchanged node
             var newRoot = root;
             var kind = nodeToFix.Kind();
-            var syntaxFactoryService = document.GetLanguageService<SyntaxGenerator>();
+            var syntaxFactoryService = document.Project.LanguageServices.GetService<SyntaxGenerator>();
             switch (kind)
             {
                 case SyntaxKind.Argument:
@@ -32,7 +32,7 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Globalization
                     if (memberAccess != null)
                     {
                         // preserve the "IgnoreCase" suffix if present
-                        bool isIgnoreCase = memberAccess.Name.GetText().ToString().EndsWith(CA1309DiagnosticAnalyzer.IgnoreCaseText);
+                        bool isIgnoreCase = memberAccess.Name.GetText().ToString().EndsWith(CA1309DiagnosticAnalyzer.IgnoreCaseText, StringComparison.Ordinal);
                         var newOrdinalText = isIgnoreCase ? CA1309DiagnosticAnalyzer.OrdinalIgnoreCaseText : CA1309DiagnosticAnalyzer.OrdinalText;
                         var newIdentifier = syntaxFactoryService.IdentifierName(newOrdinalText);
                         var newMemberAccess = memberAccess.WithName((SimpleNameSyntax)newIdentifier).WithAdditionalAnnotations(Formatter.Annotation);
@@ -44,10 +44,10 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Globalization
                     // string.Equals(a, b) => string.Equals(a, b, StringComparison.Ordinal)
                     // string.Compare(a, b) => string.Compare(a, b, StringComparison.Ordinal)
                     var identifier = (IdentifierNameSyntax)nodeToFix;
-                    var invokeParent = identifier.GetAncestor<InvocationExpressionSyntax>();
+                    var invokeParent = identifier.Parent?.FirstAncestorOrSelf<InvocationExpressionSyntax>();
                     if (invokeParent != null)
                     {
-                        var methodSymbol = model.GetSymbolInfo(identifier).Symbol as IMethodSymbol;
+                        var methodSymbol = model.GetSymbolInfo(identifier, cancellationToken).Symbol as IMethodSymbol;
                         if (methodSymbol != null && CanAddStringComparison(methodSymbol))
                         {
                             // append a new StringComparison.Ordinal argument

@@ -20,7 +20,7 @@ namespace Microsoft.CodeAnalysis
         private sealed class OneToOneUnicodeComparer : StringComparer
         {
             // PERF: Grab the TextInfo for the invariant culture since this will be accessed very frequently
-            private static readonly TextInfo invariantCultureTextInfo = CultureInfo.InvariantCulture.TextInfo;
+            private static readonly TextInfo s_invariantCultureTextInfo = CultureInfo.InvariantCulture.TextInfo;
 
             /// <summary>
             /// ToLower implements the one-to-one Unicode lowercase mapping
@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis
                     return 'i';
                 }
 
-                return invariantCultureTextInfo.ToLower(c);
+                return s_invariantCultureTextInfo.ToLower(c);
             }
 
             private int CompareLowerInvariant(char c1, char c2)
@@ -178,15 +178,12 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Returns a StringComparer that compares strings according the VB identifier comparison rules.
         /// </summary>
-        private static readonly OneToOneUnicodeComparer m_Comparer = new OneToOneUnicodeComparer();
+        private static readonly OneToOneUnicodeComparer s_comparer = new OneToOneUnicodeComparer();
 
         /// <summary>
         /// Returns a StringComparer that compares strings according the VB identifier comparison rules.
         /// </summary>
-        public static StringComparer Comparer
-        {
-            get { return m_Comparer; }
-        }
+        public static StringComparer Comparer => s_comparer;
 
         /// <summary>
         /// Determines if two VB identifiers are equal according to the VB identifier comparison rules.
@@ -194,10 +191,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="left">First identifier to compare</param>
         /// <param name="right">Second identifier to compare</param>
         /// <returns>true if the identifiers should be considered the same.</returns>
-        public static bool Equals(string left, string right)
-        {
-            return m_Comparer.Equals(left, right);
-        }
+        public static bool Equals(string left, string right) => s_comparer.Equals(left, right);
 
         /// <summary>
         /// Determines if the string 'value' end with string 'possibleEnd'.
@@ -205,10 +199,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="value"></param>
         /// <param name="possibleEnd"></param>
         /// <returns></returns>
-        public static bool EndsWith(string value, string possibleEnd)
-        {
-            return OneToOneUnicodeComparer.EndsWith(value, possibleEnd);
-        }
+        public static bool EndsWith(string value, string possibleEnd) => OneToOneUnicodeComparer.EndsWith(value, possibleEnd);
 
         /// <summary>
         /// Compares two VB identifiers according to the VB identifier comparison rules.
@@ -216,10 +207,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="left">First identifier to compare</param>
         /// <param name="right">Second identifier to compare</param>
         /// <returns>-1 if <paramref name="left"/> &lt; <paramref name="right"/>, 1 if <paramref name="left"/> &gt; <paramref name="right"/>, 0 if they are equal.</returns>
-        public static int Compare(string left, string right)
-        {
-            return m_Comparer.Compare(left, right);
-        }
+        public static int Compare(string left, string right) => s_comparer.Compare(left, right);
 
         /// <summary>
         /// Gets a case-insensitive hash code for VB identifiers.
@@ -230,7 +218,7 @@ namespace Microsoft.CodeAnalysis
         {
             Debug.Assert(value != null);
 
-            return m_Comparer.GetHashCode(value);
+            return s_comparer.GetHashCode(value);
         }
 
         /// <summary>

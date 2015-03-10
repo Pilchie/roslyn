@@ -3,7 +3,6 @@
 Imports System.Text
 Imports System.Threading
 Imports System.Threading.Tasks
-Imports Microsoft.CodeAnalysis.Instrumentation
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
@@ -54,13 +53,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' <summary>
         ''' Gets the root node of the syntax tree asynchronously.
         ''' </summary>
+        ''' <remarks>
+        ''' By default, the work associated with this method will be executed immediately on the current thread.
+        ''' Implementations that wish to schedule this work differently should override <see cref="GetRootAsync(CancellationToken)"/>.
+        ''' </remarks>
         Public Overridable Shadows Function GetRootAsync(Optional cancellationToken As CancellationToken = Nothing) As Task(Of VisualBasicSyntaxNode)
             Dim node As VisualBasicSyntaxNode = Nothing
-            If Me.TryGetRoot(node) Then
-                Return Task.FromResult(node)
-            End If
-
-            Return Task.Factory.StartNew(Function() Me.GetRoot(cancellationToken), cancellationToken) ' TODO: Should we use ExceptionFilter.ExecuteWithErrorReporting here?
+            Return Task.FromResult(If(Me.TryGetRoot(node), node, Me.GetRoot(cancellationToken)))
         End Function
 
         ''' <summary>
@@ -97,16 +96,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' source text.
         ''' </remarks>
         Public Overrides Function WithChangedText(newText As SourceText) As SyntaxTree
-            Using Logger.LogBlock(FunctionId.VisualBasic_SyntaxTree_IncrementalParse, message:=Me.FilePath)
-                ' try to find the changes between the old text and the new text.
-                Dim oldText As SourceText = Nothing
-                If Me.TryGetText(oldText) Then
-                    Return Me.WithChanges(newText, newText.GetChangeRanges(oldText).ToArray())
-                End If
+            ' try to find the changes between the old text and the new text.
+            Dim oldText As SourceText = Nothing
+            If Me.TryGetText(oldText) Then
+                Return Me.WithChanges(newText, newText.GetChangeRanges(oldText).ToArray())
+            End If
 
-                ' if we do not easily know the old text, then specify entire text as changed so we do a full reparse.
-                Return Me.WithChanges(newText, {New TextChangeRange(New TextSpan(0, Me.Length), newText.Length)})
-            End Using
+            ' if we do not easily know the old text, then specify entire text as changed so we do a full reparse.
+            Return Me.WithChanges(newText, {New TextChangeRange(New TextSpan(0, Me.Length), newText.Length)})
         End Function
 
         ''' <summary>
@@ -117,10 +114,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Throw New ArgumentNullException("changes")
             End If
 
-            Dim scanner As Scanner
+            Dim scanner As scanner
             If changes.Length = 1 AndAlso changes(0).Span = New TextSpan(0, Me.Length) AndAlso changes(0).NewLength = newText.Length Then
                 ' if entire text is replaced then do a full reparse
-                scanner = New Scanner(newText, Options)
+                scanner = New scanner(newText, Options)
             Else
                 scanner = New Blender(newText, changes, Me, Me.Options)
             End If
@@ -227,20 +224,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Throw New ArgumentNullException("path")
             End If
 
-            Using Logger.LogBlock(FunctionId.VisualBasic_SyntaxTree_FullParse, path, text.Length, cancellationToken)
-                options = If(options, VisualBasicParseOptions.Default)
+            options = If(options, VisualBasicParseOptions.Default)
 
-                Dim node As InternalSyntax.CompilationUnitSyntax
-                Using parser As New Parser(text, options, cancellationToken)
-                    node = parser.ParseCompilationUnit()
-                End Using
-
-                Dim root = DirectCast(node.CreateRed(Nothing, 0), CompilationUnitSyntax)
-                Dim tree = New ParsedSyntaxTree(text, text.Encoding, text.ChecksumAlgorithm, path, options, root, isMyTemplate)
-
-                tree.VerifySource()
-                Return tree
+            Dim node As InternalSyntax.CompilationUnitSyntax
+            Using parser As New parser(text, options, cancellationToken)
+                node = parser.ParseCompilationUnit()
             End Using
+
+            Dim root = DirectCast(node.CreateRed(Nothing, 0), CompilationUnitSyntax)
+            Dim tree = New ParsedSyntaxTree(text, text.Encoding, text.ChecksumAlgorithm, path, options, root, isMyTemplate)
+
+            tree.VerifySource()
+            Return tree
         End Function
 
         ''' <summary>
@@ -521,7 +516,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Friend Function IsAnyPreprocessorSymbolDefined(conditionalSymbolNames As IEnumerable(Of String), atNode As SyntaxNodeOrToken) As Boolean
             Debug.Assert(conditionalSymbolNames IsNot Nothing)
 
-            Dim conditionalSymbolsMap As ConditionalSymbolsMap = Me.ConditionalSymbols
+            Dim conditionalSymbolsMap As conditionalSymbolsMap = Me.ConditionalSymbols
             If conditionalSymbolsMap Is Nothing Then
                 Return False
             End If

@@ -1,12 +1,8 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.FxCopAnalyzers.Shared.Extensions;
-using Roslyn.Utilities;
+using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 
 namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
 {
@@ -22,17 +18,17 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
     public abstract class CA2214DiagnosticAnalyzer<TLanguageKindEnum> : DiagnosticAnalyzer where TLanguageKindEnum : struct
     {
         public const string RuleId = "CA2214";
-        private static LocalizableString localizableMessageAndTitle = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotCallOverridableMethodsInConstructors), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
-        private static LocalizableString localizableDescription = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotCallOverridableMethodsInConstructorsDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableMessageAndTitle = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotCallOverridableMethodsInConstructors), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableDescription = new LocalizableResourceString(nameof(FxCopRulesResources.DoNotCallOverridableMethodsInConstructorsDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
 
         public static DiagnosticDescriptor Rule = new DiagnosticDescriptor(RuleId,
-                                                                         localizableMessageAndTitle,
-                                                                         localizableMessageAndTitle,
+                                                                         s_localizableMessageAndTitle,
+                                                                         s_localizableMessageAndTitle,
                                                                          FxCopDiagnosticCategory.Usage,
                                                                          DiagnosticSeverity.Warning,
                                                                          isEnabledByDefault: true,
-                                                                         description: localizableDescription,
-                                                                         helpLink: "http://msdn.microsoft.com/library/ms182331.aspx",
+                                                                         description: s_localizableDescription,
+                                                                         helpLinkUri: "http://msdn.microsoft.com/library/ms182331.aspx",
                                                                          customTags: DiagnosticCustomTags.Microsoft);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics

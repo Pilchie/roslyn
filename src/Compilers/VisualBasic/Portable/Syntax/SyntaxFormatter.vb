@@ -1,4 +1,4 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System
 Imports Microsoft.CodeAnalysis.Text
@@ -10,6 +10,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
     Friend Class SyntaxFormatter
         Inherits VisualBasicSyntaxRewriter
 
+        Private ReadOnly consideredSpan As TextSpan
         Private ReadOnly indentWhitespace As String
         Private ReadOnly useElasticTrivia As Boolean
         Private ReadOnly useDefaultCasing As Boolean
@@ -35,9 +36,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         ''' <param name="useElasticTrivia">Whether to use elastic trivia or not</param>
         ''' <param name="useDefaultCasing">Whether to rewrite keywords in default casing or not</param>
         ''' <remarks></remarks>
-        Private Sub New(indentWhitespace As String, Optional useElasticTrivia As Boolean = False, Optional useDefaultCasing As Boolean = False)
-            : MyBase.New(VisitIntoStructuredTrivia:=True)
+        Private Sub New(consideredSpan As TextSpan, indentWhitespace As String, Optional useElasticTrivia As Boolean = False, Optional useDefaultCasing As Boolean = False)
+            MyBase.New(visitIntoStructuredTrivia:=True)
 
+            Me.consideredSpan = consideredSpan
             Me.indentWhitespace = indentWhitespace
             Me.useElasticTrivia = useElasticTrivia
             Me.useDefaultCasing = useDefaultCasing
@@ -46,21 +48,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Sub
 
         Friend Shared Function Format(Of TNode As SyntaxNode)(node As TNode, indentWhitespace As String, Optional useElasticTrivia As Boolean = False, Optional useDefaultCasing As Boolean = False) As SyntaxNode
-            Dim formatter As New SyntaxFormatter(indentWhitespace, useElasticTrivia, useDefaultCasing)
+            Dim formatter As New SyntaxFormatter(node.FullSpan, indentWhitespace, useElasticTrivia, useDefaultCasing)
             Dim result As TNode = CType(formatter.Visit(node), TNode)
             formatter.Free()
             Return result
         End Function
 
         Friend Shared Function Format(token As SyntaxToken, indentWhitespace As String, Optional useElasticTrivia As Boolean = False, Optional useDefaultCasing As Boolean = False) As SyntaxToken
-            Dim formatter As New SyntaxFormatter(indentWhitespace, useElasticTrivia, useDefaultCasing)
+            Dim formatter As New SyntaxFormatter(token.FullSpan, indentWhitespace, useElasticTrivia, useDefaultCasing)
             Dim result As SyntaxToken = formatter.VisitToken(token)
             formatter.Free()
             Return result
         End Function
 
         Friend Shared Function Format(trivia As SyntaxTriviaList, indentWhitespace As String, Optional useElasticTrivia As Boolean = False, Optional useDefaultCasing As Boolean = False) As SyntaxTriviaList
-            Dim formatter = New SyntaxFormatter(indentWhitespace, useElasticTrivia, useDefaultCasing)
+            Dim formatter = New SyntaxFormatter(trivia.FullSpan, indentWhitespace, useElasticTrivia, useDefaultCasing)
             Dim result As SyntaxTriviaList = formatter.RewriteTrivia(trivia,
                                             formatter.GetIndentationDepth(),
                                             isTrailing:=False,
@@ -659,9 +661,16 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Private Function GetNextRelevantToken(token As SyntaxToken) As SyntaxToken
-            Return token.GetNextToken(Function(t As SyntaxToken)
-                                          Return t.Kind <> SyntaxKind.None
-                                      End Function, Function(t As SyntaxTrivia) False)
+            Dim nextToken = token.GetNextToken(Function(t As SyntaxToken)
+                                                   Return t.Kind <> SyntaxKind.None
+                                               End Function, Function(t As SyntaxTrivia) False)
+
+            If consideredSpan.Contains(nextToken.FullSpan) Then
+                Return nextToken
+            Else
+                Return Nothing
+            End If
+
         End Function
 
         Private Sub AddLinebreaksAfterElementsIfNeeded(Of TNode As SyntaxNode)(
@@ -817,9 +826,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
 
             ' add a line break between begin statement and the ones from the statement list
             If Not hasInherits AndAlso Not hasImplements AndAlso node.Members.Count > 0 Then
-                AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 2)
+                AddLinebreaksAfterTokenIfNeeded(node.BlockStatement.GetLastToken(), 2)
             Else
-                AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+                AddLinebreaksAfterTokenIfNeeded(node.BlockStatement.GetLastToken(), 1)
             End If
 
             If hasImplements Then
@@ -911,7 +920,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Public Overrides Function VisitMethodBlock(node As MethodBlockSyntax) As SyntaxNode
-            AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+            AddLinebreaksAfterTokenIfNeeded(node.BlockStatement.GetLastToken(), 1)
 
             AddLinebreaksAfterElementsIfNeeded(node.Statements, 1, 1)
 
@@ -921,7 +930,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Public Overrides Function VisitConstructorBlock(node As ConstructorBlockSyntax) As SyntaxNode
-            AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+            AddLinebreaksAfterTokenIfNeeded(node.BlockStatement.GetLastToken(), 1)
 
             AddLinebreaksAfterElementsIfNeeded(node.Statements, 1, 1)
 
@@ -931,7 +940,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Public Overrides Function VisitOperatorBlock(node As OperatorBlockSyntax) As SyntaxNode
-            AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+            AddLinebreaksAfterTokenIfNeeded(node.BlockStatement.GetLastToken(), 1)
 
             AddLinebreaksAfterElementsIfNeeded(node.Statements, 1, 1)
 
@@ -941,7 +950,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Public Overrides Function VisitAccessorBlock(node As AccessorBlockSyntax) As SyntaxNode
-            AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+            AddLinebreaksAfterTokenIfNeeded(node.BlockStatement.GetLastToken(), 1)
 
             AddLinebreaksAfterElementsIfNeeded(node.Statements, 1, 1)
 
@@ -1041,7 +1050,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Public Overrides Function VisitCaseBlock(node As CaseBlockSyntax) As SyntaxNode
-            AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+            AddLinebreaksAfterTokenIfNeeded(node.CaseStatement.GetLastToken(), 1)
 
             AddLinebreaksAfterElementsIfNeeded(node.Statements, 1, 1)
 
@@ -1115,7 +1124,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax
         End Function
 
         Public Overrides Function VisitMultiLineLambdaExpression(node As MultiLineLambdaExpressionSyntax) As SyntaxNode
-            AddLinebreaksAfterTokenIfNeeded(node.Begin.GetLastToken(), 1)
+            AddLinebreaksAfterTokenIfNeeded(node.SubOrFunctionHeader.GetLastToken(), 1)
 
             ' one statement per line
             AddLinebreaksAfterElementsIfNeeded(node.Statements, 1, 1)

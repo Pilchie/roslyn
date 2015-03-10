@@ -61,6 +61,14 @@ Module ParserTestUtilities
         Return ParseAndVerify(source, options, expectedDiagnostics, errorCodesOnly:=False)
     End Function
 
+    Public Function ParseAndVerify(source As String, languageVersion As LanguageVersion, ParamArray expectedDiagnostics() As DiagnosticDescription) As SyntaxTree
+        Return ParseAndVerify(source, VisualBasicParseOptions.Default.WithLanguageVersion(languageVersion), expectedDiagnostics, errorCodesOnly:=False)
+    End Function
+
+    Public Function ParseAndVerify(source As String, languageVersion As LanguageVersion, errorCodesOnly As Boolean, ParamArray expectedDiagnostics() As DiagnosticDescription) As SyntaxTree
+        Return ParseAndVerify(source, VisualBasicParseOptions.Default.WithLanguageVersion(languageVersion), expectedDiagnostics, errorCodesOnly:=errorCodesOnly)
+    End Function
+
     Private Function ParseAndVerify(source As String, options As VisualBasicParseOptions, expectedDiagnostics() As DiagnosticDescription, errorCodesOnly As Boolean) As SyntaxTree
         Dim tree = Parse(source, options:=options)
         Dim root = tree.GetRoot()
@@ -505,6 +513,12 @@ Public Module VerificationHelpers
         Public Overrides Function TryGetText(ByRef text As SourceText) As Boolean
             Throw New NotImplementedException()
         End Function
+
+        Public Overrides ReadOnly Property Encoding As Encoding
+            Get
+                Throw New NotImplementedException()
+            End Get
+        End Property
 
         Public Overrides ReadOnly Property Length As Integer
             Get

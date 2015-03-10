@@ -35,8 +35,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
         ' Return type attributes. IsNull means not set. 
         Protected m_lazyReturnTypeCustomAttributesBag As CustomAttributesBag(Of VisualBasicAttributeData)
 
-        Private m_lazyLexicalSortKey As LexicalSortKey = LexicalSortKey.NotInitialized
-
         ' The syntax references for the primary (non-partial) declarations.
         ' Nothing if there are only partial declarations.
         Protected ReadOnly m_syntaxReferenceOpt As SyntaxReference
@@ -401,15 +399,8 @@ lReportErrorOnTwoTokens:
 
             If (flags And SourceMemberFlags.Shared) = 0 Then
                 If container.TypeKind = TypeKind.Structure AndAlso methodSym.ParameterCount = 0 Then
-                    If binder.Compilation.LanguageVersion < LanguageVersion.VisualBasic14 Then
-                        ' Instance constructor must have parameters.
-                        Binder.ReportDiagnostic(diagBag, syntax.NewKeyword, ERRID.ERR_NewInStruct)
-                    Else
-                        If methodSym.DeclaredAccessibility <> Accessibility.Public Then
-                            ' Instance constructor must be public.
-                            Binder.ReportDiagnostic(diagBag, syntax.NewKeyword, ERRID.ERR_StructParameterlessInstanceCtorMustBePublic)
-                        End If
-                    End If
+                    ' Instance constructor must have parameters.
+                    Binder.ReportDiagnostic(diagBag, syntax.NewKeyword, ERRID.ERR_NewInStruct)
                 End If
             End If
 
@@ -833,12 +824,9 @@ lReportErrorOnTwoTokens:
 
         Friend Overrides Function GetLexicalSortKey() As LexicalSortKey
             ' WARNING: this should not allocate memory!
-            If Not m_lazyLexicalSortKey.IsInitialized Then
-                m_lazyLexicalSortKey.SetFrom(If(m_syntaxReferenceOpt IsNot Nothing,
-                                              New LexicalSortKey(m_syntaxReferenceOpt, Me.DeclaringCompilation),
-                                              LexicalSortKey.NotInSource))
-            End If
-            Return m_lazyLexicalSortKey
+            Return If(m_syntaxReferenceOpt IsNot Nothing,
+                    New LexicalSortKey(m_syntaxReferenceOpt, Me.DeclaringCompilation),
+                    LexicalSortKey.NotInSource)
         End Function
 
         Public Overrides ReadOnly Property Locations As ImmutableArray(Of Location)
@@ -876,7 +864,7 @@ lReportErrorOnTwoTokens:
                      SyntaxKind.MultiLineSubLambdaExpression,
                      SyntaxKind.SingleLineFunctionLambdaExpression,
                      SyntaxKind.SingleLineSubLambdaExpression
-                    Return DirectCast(node, LambdaExpressionSyntax).Begin.Span
+                    Return DirectCast(node, LambdaExpressionSyntax).SubOrFunctionHeader.Span
 
                 Case SyntaxKind.SubStatement, SyntaxKind.FunctionStatement
                     Return DirectCast(node, MethodStatementSyntax).Identifier.Span
@@ -1220,7 +1208,7 @@ lReportErrorOnTwoTokens:
                 ' Assign all variables that are associated with the header -1.
                 ' We can't assign >=0 since user-defined variables defined in the first statement of the body have 0
                 ' and user-defined variables need to have a unique syntax offset.
-                If localPosition = block.Begin.SpanStart Then
+                If localPosition = block.BlockStatement.SpanStart Then
                     Return -1
                 End If
 
@@ -1229,6 +1217,13 @@ lReportErrorOnTwoTokens:
                 If span.Contains(localPosition) Then
                     Return localPosition - span.Start
                 End If
+            End If
+
+            ' Calculates a syntax offset of a syntax position which must be either a property or field initializer.
+            Dim syntaxOffset As Integer
+            Dim containingType = DirectCast(Me.ContainingType, SourceNamedTypeSymbol)
+            If containingType.TryCalculateSyntaxOffsetOfPositionInInitializer(localPosition, localTree, Me.IsShared, syntaxOffset) Then
+                Return syntaxOffset
             End If
 
             Throw ExceptionUtilities.Unreachable
@@ -2255,7 +2250,7 @@ lReportErrorOnTwoTokens:
                             Debug.Assert(Me.IsSub)
                             binder.DisallowTypeCharacter(GetNameToken(methodStatement), diagBag, ERRID.ERR_TypeCharOnSub)
                             retType = binder.GetSpecialType(SpecialType.System_Void, Syntax, diagBag)
-                            errorLocation = methodStatement.Keyword
+                            errorLocation = methodStatement.DeclarationKeyword
 
                         Case Else
                             Dim getErrorInfo As Func(Of DiagnosticInfo) = Nothing
@@ -2277,7 +2272,7 @@ lReportErrorOnTwoTokens:
                             If asClause IsNot Nothing Then
                                 errorLocation = asClause.Type
                             Else
-                                errorLocation = methodStatement.Keyword
+                                errorLocation = methodStatement.DeclarationKeyword
                             End If
 
                     End Select

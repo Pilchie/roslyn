@@ -1,5 +1,11 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+// Disable warning about static explicit specialization until bug 1118730 is fixed
+#pragma warning( push )
+#pragma warning( disable: 4499 )
 #include "CppUnitTest.h"
+#pragma warning (pop)
+
 #include "pipe_extensions.h"
 #include <memory>
 #include <sstream>
@@ -12,20 +18,20 @@ namespace Microsoft
         namespace CppUnitTestFramework 
         {
             template<>
-            static wstring ToString<RequestLanguage>(const RequestLanguage& lang)
+            wstring ToString<RequestLanguage>(const RequestLanguage& lang)
             {
                 return lang == RequestLanguage::CSHARPCOMPILE
                     ? L"CSHARPCOMPILE" : L"VBCOMPILE";
             }
 
             template<>
-            static wstring ToString <vector<Request::Argument>>(const vector<Request::Argument>& vec)
+            wstring ToString <vector<Request::Argument>>(const vector<Request::Argument>& vec)
             {
                 return L"";
             }
 
             template<>
-            static wstring ToString <vector<BYTE>>(const vector<BYTE>& vec)
+            wstring ToString <vector<BYTE>>(const vector<BYTE>& vec)
             {
                 return L"";
             }
@@ -37,6 +43,8 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace NativeClientTests
 {       
+    // To run these test from command line 
+    // vstest.console.exe Roslyn.Compilers.NativeClient.UnitTests.dll
     TEST_CLASS(MessageTests)
     {
     public:
@@ -68,7 +76,7 @@ namespace NativeClientTests
 
             vector<byte> expectedBytes = {
                 0x32, 0x0, 0x0, 0x0, // Size of request
-                0x1, 0x0, 0x0, 0x0,  // Protocol version
+                0x2, 0x0, 0x0, 0x0,  // Protocol version
                 0x21, 0x25, 0x53, 0x44, // C# compile token
                 0x2, 0x0, 0x0, 0x0, // Number of arguments
                 0x21, 0x72, 0x14, 0x51, // Current directory token
@@ -119,7 +127,7 @@ namespace NativeClientTests
 
             vector<byte> expectedBytes = {
                 0x54, 0x0, 0x0, 0x0, // Size of request
-                0x1, 0x0, 0x0, 0x0,  // Protocol version
+                0x2, 0x0, 0x0, 0x0,  // Protocol version
                 0x21, 0x25, 0x53, 0x44, // C# compile token
                 0x3, 0x0, 0x0, 0x0, // Number of arguments
                 0x21, 0x72, 0x14, 0x51, // Current directory token

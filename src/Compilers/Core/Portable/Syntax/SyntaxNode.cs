@@ -21,19 +21,19 @@ namespace Microsoft.CodeAnalysis
     [DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
     public abstract partial class SyntaxNode
     {
-        private readonly GreenNode green;
-        private readonly SyntaxNode parent;
+        private readonly GreenNode _green;
+        private readonly SyntaxNode _parent;
         internal SyntaxTree _syntaxTree;
-        private readonly int position;
+        private readonly int _position;
 
         internal SyntaxNode(GreenNode green, SyntaxNode parent, int position)
         {
             Debug.Assert(position >= 0, "position cannot be negative");
             Debug.Assert(parent?.Green.IsList != true, "list cannot be a parent");
 
-            this.position = position;
-            this.green = green;
-            this.parent = parent;
+            _position = position;
+            _green = green;
+            _parent = parent;
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         public int RawKind
         {
-            get { return green.RawKind; }
+            get { return _green.RawKind; }
         }
 
         protected abstract string KindText { get; }
@@ -70,17 +70,17 @@ namespace Microsoft.CodeAnalysis
 
         internal GreenNode Green
         {
-            get { return this.green; }
+            get { return _green; }
         }
 
         internal int Position
         {
-            get { return this.position; }
+            get { return _position; }
         }
 
         internal int EndPosition
         {
-            get { return this.position + this.green.FullWidth; }
+            get { return _position + _green.FullWidth; }
         }
 
         /// <summary>
@@ -310,7 +310,7 @@ namespace Microsoft.CodeAnalysis
         internal SyntaxNode GetWeakRedElement(ref WeakReference<SyntaxNode> slot, int index)
         {
             SyntaxNode value = null;
-            if (slot?.TryGetTarget(out value) == true) 
+            if (slot?.TryGetTarget(out value) == true)
             {
                 return value;
             }
@@ -611,6 +611,16 @@ namespace Microsoft.CodeAnalysis
             return this.SyntaxTree.GetReference(this);
         }
 
+        /// <summary>
+        /// When invoked on a node that represents an anonymous function or a query clause [1]
+        /// with a <paramref name="body"/> of another anonymous function or a query clause of the same kind [2], 
+        /// returns the body of the [1] that positionally corresponds to the specified <paramref name="body"/>.
+        /// 
+        /// E.g. join clause declares left expression and right expression -- each of these expressions is a lambda body.
+        /// JoinClause1.GetCorrespondingLambdaBody(JoinClause2.RightExpression) returns JoinClause1.RightExpression.
+        /// </summary>
+        internal abstract SyntaxNode GetCorrespondingLambdaBody(SyntaxNode body);
+
         #region Node Lookup
 
         /// <summary>
@@ -620,7 +630,7 @@ namespace Microsoft.CodeAnalysis
         {
             get
             {
-                return this.parent;
+                return _parent;
             }
         }
 
@@ -675,7 +685,7 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         public IEnumerable<SyntaxNode> Ancestors(bool ascendOutOfTrivia = true)
         {
-            return this.Parent ?
+            return this.Parent?
                 .AncestorsAndSelf(ascendOutOfTrivia) ??
                 SpecializedCollections.EmptyEnumerable<SyntaxNode>();
         }
@@ -1240,7 +1250,6 @@ namespace Microsoft.CodeAnalysis
         /// nodes and tokens must be equivalent. 
         /// </param>
         protected abstract bool IsEquivalentToCore(SyntaxNode node, bool topLevel = false);
-
         #endregion
     }
 }

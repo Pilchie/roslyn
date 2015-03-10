@@ -5,7 +5,11 @@ using System.Linq;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
+using Microsoft.CodeAnalysis.Shared.Utilities;
+using System;
 
 namespace Microsoft.CodeAnalysis.UnitTests
 {
@@ -15,7 +19,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public void TestAddProject_ProjectInfo()
         {
             var info = ProjectInfo.Create(
-                ProjectId.CreateNewId(), 
+                ProjectId.CreateNewId(),
                 version: VersionStamp.Default,
                 name: "TestProject",
                 assemblyName: "TestProject.dll",
@@ -54,7 +58,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
                 var doc = ws.AddDocument(info);
 
                 Assert.Equal(ws.CurrentSolution.GetDocument(info.Id), doc);
-                Assert.Equal(info.Name, doc.Name);                
+                Assert.Equal(info.Name, doc.Name);
             }
         }
 
@@ -244,6 +248,105 @@ namespace Microsoft.CodeAnalysis.UnitTests
 
                 Assert.Equal(0, ws.CurrentSolution.Projects.Count());
             }
+        }
+
+        [Fact]
+        public void TestOpenCloseDocument()
+        {
+            var pid = ProjectId.CreateNewId();
+            var text = SourceText.From("public class C { }");
+            var version = VersionStamp.Create();
+            var docInfo = DocumentInfo.Create(DocumentId.CreateNewId(pid), "c.cs", loader: TextLoader.From(TextAndVersion.Create(text, version)));
+            var projInfo = ProjectInfo.Create(
+                pid,
+                version: VersionStamp.Default,
+                name: "TestProject",
+                assemblyName: "TestProject.dll",
+                language: LanguageNames.CSharp,
+                documents: new[] { docInfo });
+
+            using (var ws = new AdhocWorkspace())
+            {
+                ws.AddProject(projInfo);
+
+                SourceText currentText;
+                VersionStamp currentVersion;
+
+                var doc = ws.CurrentSolution.GetDocument(docInfo.Id);
+                Assert.Equal(false, doc.TryGetText(out currentText));
+
+                ws.OpenDocument(docInfo.Id);
+
+                doc = ws.CurrentSolution.GetDocument(docInfo.Id);
+                Assert.Equal(true, doc.TryGetText(out currentText));
+                Assert.Equal(true, doc.TryGetTextVersion(out currentVersion));
+                Assert.Same(text, currentText);
+                Assert.Equal(version, currentVersion);
+
+                ws.CloseDocument(docInfo.Id);
+
+                doc = ws.CurrentSolution.GetDocument(docInfo.Id);
+                Assert.Equal(false, doc.TryGetText(out currentText));
+            }
+        }
+
+        [Fact]
+        public void TestOpenCloseAdditionalDocument()
+        {
+            var pid = ProjectId.CreateNewId();
+            var text = SourceText.From("public class C { }");
+            var version = VersionStamp.Create();
+            var docInfo = DocumentInfo.Create(DocumentId.CreateNewId(pid), "c.cs", loader: TextLoader.From(TextAndVersion.Create(text, version)));
+            var projInfo = ProjectInfo.Create(
+                pid,
+                version: VersionStamp.Default,
+                name: "TestProject",
+                assemblyName: "TestProject.dll",
+                language: LanguageNames.CSharp,
+                additionalDocuments: new[] { docInfo });
+
+            using (var ws = new AdhocWorkspace())
+            {
+                ws.AddProject(projInfo);
+
+                SourceText currentText;
+                VersionStamp currentVersion;
+
+                var doc = ws.CurrentSolution.GetAdditionalDocument(docInfo.Id);
+                Assert.Equal(false, doc.TryGetText(out currentText));
+
+                ws.OpenAdditionalDocument(docInfo.Id);
+
+                doc = ws.CurrentSolution.GetAdditionalDocument(docInfo.Id);
+                Assert.Equal(true, doc.TryGetText(out currentText));
+                Assert.Equal(true, doc.TryGetTextVersion(out currentVersion));
+                Assert.Same(text, currentText);
+                Assert.Equal(version, currentVersion);
+
+                ws.CloseAdditionalDocument(docInfo.Id);
+
+                doc = ws.CurrentSolution.GetAdditionalDocument(docInfo.Id);
+                Assert.Equal(false, doc.TryGetText(out currentText));
+            }
+        }
+
+        [Fact]
+        public void TestGenerateUniqueName()
+        {
+            var a = NameGenerator.GenerateUniqueName("ABC", "txt", _ => true);
+            Assert.True(a.StartsWith("ABC", StringComparison.Ordinal));
+            Assert.True(a.EndsWith(".txt", StringComparison.Ordinal));
+            Assert.False(a.EndsWith("..txt", StringComparison.Ordinal));
+
+            var b = NameGenerator.GenerateUniqueName("ABC", ".txt", _ => true);
+            Assert.True(b.StartsWith("ABC", StringComparison.Ordinal));
+            Assert.True(b.EndsWith(".txt", StringComparison.Ordinal));
+            Assert.False(b.EndsWith("..txt", StringComparison.Ordinal));
+
+            var c = NameGenerator.GenerateUniqueName("ABC", "\u0640.txt", _ => true);
+            Assert.True(c.StartsWith("ABC", StringComparison.Ordinal));
+            Assert.True(c.EndsWith(".\u0640.txt", StringComparison.Ordinal));
+            Assert.False(c.EndsWith("..txt", StringComparison.Ordinal));
         }
     }
 }

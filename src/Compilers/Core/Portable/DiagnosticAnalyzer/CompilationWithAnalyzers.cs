@@ -5,18 +5,20 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Diagnostics
 {
     public class CompilationWithAnalyzers
     {
-        private readonly AnalyzerDriver driver;
-        private readonly Compilation compilation;
-        private readonly CancellationToken cancellationToken;
+        private readonly AnalyzerDriver _driver;
+        private readonly Compilation _compilation;
+        private readonly CancellationToken _cancellationToken;
+        private readonly ConcurrentSet<Diagnostic> _exceptionDiagnostics;
 
         public Compilation Compilation
         {
-            get { return this.compilation; }
+            get { return _compilation; }
         }
 
         /// <summary>
@@ -28,8 +30,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         /// <param name="cancellationToken">A cancellation token that can be used to abort analysis.</param>
         public CompilationWithAnalyzers(Compilation compilation, ImmutableArray<DiagnosticAnalyzer> analyzers, AnalyzerOptions options, CancellationToken cancellationToken)
         {
-            this.cancellationToken = cancellationToken;
-            this.driver = AnalyzerDriver.Create(compilation, analyzers, options, out this.compilation, this.cancellationToken);
+            _cancellationToken = cancellationToken;
+            _exceptionDiagnostics = new ConcurrentSet<Diagnostic>();
+            _driver = AnalyzerDriver.Create(compilation, analyzers, options, AnalyzerManager.Instance, AddExceptionDiagnostic, out _compilation, _cancellationToken);
+        }
+
+        private void AddExceptionDiagnostic(Diagnostic diagnostic)
+        {
+            _exceptionDiagnostics.Add(diagnostic);
         }
 
         /// <summary>
@@ -39,9 +47,9 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         {
             // Invoke GetDiagnostics to populate the compilation's CompilationEvent queue.
             // Discard the returned diagnostics.
-            this.compilation.GetDiagnostics(this.cancellationToken);
+            _compilation.GetDiagnostics(_cancellationToken);
 
-            return await this.driver.GetDiagnosticsAsync().ConfigureAwait(false);
+            return await _driver.GetDiagnosticsAsync().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -50,10 +58,10 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         public async Task<ImmutableArray<Diagnostic>> GetAllDiagnosticsAsync()
         {
             // Invoke GetDiagnostics to populate the compilation's CompilationEvent queue.
-            ImmutableArray<Diagnostic> compilerDiagnostics = this.compilation.GetDiagnostics(this.cancellationToken);
+            ImmutableArray<Diagnostic> compilerDiagnostics = _compilation.GetDiagnostics(_cancellationToken);
 
-            ImmutableArray<Diagnostic> analyzerDiagnostics = await this.driver.GetDiagnosticsAsync().ConfigureAwait(false);
-            return compilerDiagnostics.AddRange(analyzerDiagnostics);
+            ImmutableArray<Diagnostic> analyzerDiagnostics = await _driver.GetDiagnosticsAsync().ConfigureAwait(false);
+            return compilerDiagnostics.AddRange(analyzerDiagnostics).AddRange(_exceptionDiagnostics);
         }
 
         /// <summary>
@@ -91,9 +99,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
         /// <summary>
         /// Returns true if all the diagnostics that can be produced by this analyzer are suppressed through options.
-        /// <paramref name="continueOnAnalyzerException"/> says whether the caller would like the exception thrown by the analyzers to be handled or not. If true - Handles ; False - Not handled.
+        /// <param name="analyzer">Analyzer to be checked for suppression.</param>
+        /// <param name="options">Compilation options.</param>
+        /// <param name="onAnalyzerException">
+        /// Optional delegate which is invoked when an analyzer throws an exception.
+        /// Delegate can do custom tasks such as report the given analyzer exception diagnostic, report a non-fatal watson for the exception, etc.
+        /// </param>
         /// </summary>
-        public static bool IsDiagnosticAnalyzerSuppressed(DiagnosticAnalyzer analyzer, CompilationOptions options, Func<Exception, DiagnosticAnalyzer, bool> continueOnAnalyzerException)
+        public static bool IsDiagnosticAnalyzerSuppressed(DiagnosticAnalyzer analyzer, CompilationOptions options, Action<Exception, DiagnosticAnalyzer, Diagnostic> onAnalyzerException = null)
         {
             if (analyzer == null)
             {
@@ -105,13 +118,11 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 throw new ArgumentNullException(nameof(options));
             }
 
-            if (continueOnAnalyzerException == null)
-            {
-                throw new ArgumentNullException(nameof(continueOnAnalyzerException));
-            }
+            Action<Exception, DiagnosticAnalyzer, Diagnostic> voidHandler = (ex, a, diag) => { };
+            onAnalyzerException = onAnalyzerException ?? voidHandler;
+            var analyzerExecutor = AnalyzerExecutor.CreateForSupportedDiagnostics(onAnalyzerException, CancellationToken.None);
 
-            Action<Diagnostic> dummy = _ => { };
-            return AnalyzerDriver.IsDiagnosticAnalyzerSuppressed(analyzer, options, dummy, continueOnAnalyzerException, CancellationToken.None);
+            return AnalyzerDriver.IsDiagnosticAnalyzerSuppressed(analyzer, options, AnalyzerManager.Instance, analyzerExecutor);
         }
     }
 }

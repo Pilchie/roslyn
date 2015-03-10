@@ -1,11 +1,8 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Globalization;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.CSharp.UnitTests.Emit;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -16,7 +13,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         //{0} is a numeric type
         //{1} is some value
         //{2} is one greater than {1}
-        const string NUMERIC_INCREMENT_TEMPLATE = @"
+        private const string NUMERIC_INCREMENT_TEMPLATE = @"
 class C
 {{
     static void Main()
@@ -45,7 +42,7 @@ class C
 ";
 
         //{0} is some value, {1} is one greater
-        const string NUMERIC_OUTPUT_TEMPLATE = @"
+        private const string NUMERIC_OUTPUT_TEMPLATE = @"
 {1}
 {0}
 {1}
@@ -1001,8 +998,9 @@ Zero
             Type type = typeof(T);
             Assert.True(type.IsPrimitive || type == typeof(decimal), string.Format("Type {0} is neither primitive nor decimal", type));
 
-            string source = string.Format(NUMERIC_INCREMENT_TEMPLATE, type.FullName, value, valuePlusOne);
-            string expectedOutput = string.Format(NUMERIC_OUTPUT_TEMPLATE, value, valuePlusOne);
+            // Explicitly provide InvariantCulture to use the proper C# decimal separator '.' in the source regardless of the current culture
+            string source = string.Format(CultureInfo.InvariantCulture, NUMERIC_INCREMENT_TEMPLATE, type.FullName, value, valuePlusOne);
+            string expectedOutput = string.Format(CultureInfo.InvariantCulture, NUMERIC_OUTPUT_TEMPLATE, value, valuePlusOne);
 
             CompileAndVerify(source, expectedOutput: expectedOutput);
         }
@@ -1030,7 +1028,7 @@ public class Test
     }
 }
 ";
-            base.CompileAndVerify(source, expectedOutput:"12").
+            base.CompileAndVerify(source, expectedOutput: "12").
                 VerifyIL("Test.Main",
 @"
 {

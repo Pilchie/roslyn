@@ -1,4 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -106,12 +107,12 @@ namespace Microsoft.CodeAnalysis.CodeFixes
 
                     // TODO: Wrap call to ComputeFixesAsync() below in IExtensionManager.PerformFunctionAsync() so that
                     // a buggy extension that throws can't bring down the host?
-                    var task = fixAllContext.CodeFixProvider.ComputeFixesAsync(context) ?? SpecializedTasks.EmptyTask;
+                    var task = fixAllContext.CodeFixProvider.RegisterCodeFixesAsync(context) ?? SpecializedTasks.EmptyTask;
                     await task.ConfigureAwait(false);
 
                     foreach (var fix in fixes)
                     {
-                        if (fix != null && fix.Id == fixAllContext.CodeActionId)
+                        if (fix != null && fix.EquivalenceKey == fixAllContext.CodeActionEquivalenceKey)
                         {
                             addFix(fix);
                         }
@@ -380,7 +381,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
 
                     mergeTasks[i] = Task.Run(async () =>
                     {
-                        var appliedChanges = (await documentsToMerge[0].GetTextChangesAsync(oldDocument).ConfigureAwait(false)).ToList();
+                        var appliedChanges = (await documentsToMerge[0].GetTextChangesAsync(oldDocument, cancellationToken).ConfigureAwait(false)).ToList();
 
                         foreach (var document in documentsToMerge.Skip(1))
                         {
@@ -431,7 +432,7 @@ namespace Microsoft.CodeAnalysis.CodeFixes
             var successfullyMergedChanges = new List<TextChange>();
 
             int cumulativeChangeIndex = 0;
-            foreach (var change in await newDocument.GetTextChangesAsync(oldDocument).ConfigureAwait(false))
+            foreach (var change in await newDocument.GetTextChangesAsync(oldDocument, cancellationToken).ConfigureAwait(false))
             {
                 while (cumulativeChangeIndex < cumulativeChanges.Count && cumulativeChanges[cumulativeChangeIndex].Span.End < change.Span.Start)
                 {

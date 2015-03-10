@@ -1,10 +1,12 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.Emit;
 using Roslyn.Utilities;
 using CDI = Microsoft.Cci.CustomDebugInfoConstants;
@@ -13,14 +15,18 @@ namespace Microsoft.Cci
 {
     internal sealed class CustomDebugInfoWriter
     {
-        private uint methodTokenWithModuleInfo;
-        private IMethodBody methodBodyWithModuleInfo;
+        private uint _methodTokenWithModuleInfo;
+        private IMethodBody _methodBodyWithModuleInfo;
 
-        private uint previousMethodTokenWithUsingInfo;
-        private IMethodBody previousMethodBodyWithUsingInfo;
+        private uint _previousMethodTokenWithUsingInfo;
+        private IMethodBody _previousMethodBodyWithUsingInfo;
 
-        public CustomDebugInfoWriter()
+        private readonly PdbWriter _pdbWriter;
+
+        public CustomDebugInfoWriter(PdbWriter pdbWriter)
         {
+            Debug.Assert(pdbWriter != null);
+            _pdbWriter = pdbWriter;
         }
 
         /// <summary>
@@ -28,15 +34,15 @@ namespace Microsoft.Cci
         /// Returns non-null <paramref name="forwardToMethod"/> if the forwarding should be done directly via UsingNamespace,
         /// null if the forwarding is done via custom debug info.
         /// </summary>
-        public bool ShouldForwardNamespaceScopes(IMethodBody methodBody, uint methodToken, out IMethodDefinition forwardToMethod)
+        public bool ShouldForwardNamespaceScopes(EmitContext context, IMethodBody methodBody, uint methodToken, out IMethodDefinition forwardToMethod)
         {
-            if (ShouldForwardToPreviousMethodWithUsingInfo(methodBody) || methodBody.NamespaceScopes.IsEmpty)
+            if (ShouldForwardToPreviousMethodWithUsingInfo(context, methodBody) || methodBody.ImportScope == null)
             {
                 // SerializeNamespaceScopeMetadata will do the actual forwarding in case this is a CSharp method.
                 // VB on the other hand adds a "@methodtoken" to the scopes instead.
-                if (methodBody.NamespaceScopeEncoding == NamespaceScopeEncoding.Forwarding)
+                if (context.Module.GenerateVisualBasicStylePdb)
                 {
-                    forwardToMethod = this.previousMethodBodyWithUsingInfo.MethodDefinition;
+                    forwardToMethod = _previousMethodBodyWithUsingInfo.MethodDefinition;
                 }
                 else
                 {
@@ -46,30 +52,30 @@ namespace Microsoft.Cci
                 return true;
             }
 
-            this.previousMethodBodyWithUsingInfo = methodBody;
-            this.previousMethodTokenWithUsingInfo = methodToken;
+            _previousMethodBodyWithUsingInfo = methodBody;
+            _previousMethodTokenWithUsingInfo = methodToken;
             forwardToMethod = null;
             return false;
         }
 
-        public byte[] SerializeMethodDebugInfo(IModule module, IMethodBody methodBody, uint methodToken, bool isEncDelta, bool suppressNewCustomDebugInfo, out bool emitExternNamespaces)
+        public byte[] SerializeMethodDebugInfo(EmitContext context, IMethodBody methodBody, uint methodToken, bool isEncDelta, bool suppressNewCustomDebugInfo, out bool emitExternNamespaces)
         {
             emitExternNamespaces = false;
 
             // CONSIDER: this may not be the same "first" method as in Dev10, but
             // it shouldn't matter since all methods will still forward to a method
             // containing the appropriate information.
-            if (this.methodBodyWithModuleInfo == null) //UNDONE: || edit-and-continue
+            if (_methodBodyWithModuleInfo == null) //UNDONE: || edit-and-continue
             {
                 // This module level information could go on every method (and does in
                 // the edit-and-continue case), but - as an optimization - we'll just
                 // put it on the first method we happen to encounter and then put a
                 // reference to the first method's token in every other method (so they
                 // can find the information).
-                if (module.ExternNamespaces.Any())
+                if (context.Module.GetAssemblyReferenceAliases(context).Any())
                 {
-                    this.methodTokenWithModuleInfo = methodToken;
-                    this.methodBodyWithModuleInfo = methodBody;
+                    _methodTokenWithModuleInfo = methodToken;
+                    _methodBodyWithModuleInfo = methodBody;
                     emitExternNamespaces = true;
                 }
             }
@@ -88,7 +94,7 @@ namespace Microsoft.Cci
             // is not a regression).
             if (methodBody.StateMachineTypeName == null)
             {
-                SerializeNamespaceScopeMetadata(methodBody, customDebugInfo);
+                SerializeNamespaceScopeMetadata(context, methodBody, customDebugInfo);
                 SerializeStateMachineLocalScopes(methodBody, customDebugInfo);
             }
 
@@ -99,15 +105,8 @@ namespace Microsoft.Cci
                 // delta doesn't need this information - we use information recorded by previous generation emit
                 if (!isEncDelta)
                 {
-                    var encSlotInfo = methodBody.StateMachineHoistedLocalSlots;
-
-                    // Kickoff method of a state machine (async/iterator method) doens't have any interesting locals,
-                    // so we use its EnC method debug info to store information about locals hoisted to the state machine.
-                    var encDebugInfo = encSlotInfo.IsDefault ?
-                        GetEncDebugInfoForLocals(methodBody.LocalVariables) :
-                        GetEncDebugInfoForLocals(encSlotInfo);
-
-                    encDebugInfo.SerializeCustomDebugInformation(customDebugInfo);
+                    var encMethodInfo = MetadataWriter.GetEncMethodDebugInfo(methodBody);
+                    SerializeCustomDebugInformation(encMethodInfo, customDebugInfo);
                 }
             }
 
@@ -116,24 +115,38 @@ namespace Microsoft.Cci
             return result;
         }
 
-        public static EditAndContinueMethodDebugInformation GetEncDebugInfoForLocals(ImmutableArray<ILocalDefinition> locals)
+        private static void SerializeCustomDebugInformation(EditAndContinueMethodDebugInformation debugInfo, ArrayBuilder<MemoryStream> customDebugInfo)
         {
-            if (!locals.Any(variable => !variable.SlotInfo.Id.IsNone))
+            if (!debugInfo.LocalSlots.IsDefaultOrEmpty)
             {
-                return default(EditAndContinueMethodDebugInformation);
+                customDebugInfo.Add(SerializeRecord(CDI.CdiKindEditAndContinueLocalSlotMap, debugInfo.SerializeLocalSlots));
             }
 
-            return new EditAndContinueMethodDebugInformation(locals.SelectAsArray(variable => variable.SlotInfo));
+            if (!debugInfo.Lambdas.IsDefaultOrEmpty)
+            {
+                customDebugInfo.Add(SerializeRecord(CDI.CdiKindEditAndContinueLambdaMap, debugInfo.SerializeLambdaMap));
+            }
         }
 
-        public static EditAndContinueMethodDebugInformation GetEncDebugInfoForLocals(ImmutableArray<EncHoistedLocalInfo> locals)
+        private static MemoryStream SerializeRecord(byte kind, Action<BinaryWriter> data)
         {
-            if (!locals.Any(variable => !variable.SlotInfo.Id.IsNone))
-            {
-                return default(EditAndContinueMethodDebugInformation);
-            }
+            MemoryStream customMetadata = new MemoryStream();
+            BinaryWriter cmw = new BinaryWriter(customMetadata);
+            cmw.WriteByte(CDI.CdiVersion);
+            cmw.WriteByte(kind);
+            cmw.Align(4);
 
-            return new EditAndContinueMethodDebugInformation(locals.SelectAsArray(variable => variable.SlotInfo));
+            // length (will be patched)
+            uint lengthPosition = cmw.BaseStream.Position;
+            cmw.WriteUint(0);
+
+            data(cmw);
+
+            uint length = customMetadata.Position;
+            cmw.BaseStream.Position = lengthPosition;
+            cmw.WriteUint(length);
+            cmw.BaseStream.Position = length;
+            return customMetadata;
         }
 
         private static void SerializeIteratorClassMetadata(IMethodBody methodBody, ArrayBuilder<MemoryStream> customDebugInfo)
@@ -176,8 +189,17 @@ namespace Microsoft.Cci
             cmw.WriteUint(numberOfScopes);
             foreach (var scope in scopes)
             {
-                cmw.WriteUint(scope.StartOffset);
-                cmw.WriteUint(scope.EndOffset);
+                if (scope.IsDefault)
+                {
+                    cmw.WriteUint(0);
+                    cmw.WriteUint(0);
+                }
+                else
+                {
+                    // Dev12 C# emits end-inclusive range
+                    cmw.WriteUint((uint)scope.StartOffset);
+                    cmw.WriteUint((uint)scope.EndOffset - 1);
+                }
             }
 
             customDebugInfo.Add(customMetadata);
@@ -297,16 +319,16 @@ namespace Microsoft.Cci
             return result;
         }
 
-        private void SerializeNamespaceScopeMetadata(IMethodBody methodBody, ArrayBuilder<MemoryStream> customDebugInfo)
+        private void SerializeNamespaceScopeMetadata(EmitContext context, IMethodBody methodBody, ArrayBuilder<MemoryStream> customDebugInfo)
         {
-            if (methodBody.NamespaceScopeEncoding == NamespaceScopeEncoding.Forwarding)
+            if (context.Module.GenerateVisualBasicStylePdb)
             {
                 return;
             }
 
-            if (ShouldForwardToPreviousMethodWithUsingInfo(methodBody))
+            if (ShouldForwardToPreviousMethodWithUsingInfo(context, methodBody))
             {
-                Debug.Assert(!ReferenceEquals(this.previousMethodBodyWithUsingInfo, methodBody));
+                Debug.Assert(!ReferenceEquals(_previousMethodBodyWithUsingInfo, methodBody));
                 SerializeReferenceToPreviousMethodWithUsingInfo(customDebugInfo);
                 return;
             }
@@ -314,9 +336,9 @@ namespace Microsoft.Cci
             MemoryStream customMetadata = new MemoryStream();
             List<ushort> usingCounts = new List<ushort>();
             BinaryWriter cmw = new BinaryWriter(customMetadata);
-            foreach (NamespaceScope namespaceScope in methodBody.NamespaceScopes)
+            for (IImportScope scope = methodBody.ImportScope; scope != null; scope = scope.Parent)
             {
-                usingCounts.Add((ushort)namespaceScope.UsedNamespaces.Length);
+                usingCounts.Add((ushort)scope.GetUsedNamespaces(context).Length);
             }
 
             // ACASEY: This originally wrote (uint)12, (ushort)1, (ushort)0 in the
@@ -340,23 +362,55 @@ namespace Microsoft.Cci
                 customDebugInfo.Add(customMetadata);
             }
 
-            if (this.methodBodyWithModuleInfo != null && !ReferenceEquals(this.methodBodyWithModuleInfo, methodBody))
+            if (_methodBodyWithModuleInfo != null && !ReferenceEquals(_methodBodyWithModuleInfo, methodBody))
             {
                 SerializeReferenceToMethodWithModuleInfo(customDebugInfo);
             }
         }
 
-        private bool ShouldForwardToPreviousMethodWithUsingInfo(IMethodBody methodBody)
+        private bool ShouldForwardToPreviousMethodWithUsingInfo(EmitContext context, IMethodBody methodBody)
         {
-            if (this.previousMethodBodyWithUsingInfo == null || ReferenceEquals(this.previousMethodBodyWithUsingInfo, methodBody))
+            if (_previousMethodBodyWithUsingInfo == null ||
+                ReferenceEquals(_previousMethodBodyWithUsingInfo, methodBody))
             {
                 return false;
             }
 
-            // CONSIDER: is there a more efficient way to check if the scopes are the same?
-            // CONSIDER: might want to cache the list of scopes.
-            var previousScopes = this.previousMethodBodyWithUsingInfo.NamespaceScopes;
-            return methodBody.NamespaceScopes.SequenceEqual(previousScopes, NamespaceScopeComparer.Instance);
+            // VB includes method namespace in namespace scopes:
+            if (context.Module.GenerateVisualBasicStylePdb)
+            {
+                if (_pdbWriter.GetOrCreateSerializedNamespaceName(_previousMethodBodyWithUsingInfo.MethodDefinition.ContainingNamespace) !=
+                    _pdbWriter.GetOrCreateSerializedNamespaceName(methodBody.MethodDefinition.ContainingNamespace))
+                {
+                    return false;
+                }
+            }
+
+            var previousScopes = _previousMethodBodyWithUsingInfo.ImportScope;
+
+            // methods share the same import scope (common case for methods declared in the same file)
+            if (methodBody.ImportScope == previousScopes)
+            {
+                return true;
+            }
+
+            // If methods are in different files they don't share the same scopes,
+            // but the imports might be the same nevertheless.
+            // Note: not comparing project-level imports since those are the same for all method bodies.
+            var s1 = methodBody.ImportScope;
+            var s2 = previousScopes;
+            while (s1 != null && s2 != null)
+            {
+                if (!s1.GetUsedNamespaces(context).SequenceEqual(s2.GetUsedNamespaces(context)))
+                {
+                    return false;
+                }
+
+                s1 = s1.Parent;
+                s2 = s2.Parent;
+            }
+
+            return s1 == s2;
         }
 
         private void SerializeReferenceToMethodWithModuleInfo(ArrayBuilder<MemoryStream> customDebugInfo)
@@ -367,7 +421,7 @@ namespace Microsoft.Cci
             cmw.WriteByte(CDI.CdiKindForwardToModuleInfo);
             cmw.Align(4);
             cmw.WriteUint(12);
-            cmw.WriteUint(this.methodTokenWithModuleInfo);
+            cmw.WriteUint(_methodTokenWithModuleInfo);
             customDebugInfo.Add(customMetadata);
         }
 
@@ -379,47 +433,8 @@ namespace Microsoft.Cci
             cmw.WriteByte(CDI.CdiKindForwardInfo);
             cmw.Align(4);
             cmw.WriteUint(12);
-            cmw.WriteUint(this.previousMethodTokenWithUsingInfo);
+            cmw.WriteUint(_previousMethodTokenWithUsingInfo);
             customDebugInfo.Add(customMetadata);
-        }
-
-        private class NamespaceScopeComparer : IEqualityComparer<NamespaceScope>
-        {
-            public static readonly IEqualityComparer<NamespaceScope> Instance = new NamespaceScopeComparer();
-
-            public bool Equals(NamespaceScope x, NamespaceScope y)
-            {
-                Debug.Assert(x != null);
-                Debug.Assert(y != null);
-                return x.UsedNamespaces.SequenceEqual(y.UsedNamespaces, UsedNamespaceOrTypeComparer.Instance);
-            }
-
-            public int GetHashCode(NamespaceScope obj)
-            {
-                throw ExceptionUtilities.Unreachable;
-            }
-        }
-
-        private class UsedNamespaceOrTypeComparer : IEqualityComparer<UsedNamespaceOrType>
-        {
-            public static readonly IEqualityComparer<UsedNamespaceOrType> Instance = new UsedNamespaceOrTypeComparer();
-
-            public bool Equals(UsedNamespaceOrType x, UsedNamespaceOrType y)
-            {
-                Debug.Assert(x != null);
-                Debug.Assert(y != null);
-                return x.Kind == y.Kind &&
-                    x.Alias == y.Alias &&
-                    x.TargetName == y.TargetName &&
-                    x.ExternAlias == y.ExternAlias &&
-                    x.ProjectLevel == y.ProjectLevel;
-            }
-
-            public int GetHashCode(UsedNamespaceOrType obj)
-            {
-                Debug.Assert(false);
-                return 0;
-            }
         }
     }
 }

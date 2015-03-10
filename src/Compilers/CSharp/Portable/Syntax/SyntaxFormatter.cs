@@ -11,34 +11,37 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
 {
     internal class SyntaxFormatter : CSharpSyntaxRewriter
     {
-        private readonly string indentWhitespace;
-        private readonly bool useElasticTrivia;
+        private readonly TextSpan _consideredSpan;
+        private readonly int _initialDepth;
+        private readonly string _indentWhitespace;
+        private readonly bool _useElasticTrivia;
 
-        private bool isInStructuredTrivia;
+        private bool _isInStructuredTrivia;
 
-        private SyntaxToken previousToken;
-        private bool indentNext;
+        private SyntaxToken _previousToken;
+        private bool _indentNext;
 
-        private bool afterLineBreak;
-        private bool afterIndentation;
+        private bool _afterLineBreak;
+        private bool _afterIndentation;
 
         // CONSIDER: if we become concerned about space, we shouldn't actually need any 
         // of the values between indentations[0] and indentations[initialDepth] (exclusive).
-        private ArrayBuilder<SyntaxTrivia> indentations;
+        private ArrayBuilder<SyntaxTrivia> _indentations;
 
-        private SyntaxFormatter(string indentWhitespace, bool useElasticTrivia)
+        private SyntaxFormatter(TextSpan consideredSpan, int initialDepth, string indentWhitespace, bool useElasticTrivia)
             : base(visitIntoStructuredTrivia: true)
         {
-            this.indentWhitespace = indentWhitespace;
-            this.useElasticTrivia = useElasticTrivia;
-
-            this.afterLineBreak = true;
+            _consideredSpan = consideredSpan;
+            _initialDepth = initialDepth;
+            _indentWhitespace = indentWhitespace;
+            _useElasticTrivia = useElasticTrivia;
+            _afterLineBreak = true;
         }
 
         internal static TNode Format<TNode>(TNode node, string indentWhitespace, bool useElasticTrivia = false)
             where TNode : SyntaxNode
         {
-            var formatter = new SyntaxFormatter(indentWhitespace, useElasticTrivia);
+            var formatter = new SyntaxFormatter(node.FullSpan, GetDeclarationDepth(node), indentWhitespace, useElasticTrivia);
             var result = (TNode)formatter.Visit(node);
             formatter.Free();
             return result;
@@ -46,7 +49,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
 
         internal static SyntaxToken Format(SyntaxToken token, string indentWhitespace, bool useElasticTrivia = false)
         {
-            var formatter = new SyntaxFormatter(indentWhitespace, useElasticTrivia);
+            var formatter = new SyntaxFormatter(token.FullSpan, GetDeclarationDepth(token), indentWhitespace, useElasticTrivia);
             var result = formatter.VisitToken(token);
             formatter.Free();
             return result;
@@ -54,7 +57,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
 
         internal static SyntaxTriviaList Format(SyntaxTriviaList trivia, string indentWhitespace, bool useElasticTrivia = false)
         {
-            var formatter = new SyntaxFormatter(indentWhitespace, useElasticTrivia);
+            var formatter = new SyntaxFormatter(trivia.FullSpan, GetDeclarationDepth(trivia.Token), indentWhitespace, useElasticTrivia);
             var result = formatter.RewriteTrivia(
                 trivia,
                 GetDeclarationDepth((SyntaxToken)trivia.ElementAt(0).Token),
@@ -68,9 +71,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
 
         private void Free()
         {
-            if (indentations != null)
+            if (_indentations != null)
             {
-                indentations.Free();
+                _indentations.Free();
             }
         }
 
@@ -86,9 +89,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                 var tk = token;
 
                 var depth = GetDeclarationDepth(token);
-                var needsIndentation = this.indentNext || (LineBreaksAfter(previousToken, token) > 0);
+                var needsIndentation = _indentNext || (LineBreaksAfter(_previousToken, token) > 0);
                 var lineBreaksAfter = LineBreaksAfter(token);
-                this.indentNext = false;
+                _indentNext = false;
 
                 tk = tk.WithLeadingTrivia(RewriteTrivia(
                     token.LeadingTrivia,
@@ -98,11 +101,10 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     mustHaveSeparator: false,
                     lineBreaksAfter: lineBreaksAfter));
 
-                // get next token, skipping zero width tokens except for end-of-directive tokens
-                var nextToken = token.GetNextToken(t => SyntaxToken.NonZeroWidth(t) || t.Kind() == SyntaxKind.EndOfDirectiveToken, t => t.Kind() == SyntaxKind.SkippedTokensTrivia);
+                var nextToken = this.GetNextRelevantToken(token);
 
-                this.afterLineBreak = EndsInLineBreak(token);
-                this.afterIndentation = false;
+                _afterLineBreak = EndsInLineBreak(token);
+                _afterIndentation = false;
 
                 lineBreaksAfter = LineBreaksAfter(token, nextToken);
                 var needsSeparatorAfter = NeedsSeparator(token, nextToken);
@@ -116,38 +118,57 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
 
                 if (lineBreaksAfter > 0)
                 {
-                    indentNext = true;
+                    _indentNext = true;
                 }
 
                 return tk;
             }
             finally
             {
-                this.previousToken = token;
+                _previousToken = token;
+            }
+        }
+
+        private SyntaxToken GetNextRelevantToken(SyntaxToken token)
+        {
+            // get next token, skipping zero width tokens except for end-of-directive tokens
+            var nextToken = token.GetNextToken(
+                t => SyntaxToken.NonZeroWidth(t) || t.Kind() == SyntaxKind.EndOfDirectiveToken,
+                t => t.Kind() == SyntaxKind.SkippedTokensTrivia);
+
+            if (_consideredSpan.Contains(nextToken.FullSpan))
+            {
+                return nextToken;
+            }
+            else
+            {
+                return default(SyntaxToken);
             }
         }
 
         private SyntaxTrivia GetIndentation(int count)
         {
+            count = Math.Max(count - _initialDepth, 0);
+
             int capacity = count + 1;
-            if (indentations == null)
+            if (_indentations == null)
             {
-                indentations = ArrayBuilder<SyntaxTrivia>.GetInstance(capacity);
+                _indentations = ArrayBuilder<SyntaxTrivia>.GetInstance(capacity);
             }
             else
             {
-                indentations.EnsureCapacity(capacity);
+                _indentations.EnsureCapacity(capacity);
             }
 
-            for (int i = indentations.Count; i <= count; i++)
+            for (int i = _indentations.Count; i <= count; i++)
             {
                 string text = i == 0
                     ? ""
-                    : indentations[i - 1].ToString() + this.indentWhitespace;
-                indentations.Add(SyntaxFactory.Whitespace(text, this.useElasticTrivia));
+                    : _indentations[i - 1].ToString() + _indentWhitespace;
+                _indentations.Add(SyntaxFactory.Whitespace(text, _useElasticTrivia));
             }
 
-            return indentations[count];
+            return _indentations[count];
         }
 
         private static int LineBreaksAfter(SyntaxToken token)
@@ -163,7 +184,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
             }
 
             // none of the following tests currently have meaning for structured trivia
-            if (this.isInStructuredTrivia)
+            if (_isInStructuredTrivia)
             {
                 return 0;
             }
@@ -462,26 +483,26 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                             (currentTriviaList.Count == 0 && isTrailing);
                     var needsLineBreak = NeedsLineBreakBefore(trivia) || (currentTriviaList.Count > 0 && NeedsLineBreakBetween(currentTriviaList.Last(), trivia, isTrailing));
 
-                    if (needsLineBreak && !afterLineBreak)
+                    if (needsLineBreak && !_afterLineBreak)
                     {
                         currentTriviaList.Add(GetCarriageReturnLineFeed());
-                        afterLineBreak = true;
-                        afterIndentation = false;
+                        _afterLineBreak = true;
+                        _afterIndentation = false;
                     }
 
-                    if (afterLineBreak)
+                    if (_afterLineBreak)
                     {
-                        if (!afterIndentation && NeedsIndentAfterLineBreak(trivia))
+                        if (!_afterIndentation && NeedsIndentAfterLineBreak(trivia))
                         {
                             currentTriviaList.Add(this.GetIndentation(GetDeclarationDepth(trivia)));
-                            afterIndentation = true;
+                            _afterIndentation = true;
                         }
                     }
                     else if (needsSeparator)
                     {
                         currentTriviaList.Add(GetSpace());
-                        afterLineBreak = false;
-                        afterIndentation = false;
+                        _afterLineBreak = false;
+                        _afterIndentation = false;
                     }
 
                     if (trivia.HasStructure)
@@ -492,7 +513,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     else if (trivia.IsKind(SyntaxKind.DocumentationCommentExteriorTrivia))
                     {
                         // recreate exterior to remove any leading whitespace
-                        currentTriviaList.Add(trimmedDocCommentExtertior);
+                        currentTriviaList.Add(s_trimmedDocCommentExtertior);
                     }
                     else
                     {
@@ -502,8 +523,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     if (NeedsLineBreakAfter(trivia, isTrailing))
                     {
                         currentTriviaList.Add(GetCarriageReturnLineFeed());
-                        afterLineBreak = true;
-                        afterIndentation = false;
+                        _afterLineBreak = true;
+                        _afterIndentation = false;
                     }
                 }
 
@@ -517,20 +538,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
                     for (int i = 0; i < lineBreaksAfter; i++)
                     {
                         currentTriviaList.Add(GetCarriageReturnLineFeed());
-                        afterLineBreak = true;
-                        afterIndentation = false;
+                        _afterLineBreak = true;
+                        _afterIndentation = false;
                     }
                 }
                 else if (mustBeIndented)
                 {
                     currentTriviaList.Add(this.GetIndentation(depth));
-                    afterIndentation = true;
+                    _afterIndentation = true;
                 }
                 else if (mustHaveSeparator)
                 {
                     currentTriviaList.Add(GetSpace());
-                    afterLineBreak = false;
-                    afterIndentation = false;
+                    _afterLineBreak = false;
+                    _afterIndentation = false;
                 }
 
                 if (currentTriviaList.Count == 0)
@@ -552,30 +573,30 @@ namespace Microsoft.CodeAnalysis.CSharp.Syntax
             }
         }
 
-        private static SyntaxTrivia trimmedDocCommentExtertior = SyntaxFactory.DocumentationCommentExterior("///");
+        private static SyntaxTrivia s_trimmedDocCommentExtertior = SyntaxFactory.DocumentationCommentExterior("///");
 
         private SyntaxTrivia GetSpace()
         {
-            return this.useElasticTrivia ? SyntaxFactory.ElasticSpace : SyntaxFactory.Space;
+            return _useElasticTrivia ? SyntaxFactory.ElasticSpace : SyntaxFactory.Space;
         }
 
         private SyntaxTrivia GetCarriageReturnLineFeed()
         {
-            return this.useElasticTrivia ? SyntaxFactory.ElasticCarriageReturnLineFeed : SyntaxFactory.CarriageReturnLineFeed;
+            return _useElasticTrivia ? SyntaxFactory.ElasticCarriageReturnLineFeed : SyntaxFactory.CarriageReturnLineFeed;
         }
 
         private SyntaxTrivia VisitStructuredTrivia(SyntaxTrivia trivia)
         {
-            bool oldIsInStructuredTrivia = this.isInStructuredTrivia;
-            this.isInStructuredTrivia = true;
+            bool oldIsInStructuredTrivia = _isInStructuredTrivia;
+            _isInStructuredTrivia = true;
 
-            SyntaxToken oldPreviousToken = this.previousToken;
-            this.previousToken = default(SyntaxToken);
+            SyntaxToken oldPreviousToken = _previousToken;
+            _previousToken = default(SyntaxToken);
 
             SyntaxTrivia result = VisitTrivia(trivia);
 
-            this.isInStructuredTrivia = oldIsInStructuredTrivia;
-            this.previousToken = oldPreviousToken;
+            _isInStructuredTrivia = oldIsInStructuredTrivia;
+            _previousToken = oldPreviousToken;
 
             return result;
         }

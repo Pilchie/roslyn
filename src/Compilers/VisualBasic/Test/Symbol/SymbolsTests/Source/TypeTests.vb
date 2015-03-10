@@ -133,9 +133,10 @@ End Namespace
             Assert.Same(delegateB, delegateB.TypeParameters(0).ContainingSymbol)
             Assert.Equal(1, delegateB.Locations.Length())
             Assert.Equal("System.MulticastDelegate", delegateB.BaseType.ToTestDisplayString())
-            Assert.NotEqual(0, IdentifierComparison.GetHashCode("B"))
-            Assert.NotEqual(0, IdentifierComparison.GetHashCode("A"))
+
+#If Not DISABLE_GOOD_HASH_TESTS Then
             Assert.NotEqual(IdentifierComparison.GetHashCode("A"), IdentifierComparison.GetHashCode("B"))
+#End If
             Dim enumE = DirectCast(membersOfN(2), NamedTypeSymbol)
             Assert.Equal(nsN.GetTypeMembers("E", 0).First(), enumE)
             Assert.Equal(nsN, enumE.ContainingSymbol)
@@ -2497,7 +2498,9 @@ End Structure
             Dim s2 = compilation.GlobalNamespace.GetTypeMembers("s2")(0)
             Assert.Equal(2, s2.InstanceConstructors.Length)
 
-            compilation.VerifyDiagnostics()
+            compilation.VerifyDiagnostics(
+                    Diagnostic(ERRID.ERR_NewInStruct, "new").WithLocation(2, 9)
+)
         End Sub
 
         <Fact, WorkItem(530171, "DevDiv")>

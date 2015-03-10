@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis.CodeGen;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
@@ -13,7 +14,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
     public class SwitchTests : EmitMetadataTestBase
     {
         #region Functionality tests
-        
+
         [Fact]
         public void DefaultOnlySwitch()
         {
@@ -2282,7 +2283,7 @@ class Test
             var reference = compVerifier.Compilation.EmitToImageReference();
             var comp = CSharpCompilation.Create("Name", references: new[] { reference }, options: TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.Internal));
 
-            var pid = ((NamedTypeSymbol)comp.GlobalNamespace.GetMembers().Where(s => s.Name.StartsWith("<PrivateImplementationDetails>")).Single());
+            var pid = ((NamedTypeSymbol)comp.GlobalNamespace.GetMembers().Single(s => s.Name.StartsWith("<PrivateImplementationDetails>", StringComparison.Ordinal)));
             var member = pid.GetMembers(PrivateImplementationDetails.SynthesizedStringHashFunctionName).Single();
             Assert.Equal(Accessibility.Internal, member.DeclaredAccessibility);
         }
@@ -2873,7 +2874,7 @@ class Foo
             VerifySynthesizedStringHashMethod(compVerifier, expected: true);
         }
 
-        static void VerifySynthesizedStringHashMethod(CompilationVerifier compVerifier, bool expected)
+        private static void VerifySynthesizedStringHashMethod(CompilationVerifier compVerifier, bool expected)
         {
             compVerifier.VerifyMemberInIL(PrivateImplementationDetails.SynthesizedStringHashFunctionName, expected);
 
@@ -5599,7 +5600,6 @@ namespace ConsoleApplication24
   IL_0816:  ldc.i4.0
   IL_0817:  ret
 }");
-
         }
 
 
@@ -6632,7 +6632,7 @@ class Program {
 "
             );
         }
-        
+
         [WorkItem(1035228, "DevDiv")]
         [Fact]
         public void Regress1035228()
@@ -6740,8 +6740,6 @@ class Program {
 "
             );
         }
-
-
 
         #endregion
     }

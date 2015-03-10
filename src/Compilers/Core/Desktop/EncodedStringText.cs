@@ -3,36 +3,29 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.MemoryMappedFiles;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Text
 {
-    internal sealed partial class EncodedStringText : SourceText
+    internal static class EncodedStringText
     {
-        /// <summary>
-        /// Underlying string on which this SourceText instance is based
-        /// </summary>
-        private readonly string source;
-
-        private readonly Encoding encoding;
-
-        private EncodedStringText(string source, Encoding encoding, SourceHashAlgorithm checksumAlgorithm)
-            : base(checksumAlgorithm: checksumAlgorithm)
-        {
-            Debug.Assert(source != null);
-            Debug.Assert(encoding != null);
-            this.source = source;
-            this.encoding = encoding;
-        }
+        private const int LargeObjectHeapLimitInChars = 40 * 1024; // 40KB
 
         /// <summary>
-        /// Initializes an instance of <see cref="EncodedStringText"/> with provided bytes.
+        /// Encoding to use when there is no byte order mark (BOM) on the stream. This encoder may throw a <see cref="DecoderFallbackException"/>
+        /// if the stream contains invalid UTF-8 bytes.
         /// </summary>
-        /// <param name="stream"></param>
+        private static readonly Encoding s_fallbackEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
+        /// <summary>
+        /// Initializes an instance of <see cref="SourceText"/> from the provided stream. This version differs
+        /// from <see cref="SourceText.From(Stream, Encoding, SourceHashAlgorithm, bool)"/> in two ways:
+        /// 1. It attempts to minimize allocations by trying to read the stream into a byte array.
+        /// 2. If <paramref name="defaultEncoding"/> is null, it will first try UTF8 and, if that fails, it will
+        ///    try <see cref="Encoding.Default"/>.
+        /// </summary>
+        /// <param name="stream">The stream containing encoded text.</param>
         /// <param name="defaultEncoding">
         /// Specifies an encoding to be used if the actual encoding can't be determined from the stream content (the stream doesn't start with Byte Order Mark).
         /// If not specified auto-detect heuristics are used to determine the encoding. If these heuristics fail the decoding is assumed to be <see cref="Encoding.Default"/>.
@@ -44,328 +37,148 @@ namespace Microsoft.CodeAnalysis.Text
         /// <paramref name="defaultEncoding"/> is null and the stream appears to be a binary file.
         /// </exception>
         /// <exception cref="IOException">An IO error occurred while reading from the stream.</exception>
-        internal static EncodedStringText Create(Stream stream, Encoding defaultEncoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1)
+        internal static SourceText Create(Stream stream, Encoding defaultEncoding = null, SourceHashAlgorithm checksumAlgorithm = SourceHashAlgorithm.Sha1)
         {
             Debug.Assert(stream != null);
             Debug.Assert(stream.CanRead && stream.CanSeek);
 
             bool detectEncoding = defaultEncoding == null;
-            string text;
-            Encoding preambleEncoding;
-            Encoding actualEncoding;
             if (detectEncoding)
             {
-                preambleEncoding = TryReadByteOrderMark(stream);
-
-                if (preambleEncoding == null)
+                try
                 {
-                    // If we didn't find a recognized byte order mark, check to see if the file contents are valid UTF-8
-                    // with no byte order mark.  Detecting UTF-8 with no byte order mark implicitly decodes the entire stream
-                    // to check each byte, so we won't decode again unless we've already detected some other encoding or
-                    // this is not valid UTF-8.
-
-                    var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-                    try
-                    {
-                        // If we successfully decode the content of the stream as UTF8 it is likely not binary,
-                        // so we don't need to check that.
-                        text = Decode(stream, utf8NoBom, out actualEncoding);
-                        return new EncodedStringText(text, actualEncoding, checksumAlgorithm);
-                    }
-                    catch (DecoderFallbackException)
-                    {
-                        // fall back to default encoding
-                    }
+                    return Decode(stream, s_fallbackEncoding, checksumAlgorithm, throwIfBinaryDetected: false);
                 }
-            }
-            else
-            {
-                preambleEncoding = null;
+                catch (DecoderFallbackException)
+                {
+                    // Fall back to Encoding.Default
+                }
             }
 
             try
             {
-                text = Decode(stream, preambleEncoding ?? defaultEncoding ?? Encoding.Default, out actualEncoding);
+                return Decode(stream, defaultEncoding ?? Encoding.Default, checksumAlgorithm, throwIfBinaryDetected: detectEncoding);
             }
             catch (DecoderFallbackException e)
             {
                 throw new InvalidDataException(e.Message);
             }
-
-            if (detectEncoding && IsBinary(text))
-            {
-                throw new InvalidDataException();
-            }
-
-            return new EncodedStringText(text, actualEncoding, checksumAlgorithm);
-        }
-
-        public override Encoding Encoding
-        {
-            get { return this.encoding; }
         }
 
         /// <summary>
-        /// Underlying string which is the source of this SourceText instance
+        /// Try to create a <see cref="SourceText"/> from the given stream using the given encoding.
         /// </summary>
-        public string Source
+        /// <param name="data">The input stream containing the encoded text. The stream will not be closed.</param>
+        /// <param name="encoding">The expected encoding of the stream. The actual encoding used may be different if byte order marks are detected.</param>
+        /// <param name="checksumAlgorithm">The checksum algorithm to use.</param>
+        /// <param name="throwIfBinaryDetected">Throw <see cref="InvalidDataException"/> if binary (non-text) data is detected.</param>
+        /// <returns>The <see cref="SourceText"/> decoded from the stream.</returns>
+        /// <exception cref="DecoderFallbackException">The decoder was unable to decode the stream with the given encoding.</exception>
+        /// <remarks>
+        /// internal for unit testing
+        /// </remarks>
+        internal static SourceText Decode(Stream data, Encoding encoding, SourceHashAlgorithm checksumAlgorithm, bool throwIfBinaryDetected = false)
         {
-            get { return source; }
-        }
+            Debug.Assert(data != null);
+            Debug.Assert(encoding != null);
 
-        /// <summary>
-        /// The length of the text represented by <see cref="EncodedStringText"/>.
-        /// </summary>
-        public override int Length
-        {
-            get { return this.Source.Length; }
-        }
-
-        /// <summary>
-        /// Returns a character at given position.
-        /// </summary>
-        /// <param name="position">The position to get the character from.</param>
-        /// <returns>The character.</returns>
-        /// <exception cref="ArgumentOutOfRangeException">When position is negative or 
-        /// greater than <see cref="Length"/>.</exception>
-        public override char this[int position]
-        {
-            get
-            {
-                // NOTE: we are not validating position here as that would not 
-                //       add any value to the range check that string accessor performs anyways.
-
-                return this.source[position];
-            }
-        }
-
-        /// <summary>
-        /// Provides a string representation of the StringText located within given span.
-        /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">When given span is outside of the text range.</exception>
-        public override string ToString(TextSpan span)
-        {
-            if (span.End > this.Source.Length)
-            {
-                throw new ArgumentOutOfRangeException("span");
-            }
-
-            if (span.Start == 0 && span.Length == this.Length)
-            {
-                return this.Source;
-            }
-            else
-            {
-                return this.Source.Substring(span.Start, span.Length);
-            }
-        }
-
-        public override void CopyTo(int sourceIndex, char[] destination, int destinationIndex, int count)
-        {
-            this.Source.CopyTo(sourceIndex, destination, destinationIndex, count);
-        }
-
-        public override void Write(TextWriter textWriter, TextSpan span, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            if (span.Start == 0 && span.End == this.Length)
-            {
-                textWriter.Write(this.Source);
-            }
-            else
-            {
-                base.Write(textWriter, span, cancellationToken);
-            }
-        }
-
-        #region Encoding Detection
-
-        /// <summary>
-        /// The heuristic checks
-        /// for occurrence of two consecutive NUL (U+0000) characters in the stream, which are 
-        /// highly unlikely to appear in a text file. Since the heuristic is applied after 
-        /// the text has been decoded, it can be used with any encoding.
-        /// </summary>
-        internal static bool IsBinary(string text)
-        {
-            bool wasLastCharNul = text.Length > 0 ? text[0] == '\0' : false;
-            for (int i = 1; i < text.Length; i++)
-            {
-                if (wasLastCharNul & (wasLastCharNul = text[i] == '\0'))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Decode the given stream using the given encoding. Does not
-        /// close the stream afterwards.
-        /// </summary>
-        /// <param name="data">Data stream</param>
-        /// <param name="encoding">Default encoding to use for decoding.</param>
-        /// <param name="actualEncoding">Actual encoding used to read the text.</param>
-        /// <exception cref="DecoderFallbackException">If the given encoding is set to use <see cref="DecoderExceptionFallback"/> as its fallback decoder.</exception>
-        /// <returns>Decoded stream as a text string</returns>
-        internal static string Decode(Stream data, Encoding encoding, out Encoding actualEncoding)
-        {
             data.Seek(0, SeekOrigin.Begin);
 
-            // PERF: Detect streams coming from TemporaryStorage.
-            var memoryMappedViewStream = data as MemoryMappedViewStream;
-            if (memoryMappedViewStream != null && encoding == Encoding.Unicode)
+            // For small streams, see if we can read the byte buffer directly.
+            if (encoding.GetMaxCharCount((int)data.Length) < LargeObjectHeapLimitInChars)
             {
-                actualEncoding = encoding;
-                return ReadUnicodeStringFromMemoryMappedViewStream(memoryMappedViewStream);
+                byte[] buffer = TryGetByteArrayFromStream(data);
+                if (buffer != null)
+                {
+                    return SourceText.From(buffer, (int)data.Length, encoding, checksumAlgorithm, throwIfBinaryDetected);
+                }
             }
 
-            string text;
-
-            // PERF: If the input is a MemoryStream, we may be able to save an allocation
-            var memoryStream = data as MemoryStream;
-            if (memoryStream != null && TryDecodeMemoryStream(memoryStream, encoding, out actualEncoding, out text))
-            {
-                return text;
-            }
-
-            // No using block so we don't close the stream
-            var reader = new StreamReader(data, encoding);
-            text = reader.ReadToEnd();
-            actualEncoding = reader.CurrentEncoding;
-            return text;
+            return SourceText.From(data, encoding, checksumAlgorithm, throwIfBinaryDetected);
         }
 
         /// <summary>
-        /// Read a Unicode string from a memory mapped view. The stream is not closed on exit.
+        /// Some streams are easily represented as byte arrays.
         /// </summary>
-        /// <param name="memoryMappedViewStream">A view over a memory mapped stream which contains a Unicode string (preceded by a Unicode BOM)</param>
-        /// <returns>The string</returns>
-        private static unsafe string ReadUnicodeStringFromMemoryMappedViewStream(MemoryMappedViewStream memoryMappedViewStream)
+        /// <param name="data">The stream</param>
+        /// <returns>
+        /// The contents of <paramref name="data"/> as a byte array or null if the stream can't easily
+        /// be read into a byte array.
+        /// </returns>
+        private static byte[] TryGetByteArrayFromStream(Stream data)
         {
-            var buffer = memoryMappedViewStream.SafeMemoryMappedViewHandle;
-            var privateOffset = GetPrivateOffset(memoryMappedViewStream); // Workaround known bug Devdiv 6441
-            byte* ptr = null;
-            RuntimeHelpers.PrepareConstrainedRegions();
-            try
-            {
-                buffer.AcquirePointer(ref ptr);
-                ptr += privateOffset;
-                char* src = (char*)ptr;
-                Debug.Assert(*src == 0xFEFF); // BOM: Unicode, little endian
-                int length = (int)(memoryMappedViewStream.Length / sizeof(char)) - 1; // -1 since we don't need the BOM
-                return new string(src, startIndex: 1, length: length);
-            }
-            finally
-            {
-                if (ptr != null)
-                {
-                    buffer.ReleasePointer();
-                }
-            }
-        }
+            byte[] buffer;
 
-        // This is a Reflection workaround for known bug Devdiv 6441.  
-        //
-        // MemoryMappedViewStream.SafeMemoryMappedViewHandle.AcquirePointer returns a pointer
-        // that has been aligned to SYSTEM_INFO.dwAllocationGranularity.  Unfortunately the 
-        // offset from this pointer to our requested offset into the MemoryMappedFile is only
-        // available through the UnmanagedMemoryStream._offset field which is not exposed publicly.
-        //
-        // Cache the FieldInfo here to minimize any reflection overhead.
-        private static FieldInfo unmanagedMemoryStreamOffset = null;
-        private static long GetPrivateOffset(UnmanagedMemoryStream stream)
-        {
-            // Reflection code to workaround known bug 6441
-            if (unmanagedMemoryStreamOffset == null)
+            // PERF: If the input is a MemoryStream, we may be able to get at the buffer directly
+            var memoryStream = data as MemoryStream;
+            if (memoryStream != null && TryGetByteArrayFromMemoryStream(memoryStream, out buffer))
             {
-                unmanagedMemoryStreamOffset = typeof(UnmanagedMemoryStream).GetField("_offset", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.GetField);
+                return buffer;
             }
 
-            return (long)unmanagedMemoryStreamOffset.GetValue(stream);
+            // PERF: If the input is a FileStream, we may be able to minimize allocations
+            var fileStream = data as FileStream;
+            if (fileStream != null && TryGetByteArrayFromFileStream(fileStream, out buffer))
+            {
+                return buffer;
+            }
+
+            return null;
         }
 
         /// <summary>
         /// If the MemoryStream was created with publiclyVisible=true, then we can access its buffer
         /// directly and save allocations in StreamReader. The input MemoryStream is not closed on exit.
         /// </summary>
-        /// <exception cref="DecoderFallbackException">If the given encoding is set to use <see cref="DecoderExceptionFallback"/> 
-        /// as its fallback decoder.</exception>
-        private static bool TryDecodeMemoryStream(MemoryStream data, Encoding encoding, out Encoding actualEncoding, out string decodedText)
+        /// <returns>True if a byte array could be created.</returns>
+        private static bool TryGetByteArrayFromMemoryStream(MemoryStream data, out byte[] buffer)
         {
             Debug.Assert(data.Position == 0);
 
-            byte[] buffer;
             try
             {
                 buffer = data.GetBuffer();
+                return true;
             }
             catch (UnauthorizedAccessException)
             {
-                decodedText = null;
-                actualEncoding = null;
+                buffer = null;
                 return false;
             }
-
-            actualEncoding = TryReadByteOrderMark(data) ?? encoding;
-            int preambleSize = (int)data.Position;
-
-            decodedText = actualEncoding.GetString(buffer, preambleSize, (int)data.Length - preambleSize);
-            return true;
         }
 
-        [ThreadStatic]
-        private static byte[] bomBytes;
-
-        internal static Encoding TryReadByteOrderMark(Stream data)
+        /// <summary>
+        /// Read the contents of a <see cref="FileStream"/> into a byte array.
+        /// </summary>
+        /// <param name="stream">The FileStream with encoded text.</param>
+        /// <param name="buffer">A byte array filled with the contents of the file.</param>
+        /// <returns>True if a byte array could be created.</returns>
+        private static bool TryGetByteArrayFromFileStream(FileStream stream, out byte[] buffer)
         {
-            // PERF: Avoid repeated calls to Stream.ReadByte since that method allocates a 1-byte array on each call.
-            // Instead, using a thread local byte array.
-            if (bomBytes == null)
+            Debug.Assert(stream != null);
+            Debug.Assert(stream.Position == 0);
+
+            int length = (int)stream.Length;
+            if (length == 0)
             {
-                bomBytes = new byte[2];
+                buffer = SpecializedCollections.EmptyBytes;
+                return true;
             }
 
-            data.Seek(0, SeekOrigin.Begin);
+            // PERF: While this is an obvious byte array allocation, it is still cheaper than
+            // using StreamReader.ReadToEnd. The alternative allocates:
+            // 1. A 1KB byte array in the StreamReader for buffered reads
+            // 2. A 4KB byte array in the FileStream for buffered reads
+            // 3. A StringBuilder and its associated char arrays (enough to represent the final decoded string)
 
-            int bytesRead = data.Read(bomBytes, 0, 2);
-            if (bytesRead == 2)
-            {
-                switch (bomBytes[0])
-                {
-                    case 0xFE:
-                        if (bomBytes[1] == 0xFF)
-                        {
-                            return Encoding.BigEndianUnicode;
-                        }
+            // TODO: Can this allocation be pooled?
+            buffer = new byte[length];
 
-                        break;
-
-                    case 0xFF:
-                        if (bomBytes[1] == 0xFE)
-                        {
-                            return Encoding.Unicode;
-                        }
-
-                        break;
-
-                    case 0xEF:
-                        if (bomBytes[1] == 0xBB)
-                        {
-                            if (data.Read(bomBytes, 0, 1) == 1 && bomBytes[0] == 0xBF)
-                            {
-                                return Encoding.UTF8;
-                            }
-                        }
-
-                        break;
-                }
-            }
-
-            data.Seek(0, SeekOrigin.Begin);
-            return null;
+            // Note: FileStream.Read may still allocate its internal buffer if length is less
+            // than the buffer size. The default buffer size is 4KB, so this will incur a 4KB
+            // allocation for any files less than 4KB. That's why, for example, the command
+            // line compiler actually specifies a very small buffer size.
+            return stream.Read(buffer, 0, length) == length;
         }
-
-        #endregion
     }
 }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Usage;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -21,7 +21,7 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Usage
     public class CA2213CSharpCodeFixProvider : CA2213CodeFixProviderBase
     {
         internal override Task<Document> GetUpdatedDocumentAsync(Document document, SemanticModel model, SyntaxNode root, SyntaxNode nodeToFix, Diagnostic diagnostic, CancellationToken cancellationToken)
-        {            
+        {
             //// We are going to add a call Dispose on fields:
             ////
             ////        public void Dispose()
@@ -45,8 +45,8 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Usage
                 return Task.FromResult(document);
             }
 
-            var factory = document.GetLanguageService<SyntaxGenerator>();
-            var symbol = model.GetDeclaredSymbol(syntaxNode);
+            var factory = document.Project.LanguageServices.GetService<SyntaxGenerator>();
+            var symbol = model.GetDeclaredSymbol(syntaxNode, cancellationToken);
 
             // handle a case where a local in the Dipose method with the same name by generating this (or ClassName) and simplifying it
             var path = symbol.IsStatic

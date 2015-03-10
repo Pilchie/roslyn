@@ -34,15 +34,15 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
         internal abstract class CommonEmbeddedMethod : CommonEmbeddedMember<TMethodSymbol>, Cci.IMethodDefinition
         {
             public readonly TEmbeddedType ContainingType;
-            private readonly ImmutableArray<TEmbeddedTypeParameter> typeParameters;
-            private readonly ImmutableArray<TEmbeddedParameter> parameters;
+            private readonly ImmutableArray<TEmbeddedTypeParameter> _typeParameters;
+            private readonly ImmutableArray<TEmbeddedParameter> _parameters;
 
             protected CommonEmbeddedMethod(TEmbeddedType containingType, TMethodSymbol underlyingMethod) :
                 base(underlyingMethod)
             {
                 this.ContainingType = containingType;
-                this.typeParameters = GetTypeParameters();
-                this.parameters = GetParameters();
+                _typeParameters = GetTypeParameters();
+                _parameters = GetParameters();
             }
 
             protected abstract ImmutableArray<TEmbeddedTypeParameter> GetTypeParameters();
@@ -68,6 +68,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             protected abstract bool AcceptsExtraArguments { get; }
             protected abstract Cci.CallingConvention CallingConvention { get; }
             protected abstract Cci.ISignature UnderlyingMethodSignature { get; }
+            protected abstract Cci.INamespace ContainingNamespace { get; }
 
             public TMethodSymbol UnderlyingMethod
             {
@@ -166,11 +167,6 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
                     return ImmutableArray<Cci.SequencePoint>.Empty;
                 }
 
-                Cci.NamespaceScopeEncoding Cci.IMethodBody.NamespaceScopeEncoding
-                {
-                    get { return Cci.NamespaceScopeEncoding.InPlace; }
-                }
-
                 bool Cci.IMethodBody.HasDynamicLocalVariables
                 {
                     get { return false; }
@@ -186,9 +182,9 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
                     get { return ImmutableArray<Cci.LocalScope>.Empty; }
                 }
 
-                ImmutableArray<Cci.NamespaceScope> Cci.IMethodBody.NamespaceScopes
+                Cci.IImportScope Cci.IMethodBody.ImportScope
                 {
-                    get { return ImmutableArray<Cci.NamespaceScope>.Empty; }
+                    get { return null; }
                 }
 
                 ImmutableArray<Cci.StateMachineHoistedLocalScope> Cci.IMethodBody.StateMachineHoistedLocalScopes
@@ -210,13 +206,36 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
                 {
                     get { return default(ImmutableArray<Cci.ITypeReference>); }
                 }
+
+                ImmutableArray<ClosureDebugInfo> Cci.IMethodBody.ClosureDebugInfo
+                {
+                    get { return default(ImmutableArray<ClosureDebugInfo>); }
+                }
+
+                ImmutableArray<LambdaDebugInfo> Cci.IMethodBody.LambdaDebugInfo
+                {
+                    get { return default(ImmutableArray<LambdaDebugInfo>); }
+                }
+
+                public int MethodOrdinal
+                {
+                    get { return -1; }
+                }
+
+                public string MethodNamespace
+                {
+                    get
+                    {
+                        return null;
+                    }
+                }
             }
 
             IEnumerable<Cci.IGenericMethodParameter> Cci.IMethodDefinition.GenericParameters
             {
                 get
                 {
-                    return typeParameters;
+                    return _typeParameters;
                 }
             }
 
@@ -349,7 +368,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             {
                 get
                 {
-                    return StaticCast<Cci.IParameterDefinition>.From(parameters);
+                    return StaticCast<Cci.IParameterDefinition>.From(_parameters);
                 }
             }
 
@@ -410,6 +429,14 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
                 }
             }
 
+            Cci.INamespace Cci.IMethodDefinition.ContainingNamespace
+            {
+                get
+                {
+                    return ContainingNamespace;
+                }
+            }
+
             Cci.TypeMemberVisibility Cci.ITypeDefinitionMember.Visibility
             {
                 get
@@ -450,7 +477,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             {
                 get
                 {
-                    return (ushort)typeParameters.Length;
+                    return (ushort)_typeParameters.Length;
                 }
             }
 
@@ -458,7 +485,7 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             {
                 get
                 {
-                    return typeParameters.Length > 0;
+                    return _typeParameters.Length > 0;
                 }
             }
 
@@ -504,13 +531,13 @@ namespace Microsoft.CodeAnalysis.Emit.NoPia
             {
                 get
                 {
-                    return (ushort)parameters.Length;
+                    return (ushort)_parameters.Length;
                 }
             }
 
             ImmutableArray<Cci.IParameterTypeInformation> Cci.ISignature.GetParameters(EmitContext context)
             {
-                return StaticCast<Cci.IParameterTypeInformation>.From(parameters);
+                return StaticCast<Cci.IParameterTypeInformation>.From(_parameters);
             }
 
             ImmutableArray<Cci.ICustomModifier> Cci.ISignature.ReturnValueCustomModifiers

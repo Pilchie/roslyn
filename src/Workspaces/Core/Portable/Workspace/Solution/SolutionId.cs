@@ -17,14 +17,14 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// The unique id of the solution.
         /// </summary>
-        public Guid Id { get; private set; }
+        public Guid Id { get; }
 
-        private string debugName;
+        private string _debugName;
 
         private SolutionId(string debugName)
         {
             this.Id = Guid.NewGuid();
-            this.debugName = debugName;
+            _debugName = debugName;
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace Microsoft.CodeAnalysis
 
         private string GetDebuggerDisplay()
         {
-            return string.Format("({0}, #{1} - {2})", GetType().Name, this.Id, this.debugName);
+            return string.Format("({0}, #{1} - {2})", GetType().Name, this.Id, _debugName);
         }
 
         public override bool Equals(object obj)

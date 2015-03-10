@@ -1,10 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
 using System.Collections.Immutable;
-using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.FxCopAnalyzers.Performance;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 
 namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Performance
@@ -77,7 +74,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Performance
                 }
             }
 
-            public void AnalyzeCodeBlock(CodeBlockEndAnalysisContext context)
+            public void AnalyzeCodeBlock(CodeBlockAnalysisContext context)
             {
                 if (IsEmptyFinalizer(context.CodeBlock, context.SemanticModel))
                 {

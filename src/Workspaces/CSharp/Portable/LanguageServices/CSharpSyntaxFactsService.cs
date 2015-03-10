@@ -1,14 +1,15 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
 using System.Composition;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Extensions;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Host;
+using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -269,40 +270,40 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             switch ((SyntaxKind)token.RawKind)
             {
-            case SyntaxKind.BoolKeyword:
-                return PredefinedType.Boolean;
-            case SyntaxKind.ByteKeyword:
-                return PredefinedType.Byte;
-            case SyntaxKind.SByteKeyword:
-                return PredefinedType.SByte;
-            case SyntaxKind.IntKeyword:
-                return PredefinedType.Int32;
-            case SyntaxKind.UIntKeyword:
-                return PredefinedType.UInt32;
-            case SyntaxKind.ShortKeyword:
-                return PredefinedType.Int16;
-            case SyntaxKind.UShortKeyword:
-                return PredefinedType.UInt16;
-            case SyntaxKind.LongKeyword:
-                return PredefinedType.Int64;
-            case SyntaxKind.ULongKeyword:
-                return PredefinedType.UInt64;
-            case SyntaxKind.FloatKeyword:
-                return PredefinedType.Single;
-            case SyntaxKind.DoubleKeyword:
-                return PredefinedType.Double;
-            case SyntaxKind.DecimalKeyword:
-                return PredefinedType.Decimal;
-            case SyntaxKind.StringKeyword:
-                return PredefinedType.String;
-            case SyntaxKind.CharKeyword:
-                return PredefinedType.Char;
-            case SyntaxKind.ObjectKeyword:
-                return PredefinedType.Object;
-            case SyntaxKind.VoidKeyword:
-                return PredefinedType.Void;
-            default:
-                return PredefinedType.None;
+                case SyntaxKind.BoolKeyword:
+                    return PredefinedType.Boolean;
+                case SyntaxKind.ByteKeyword:
+                    return PredefinedType.Byte;
+                case SyntaxKind.SByteKeyword:
+                    return PredefinedType.SByte;
+                case SyntaxKind.IntKeyword:
+                    return PredefinedType.Int32;
+                case SyntaxKind.UIntKeyword:
+                    return PredefinedType.UInt32;
+                case SyntaxKind.ShortKeyword:
+                    return PredefinedType.Int16;
+                case SyntaxKind.UShortKeyword:
+                    return PredefinedType.UInt16;
+                case SyntaxKind.LongKeyword:
+                    return PredefinedType.Int64;
+                case SyntaxKind.ULongKeyword:
+                    return PredefinedType.UInt64;
+                case SyntaxKind.FloatKeyword:
+                    return PredefinedType.Single;
+                case SyntaxKind.DoubleKeyword:
+                    return PredefinedType.Double;
+                case SyntaxKind.DecimalKeyword:
+                    return PredefinedType.Decimal;
+                case SyntaxKind.StringKeyword:
+                    return PredefinedType.String;
+                case SyntaxKind.CharKeyword:
+                    return PredefinedType.Char;
+                case SyntaxKind.ObjectKeyword:
+                    return PredefinedType.Object;
+                case SyntaxKind.VoidKeyword:
+                    return PredefinedType.Void;
+                default:
+                    return PredefinedType.None;
             }
         }
 
@@ -328,70 +329,70 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             switch ((SyntaxKind)token.RawKind)
             {
-            case SyntaxKind.PlusToken:
-            case SyntaxKind.PlusEqualsToken:
-                return PredefinedOperator.Addition;
+                case SyntaxKind.PlusToken:
+                case SyntaxKind.PlusEqualsToken:
+                    return PredefinedOperator.Addition;
 
-            case SyntaxKind.MinusToken:
-            case SyntaxKind.MinusEqualsToken:
-                return PredefinedOperator.Subtraction;
+                case SyntaxKind.MinusToken:
+                case SyntaxKind.MinusEqualsToken:
+                    return PredefinedOperator.Subtraction;
 
-            case SyntaxKind.AmpersandToken:
-            case SyntaxKind.AmpersandEqualsToken:
-                return PredefinedOperator.BitwiseAnd;
+                case SyntaxKind.AmpersandToken:
+                case SyntaxKind.AmpersandEqualsToken:
+                    return PredefinedOperator.BitwiseAnd;
 
-            case SyntaxKind.BarToken:
-            case SyntaxKind.BarEqualsToken:
-                return PredefinedOperator.BitwiseOr;
+                case SyntaxKind.BarToken:
+                case SyntaxKind.BarEqualsToken:
+                    return PredefinedOperator.BitwiseOr;
 
-            case SyntaxKind.MinusMinusToken:
-                return PredefinedOperator.Decrement;
+                case SyntaxKind.MinusMinusToken:
+                    return PredefinedOperator.Decrement;
 
-            case SyntaxKind.PlusPlusToken:
-                return PredefinedOperator.Increment;
+                case SyntaxKind.PlusPlusToken:
+                    return PredefinedOperator.Increment;
 
-            case SyntaxKind.SlashToken:
-            case SyntaxKind.SlashEqualsToken:
-                return PredefinedOperator.Division;
+                case SyntaxKind.SlashToken:
+                case SyntaxKind.SlashEqualsToken:
+                    return PredefinedOperator.Division;
 
-            case SyntaxKind.EqualsEqualsToken:
-                return PredefinedOperator.Equality;
+                case SyntaxKind.EqualsEqualsToken:
+                    return PredefinedOperator.Equality;
 
-            case SyntaxKind.CaretToken:
-            case SyntaxKind.CaretEqualsToken:
-                return PredefinedOperator.ExclusiveOr;
+                case SyntaxKind.CaretToken:
+                case SyntaxKind.CaretEqualsToken:
+                    return PredefinedOperator.ExclusiveOr;
 
-            case SyntaxKind.GreaterThanToken:
-                return PredefinedOperator.GreaterThan;
+                case SyntaxKind.GreaterThanToken:
+                    return PredefinedOperator.GreaterThan;
 
-            case SyntaxKind.GreaterThanEqualsToken:
-                return PredefinedOperator.GreaterThanOrEqual;
+                case SyntaxKind.GreaterThanEqualsToken:
+                    return PredefinedOperator.GreaterThanOrEqual;
 
-            case SyntaxKind.ExclamationEqualsToken:
-                return PredefinedOperator.Inequality;
+                case SyntaxKind.ExclamationEqualsToken:
+                    return PredefinedOperator.Inequality;
 
-            case SyntaxKind.LessThanLessThanToken:
-            case SyntaxKind.LessThanLessThanEqualsToken:
-                return PredefinedOperator.LeftShift;
+                case SyntaxKind.LessThanLessThanToken:
+                case SyntaxKind.LessThanLessThanEqualsToken:
+                    return PredefinedOperator.LeftShift;
 
-            case SyntaxKind.LessThanEqualsToken:
-                return PredefinedOperator.LessThanOrEqual;
+                case SyntaxKind.LessThanEqualsToken:
+                    return PredefinedOperator.LessThanOrEqual;
 
-            case SyntaxKind.AsteriskToken:
-            case SyntaxKind.AsteriskEqualsToken:
-                return PredefinedOperator.Multiplication;
+                case SyntaxKind.AsteriskToken:
+                case SyntaxKind.AsteriskEqualsToken:
+                    return PredefinedOperator.Multiplication;
 
-            case SyntaxKind.PercentToken:
-            case SyntaxKind.PercentEqualsToken:
-                return PredefinedOperator.Modulus;
+                case SyntaxKind.PercentToken:
+                case SyntaxKind.PercentEqualsToken:
+                    return PredefinedOperator.Modulus;
 
-            case SyntaxKind.ExclamationToken:
-            case SyntaxKind.TildeToken:
-                return PredefinedOperator.Complement;
+                case SyntaxKind.ExclamationToken:
+                case SyntaxKind.TildeToken:
+                    return PredefinedOperator.Complement;
 
-            case SyntaxKind.GreaterThanGreaterThanToken:
-            case SyntaxKind.GreaterThanGreaterThanEqualsToken:
-                return PredefinedOperator.RightShift;
+                case SyntaxKind.GreaterThanGreaterThanToken:
+                case SyntaxKind.GreaterThanGreaterThanEqualsToken:
+                    return PredefinedOperator.RightShift;
             }
 
             return PredefinedOperator.None;
@@ -443,13 +444,13 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             switch (token.Kind())
             {
-            case SyntaxKind.NumericLiteralToken:
-            case SyntaxKind.CharacterLiteralToken:
-            case SyntaxKind.StringLiteralToken:
-            case SyntaxKind.NullKeyword:
-            case SyntaxKind.TrueKeyword:
-            case SyntaxKind.FalseKeyword:
-                return true;
+                case SyntaxKind.NumericLiteralToken:
+                case SyntaxKind.CharacterLiteralToken:
+                case SyntaxKind.StringLiteralToken:
+                case SyntaxKind.NullKeyword:
+                case SyntaxKind.TrueKeyword:
+                case SyntaxKind.FalseKeyword:
+                    return true;
             }
 
             return false;
@@ -506,9 +507,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 switch ((SyntaxKind)token.RawKind)
                 {
-                case SyntaxKind.DelegateKeyword:
-                case SyntaxKind.VoidKeyword:
-                    return false;
+                    case SyntaxKind.DelegateKeyword:
+                    case SyntaxKind.VoidKeyword:
+                        return false;
                 }
 
                 return true;
@@ -555,7 +556,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     return GetExpressionOfConditionalMemberAccessExpression(node.Parent);
                 }
-                if (node.IsParentKind(SyntaxKind.InvocationExpression) && 
+                if (node.IsParentKind(SyntaxKind.InvocationExpression) &&
                     node.Parent.IsParentKind(SyntaxKind.ConditionalAccessExpression))
                 {
                     return GetExpressionOfConditionalMemberAccessExpression(node.Parent.Parent);
@@ -739,6 +740,326 @@ namespace Microsoft.CodeAnalysis.CSharp
                    node is EnumDeclarationSyntax;
         }
 
+        public bool TryGetDeclaredSymbolInfo(SyntaxNode node, out DeclaredSymbolInfo declaredSymbolInfo)
+        {
+            switch (node.Kind())
+            {
+                case SyntaxKind.ClassDeclaration:
+                    var classDecl = (ClassDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(classDecl.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Class, classDecl.Identifier.Span);
+                    return true;
+                case SyntaxKind.ConstructorDeclaration:
+                    var ctorDecl = (ConstructorDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(
+                        ctorDecl.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Constructor,
+                        ctorDecl.Identifier.Span,
+                        parameterCount: (ushort)(ctorDecl.ParameterList?.Parameters.Count ?? 0));
+                    return true;
+                case SyntaxKind.DelegateDeclaration:
+                    var delegateDecl = (DelegateDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(delegateDecl.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Delegate, delegateDecl.Identifier.Span);
+                    return true;
+                case SyntaxKind.EnumDeclaration:
+                    var enumDecl = (EnumDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(enumDecl.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Enum, enumDecl.Identifier.Span);
+                    return true;
+                case SyntaxKind.EnumMemberDeclaration:
+                    var enumMember = (EnumMemberDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(enumMember.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.EnumMember, enumMember.Identifier.Span);
+                    return true;
+                case SyntaxKind.EventDeclaration:
+                    var eventDecl = (EventDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(ExpandExplicitInterfaceName(eventDecl.Identifier.ValueText, eventDecl.ExplicitInterfaceSpecifier),
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Event, eventDecl.Identifier.Span);
+                    return true;
+                case SyntaxKind.IndexerDeclaration:
+                    var indexerDecl = (IndexerDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(WellKnownMemberNames.Indexer,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Indexer, indexerDecl.ThisKeyword.Span);
+                    return true;
+                case SyntaxKind.InterfaceDeclaration:
+                    var interfaceDecl = (InterfaceDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(interfaceDecl.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Interface, interfaceDecl.Identifier.Span);
+                    return true;
+                case SyntaxKind.MethodDeclaration:
+                    var method = (MethodDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(
+                        ExpandExplicitInterfaceName(method.Identifier.ValueText, method.ExplicitInterfaceSpecifier),
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Method,
+                        method.Identifier.Span,
+                        parameterCount: (ushort)(method.ParameterList?.Parameters.Count ?? 0),
+                        typeParameterCount: (ushort)(method.TypeParameterList?.Parameters.Count ?? 0));
+                    return true;
+                case SyntaxKind.PropertyDeclaration:
+                    var property = (PropertyDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(ExpandExplicitInterfaceName(property.Identifier.ValueText, property.ExplicitInterfaceSpecifier),
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Property, property.Identifier.Span);
+                    return true;
+                case SyntaxKind.StructDeclaration:
+                    var structDecl = (StructDeclarationSyntax)node;
+                    declaredSymbolInfo = new DeclaredSymbolInfo(structDecl.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Struct, structDecl.Identifier.Span);
+                    return true;
+                case SyntaxKind.VariableDeclarator:
+                    // could either be part of a field declaration or an event field declaration
+                    var variableDeclarator = (VariableDeclaratorSyntax)node;
+                    var variableDeclaration = variableDeclarator.Parent as VariableDeclarationSyntax;
+                    var fieldDeclaration = variableDeclaration?.Parent as BaseFieldDeclarationSyntax;
+                    if (fieldDeclaration != null)
+                    {
+                        var kind = fieldDeclaration is EventFieldDeclarationSyntax
+                            ? DeclaredSymbolInfoKind.Event
+                            : fieldDeclaration.Modifiers.Any(m => m.Kind() == SyntaxKind.ConstKeyword)
+                                ? DeclaredSymbolInfoKind.Constant
+                                : DeclaredSymbolInfoKind.Field;
+
+                        declaredSymbolInfo = new DeclaredSymbolInfo(variableDeclarator.Identifier.ValueText,
+                        GetContainerDisplayName(fieldDeclaration.Parent),
+                        GetFullyQualifiedContainerName(fieldDeclaration.Parent),
+                        kind, variableDeclarator.Identifier.Span);
+                        return true;
+                    }
+
+                    break;
+            }
+
+            declaredSymbolInfo = default(DeclaredSymbolInfo);
+            return false;
+        }
+
+        private static string ExpandExplicitInterfaceName(string identifier, ExplicitInterfaceSpecifierSyntax explicitInterfaceSpecifier)
+        {
+            if (explicitInterfaceSpecifier == null)
+            {
+                return identifier;
+            }
+            else
+            {
+                var builder = new StringBuilder();
+                ExpandTypeName(explicitInterfaceSpecifier.Name, builder);
+                builder.Append('.');
+                builder.Append(identifier);
+                return builder.ToString();
+            }
+        }
+
+        private static void ExpandTypeName(TypeSyntax type, StringBuilder builder)
+        {
+            switch (type.Kind())
+            {
+                case SyntaxKind.AliasQualifiedName:
+                    var alias = (AliasQualifiedNameSyntax)type;
+                    builder.Append(alias.Alias.Identifier.ValueText);
+                    break;
+                case SyntaxKind.ArrayType:
+                    var array = (ArrayTypeSyntax)type;
+                    ExpandTypeName(array.ElementType, builder);
+                    for (int i = 0; i < array.RankSpecifiers.Count; i++)
+                    {
+                        var rankSpecifier = array.RankSpecifiers[i];
+                        builder.Append(rankSpecifier.OpenBracketToken.Text);
+                        for (int j = 1; j < rankSpecifier.Sizes.Count; j++)
+                        {
+                            builder.Append(',');
+                        }
+
+                        builder.Append(rankSpecifier.CloseBracketToken.Text);
+                    }
+
+                    break;
+                case SyntaxKind.GenericName:
+                    var generic = (GenericNameSyntax)type;
+                    builder.Append(generic.Identifier.ValueText);
+                    if (generic.TypeArgumentList != null)
+                    {
+                        var arguments = generic.TypeArgumentList.Arguments;
+                        builder.Append(generic.TypeArgumentList.LessThanToken.Text);
+                        for (int i = 0; i < arguments.Count; i++)
+                        {
+                            if (i != 0)
+                            {
+                                builder.Append(',');
+                            }
+
+                            ExpandTypeName(arguments[i], builder);
+                        }
+
+                        builder.Append(generic.TypeArgumentList.GreaterThanToken.Text);
+                    }
+
+                    break;
+                case SyntaxKind.IdentifierName:
+                    var identifierName = (IdentifierNameSyntax)type;
+                    builder.Append(identifierName.Identifier.ValueText);
+                    break;
+                case SyntaxKind.NullableType:
+                    var nullable = (NullableTypeSyntax)type;
+                    ExpandTypeName(nullable.ElementType, builder);
+                    builder.Append(nullable.QuestionToken.Text);
+                    break;
+                case SyntaxKind.OmittedTypeArgument:
+                    // do nothing since it was omitted, but don't reach the default block
+                    break;
+                case SyntaxKind.PointerType:
+                    var pointer = (PointerTypeSyntax)type;
+                    ExpandTypeName(pointer.ElementType, builder);
+                    builder.Append(pointer.AsteriskToken.Text);
+                    break;
+                case SyntaxKind.PredefinedType:
+                    var predefined = (PredefinedTypeSyntax)type;
+                    builder.Append(predefined.Keyword.Text);
+                    break;
+                case SyntaxKind.QualifiedName:
+                    var qualified = (QualifiedNameSyntax)type;
+                    ExpandTypeName(qualified.Left, builder);
+                    builder.Append(qualified.DotToken.Text);
+                    ExpandTypeName(qualified.Right, builder);
+                    break;
+                default:
+                    Debug.Assert(false, "Unexpected type syntax " + type.Kind());
+                    break;
+            }
+        }
+
+        private static string GetContainerDisplayName(SyntaxNode node)
+        {
+            return GetContainer(node, immediate: true);
+        }
+
+        private static string GetFullyQualifiedContainerName(SyntaxNode node)
+        {
+            return GetContainer(node, immediate: false);
+        }
+
+        private static string GetContainer(SyntaxNode node, bool immediate)
+        {
+            var name = GetNodeName(node, includeTypeParameters: immediate);
+            var names = new List<string> { name };
+
+            // check for nested classes and always add that to the container name.
+            var parent = node.Parent;
+            while (parent is TypeDeclarationSyntax)
+            {
+                var currentParent = (TypeDeclarationSyntax)parent;
+                names.Add(currentParent.Identifier.ValueText + (immediate ? ExpandTypeParameterList(currentParent.TypeParameterList) : ""));
+                parent = currentParent.Parent;
+            }
+
+            // If they're just asking for the immediate parent, then we're done. Otherwise keep 
+            // walking all the way to the root, adding the names.
+            if (!immediate)
+            {
+                while (parent != null && parent.Kind() != SyntaxKind.CompilationUnit)
+                {
+                    names.Add(GetNodeName(parent, includeTypeParameters: false));
+                    parent = parent.Parent;
+                }
+            }
+
+            names.Reverse();
+            return string.Join(".", names);
+        }
+
+        private static string GetNodeName(SyntaxNode node, bool includeTypeParameters)
+        {
+            string name;
+            TypeParameterListSyntax typeParameterList;
+            switch (node.Kind())
+            {
+                case SyntaxKind.ClassDeclaration:
+                    var classDecl = (ClassDeclarationSyntax)node;
+                    name = classDecl.Identifier.ValueText;
+                    typeParameterList = classDecl.TypeParameterList;
+                    break;
+                case SyntaxKind.CompilationUnit:
+                    return string.Empty;
+                case SyntaxKind.DelegateDeclaration:
+                    var delegateDecl = (DelegateDeclarationSyntax)node;
+                    name = delegateDecl.Identifier.ValueText;
+                    typeParameterList = delegateDecl.TypeParameterList;
+                    break;
+                case SyntaxKind.EnumDeclaration:
+                    return ((EnumDeclarationSyntax)node).Identifier.ValueText;
+                case SyntaxKind.IdentifierName:
+                    return ((IdentifierNameSyntax)node).Identifier.ValueText;
+                case SyntaxKind.InterfaceDeclaration:
+                    var interfaceDecl = (InterfaceDeclarationSyntax)node;
+                    name = interfaceDecl.Identifier.ValueText;
+                    typeParameterList = interfaceDecl.TypeParameterList;
+                    break;
+                case SyntaxKind.MethodDeclaration:
+                    var methodDecl = (MethodDeclarationSyntax)node;
+                    name = methodDecl.Identifier.ValueText;
+                    typeParameterList = methodDecl.TypeParameterList;
+                    break;
+                case SyntaxKind.NamespaceDeclaration:
+                    return GetNodeName(((NamespaceDeclarationSyntax)node).Name, includeTypeParameters: false);
+                case SyntaxKind.QualifiedName:
+                    var qualified = (QualifiedNameSyntax)node;
+                    return GetNodeName(qualified.Left, includeTypeParameters: false) + "." + GetNodeName(qualified.Right, includeTypeParameters: false);
+                case SyntaxKind.StructDeclaration:
+                    var structDecl = (StructDeclarationSyntax)node;
+                    name = structDecl.Identifier.ValueText;
+                    typeParameterList = structDecl.TypeParameterList;
+                    break;
+                default:
+                    Debug.Assert(false, "Unexpected node type " + node.Kind());
+                    return null;
+            }
+
+            return name + (includeTypeParameters ? ExpandTypeParameterList(typeParameterList) : "");
+        }
+
+        private static string ExpandTypeParameterList(TypeParameterListSyntax typeParameterList)
+        {
+            if (typeParameterList != null && typeParameterList.Parameters.Count > 0)
+            {
+                var builder = new StringBuilder();
+                builder.Append('<');
+                builder.Append(typeParameterList.Parameters[0].Identifier.ValueText);
+                for (int i = 1; i < typeParameterList.Parameters.Count; i++)
+                {
+                    builder.Append(',');
+                    builder.Append(typeParameterList.Parameters[i].Identifier.ValueText);
+                }
+
+                builder.Append('>');
+                return builder.ToString();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         public List<SyntaxNode> GetMethodLevelMembers(SyntaxNode root)
         {
             var list = new List<SyntaxNode>();
@@ -849,7 +1170,10 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             int currentId = 0;
             SyntaxNode currentNode;
-            Contract.ThrowIfFalse(TryGetMethodLevelMember(root, (n, i) => i == memberId, ref currentId, out currentNode));
+            if (!TryGetMethodLevelMember(root, (n, i) => i == memberId, ref currentId, out currentNode))
+            {
+                return null;
+            }
 
             Contract.ThrowIfNull(currentNode);
             CheckMemberId(root, currentNode, memberId);

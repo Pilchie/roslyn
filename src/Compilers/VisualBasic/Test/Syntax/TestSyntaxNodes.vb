@@ -1,4 +1,4 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Globalization
 Imports Microsoft.CodeAnalysis
@@ -110,8 +110,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                 Loop
             End If
 
-            Assert.NotEqual(0, children.GetHashCode)
-            Assert.NotEqual(0, children.Reverse.GetHashCode)
             Dim b1 As Integer = 0
             Dim enumerator = children.GetEnumerator
             enumerator.Reset()
@@ -1079,7 +1077,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
                     Return SyntaxFactory.MethodStatement(node.Kind,
                                                          node.AttributeLists,
                                                          node.Modifiers,
-                                                         node.Keyword,
+                                                         node.DeclarationKeyword,
                                                          node.Identifier,
                                                          node.TypeParameterList,
                                                          SyntaxFactory.ParameterList(
@@ -1415,7 +1413,7 @@ End If</x>.Value, newBlock.ToFullString())
 <x>Private Class C
 End Class</x>.Value)
 
-            Dim privateToken = DirectCast(cu.Members(0), ClassBlockSyntax).Begin.Modifiers(0)
+            Dim privateToken = DirectCast(cu.Members(0), ClassBlockSyntax).BlockStatement.Modifiers(0)
             Dim publicToken = SyntaxFactory.ParseToken("Public ")
             Dim partialToken = SyntaxFactory.ParseToken("Partial ")
 
@@ -1458,7 +1456,7 @@ End Class</x>.Value)
             Dim cu = SyntaxFactory.ParseCompilationUnit(
 <x>Public Class C
 End Class</x>.Value)
-            Dim publicToken = DirectCast(cu.Members(0), ClassBlockSyntax).Begin.Modifiers(0)
+            Dim publicToken = DirectCast(cu.Members(0), ClassBlockSyntax).BlockStatement.Modifiers(0)
             Dim partialToken = SyntaxFactory.ParseToken("Partial ")
             Dim sharedToken = SyntaxFactory.ParseToken("Shared ")
 
@@ -1861,7 +1859,7 @@ End Module
                 "End Class"
             Dim tree = VisualBasicSyntaxTree.ParseText(text)
 
-            Dim location = text.IndexOf("List(Of T)")
+            Dim location = text.IndexOf("List(Of T)", StringComparison.Ordinal)
             Dim openParenToken = CType(tree.GetRoot().FindToken(location + "List".Length), SyntaxToken)
 
             Assert.Equal(SyntaxKind.OpenParenToken, openParenToken.Kind)
@@ -2071,7 +2069,7 @@ End Class]]>
             Assert.Equal(root, root.FindNode(root.Span, findInsideTrivia:=True))
 
             Dim classDecl = DirectCast(root.ChildNodes().First(), TypeBlockSyntax)
-            Dim classStatement = classDecl.Begin
+            Dim classStatement = classDecl.BlockStatement
 
             ' IdentifierNameSyntax in trivia.
             Dim identifier = root.DescendantNodes(descendIntoTrivia:=True).Single(Function(n) TypeOf n Is IdentifierNameSyntax)
@@ -2089,7 +2087,7 @@ End Class]]>
 
             ' EOF Invalid span for childnode
             Dim classDecl2 = DirectCast(root.ChildNodes().Last(), TypeBlockSyntax)
-            Dim classStatement2 = classDecl2.Begin
+            Dim classStatement2 = classDecl2.BlockStatement
             Assert.Throws(Of ArgumentOutOfRangeException)(Sub() classDecl2.FindNode(EOFSpan))
 
             ' Check end position included in node span
@@ -2114,6 +2112,41 @@ End Class]]>
             Assert.Throws(Of ArgumentOutOfRangeException)(Sub() classDecl2.FindNode(invalidSpan))
             ' Parent node's span.
             Assert.Throws(Of ArgumentOutOfRangeException)(Sub() classDecl.FindNode(root.FullSpan))
+        End Sub
+
+        <Fact>
+        Public Sub TestFindTokenInLargeList()
+            Dim identifier = SyntaxFactory.Identifier("x")
+            Dim missingIdentifier = SyntaxFactory.MissingToken(SyntaxKind.IdentifierToken)
+            Dim name = SyntaxFactory.IdentifierName(identifier)
+            Dim missingName = SyntaxFactory.IdentifierName(missingIdentifier)
+            Dim comma = SyntaxFactory.Token(SyntaxKind.CommaToken)
+            Dim missingComma = SyntaxFactory.MissingToken(SyntaxKind.CommaToken)
+            Dim argument = SyntaxFactory.SimpleArgument(name)
+            Dim missingArgument = SyntaxFactory.SimpleArgument(missingName)
+
+            '' make a large list that has lots of zero-length nodes (that shouldn't be found)
+            Dim nodesAndTokens = SyntaxFactory.NodeOrTokenList(
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                argument)
+
+            Dim argumentList = SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(Of ArgumentSyntax)(SyntaxFactory.NodeOrTokenList(nodesAndTokens)))
+            Dim invocation = SyntaxFactory.InvocationExpression(name, argumentList)
+            CheckFindToken(invocation)
+        End Sub
+
+        Private Sub CheckFindToken(node As SyntaxNode)
+            For i As Integer = 1 To node.FullSpan.End - 1
+                Dim token = node.FindToken(i)
+                Assert.Equal(True, token.FullSpan.Contains(i))
+            Next
         End Sub
 
         <WorkItem(539940, "DevDiv")>

@@ -3,7 +3,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Utilities;
@@ -1422,6 +1421,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                 return false;
             }
 
+            var expressionBody = containingMember.GetExpressionBody();
+            if (expressionBody != null)
+            {
+                return TextSpan.FromBounds(expressionBody.ArrowToken.Span.End, expressionBody.FullSpan.End).IntersectsWith(position);
+            }
+
             // Must be a property or something method-like.
             if (containingMember.HasMethodShape())
             {
@@ -2134,7 +2139,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                         token = ((ArgumentListSyntax)parentMemberAccess.Parent.Parent).OpenParenToken;
                     }
                 }
-                
+
                 // Could have been parsed as a qualified name.
                 if (token.Parent.IsKind(SyntaxKind.QualifiedName))
                 {
@@ -2176,7 +2181,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                     return true;
                 }
 
-                return semanticModelOpt.GetSymbolInfo(parentExpression).Symbol == null;
+                return semanticModelOpt.GetSymbolInfo(parentExpression, cancellationToken).Symbol == null;
             }
 
             return false;
@@ -2369,7 +2374,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
             }
 
             var memberAccess = (MemberAccessExpressionSyntax)token.Parent;
-            var leftHandBinding = semanticModel.GetSymbolInfo(memberAccess.Expression);
+            var leftHandBinding = semanticModel.GetSymbolInfo(memberAccess.Expression, cancellationToken);
             var symbol = leftHandBinding.GetBestOrAllSymbols().FirstOrDefault();
 
             if (symbol == null)

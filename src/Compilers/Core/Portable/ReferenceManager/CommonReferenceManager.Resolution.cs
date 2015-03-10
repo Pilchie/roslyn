@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using Roslyn.Utilities;
 
@@ -50,9 +49,9 @@ namespace Microsoft.CodeAnalysis
         [DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
         protected struct ResolvedReference
         {
-            private readonly MetadataImageKind kind;
-            private readonly int index;
-            private readonly ImmutableArray<string> aliases;
+            private readonly MetadataImageKind _kind;
+            private readonly int _index;
+            private readonly ImmutableArray<string> _aliases;
 
             public static readonly ResolvedReference Skipped = default(ResolvedReference);
 
@@ -60,17 +59,17 @@ namespace Microsoft.CodeAnalysis
             {
                 Debug.Assert(index >= 0);
 
-                this.index = index + 1;
-                this.kind = kind;
-                this.aliases = aliases;
+                _index = index + 1;
+                _kind = kind;
+                _aliases = aliases;
             }
 
             public ImmutableArray<string> Aliases
             {
                 get
                 {
-                    Debug.Assert(!aliases.IsDefault);
-                    return aliases;
+                    Debug.Assert(!_aliases.IsDefault);
+                    return _aliases;
                 }
             }
 
@@ -78,7 +77,7 @@ namespace Microsoft.CodeAnalysis
             {
                 get
                 {
-                    return index == 0;
+                    return _index == 0;
                 }
             }
 
@@ -87,7 +86,7 @@ namespace Microsoft.CodeAnalysis
                 get
                 {
                     Debug.Assert(!IsSkipped);
-                    return kind;
+                    return _kind;
                 }
             }
 
@@ -96,13 +95,13 @@ namespace Microsoft.CodeAnalysis
                 get
                 {
                     Debug.Assert(!IsSkipped);
-                    return index - 1;
+                    return _index - 1;
                 }
             }
 
             private string GetDebuggerDisplay()
             {
-                return IsSkipped ? "<skipped>" : (kind == MetadataImageKind.Assembly ? "A[" : "M[") + Index + "]: aliases=" + aliases.ToString();
+                return IsSkipped ? "<skipped>" : (_kind == MetadataImageKind.Assembly ? "A[" : "M[") + Index + "]: aliases=" + _aliases.ToString();
             }
         }
 
@@ -368,7 +367,7 @@ namespace Microsoft.CodeAnalysis
                 return aliases.ToImmutableAndFree();
             }
 
-            return reference.Properties.Aliases.NullToEmpty();
+            return reference.Properties.Aliases;
         }
 
         /// <summary>
@@ -512,7 +511,7 @@ namespace Microsoft.CodeAnalysis
                 aliases = ArrayBuilder<string>.GetInstance();
                 aliasMap.Add(primaryReference, aliases);
 
-                if (primaryReference.Properties.Aliases.IsDefaultOrEmpty)
+                if (primaryReference.Properties.Aliases.IsEmpty)
                 {
                     aliases.Add(MetadataReferenceProperties.GlobalAlias);
                 }
@@ -523,7 +522,7 @@ namespace Microsoft.CodeAnalysis
             }
 
             // we could avoid duplicates but there is no need to do so:
-            if (newReference.Properties.Aliases.IsDefaultOrEmpty)
+            if (newReference.Properties.Aliases.IsEmpty)
             {
                 aliases.Add(MetadataReferenceProperties.GlobalAlias);
             }
@@ -628,7 +627,6 @@ namespace Microsoft.CodeAnalysis
                     // Multiple assemblies with equivalent identity have been imported: '{0}' and '{1}'. Remove one of the duplicate references.
                     MessageProvider.ReportDuplicateMetadataReferenceStrong(diagnostics, location, boundReference, identity, equivalent.MetadataReference, equivalent.Identity);
                 }
-
                 // If the versions match exactly we ignore duplicates w/o reporting errors while 
                 // Dev12 C# reports:
                 //   error CS1703: An assembly with the same identity '{0}' has already been imported. Try removing one of the duplicate references.
@@ -837,38 +835,19 @@ namespace Microsoft.CodeAnalysis
                 return new AssemblyReferenceBinding(reference, maxLowerVersionDefinition, versionDifference: -1);
             }
 
-            // If the reference is a winmd, see if there a substitute winmd that is
-            // sufficient. For instance, a debugger EE could construct a compilation
-            // from the modules of the running process, where the winmds loaded
-            // at runtime are distinct from those used when the exe was compiled.
-            if (reference.ContentType == AssemblyContentType.WindowsRuntime)
+            // Handle cases where Windows.winmd is a runtime substitute for a
+            // reference to a compile-time winmd. This is for scenarios such as a
+            // debugger EE which constructs a compilation from the modules of
+            // the running process where Windows.winmd loaded at runtime is a
+            // substitute for a collection of Windows.*.winmd compile-time references.
+            if (reference.IsWindowsComponent())
             {
-                var defsByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 for (int i = definitionOffset; i < definitions.Length; i++)
                 {
-                    var definition = definitions[i].Identity;
-                    if (definition.ContentType == AssemblyContentType.WindowsRuntime)
+                    if (IsWindowsRuntime(definitions[i]))
                     {
-                        defsByName.Add(definition.Name, i);
+                        return new AssemblyReferenceBinding(reference, i);
                     }
-                }
-
-                // The name of a winmd is a containing namespace for the assembly. Use
-                // the definition with the longest substring that matches the reference.
-                var refName = reference.Name;
-                while (true)
-                {
-                    int index;
-                    if (defsByName.TryGetValue(refName, out index))
-                    {
-                        return new AssemblyReferenceBinding(reference, index);
-                    }
-                    int separator = refName.LastIndexOf('.');
-                    if (separator < 0)
-                    {
-                        break;
-                    }
-                    refName = refName.Substring(0, separator);
                 }
             }
 
@@ -883,6 +862,19 @@ namespace Microsoft.CodeAnalysis
             }
 
             return new AssemblyReferenceBinding(reference);
+        }
+
+        private static bool IsWindowsRuntime(AssemblyData definition)
+        {
+            if (!definition.Identity.IsWindowsRuntime())
+            {
+                return false;
+            }
+            int majorVersion;
+            int minorVersion;
+            return definition.GetWinMdVersion(out majorVersion, out minorVersion) &&
+                (majorVersion == 1) &&
+                (minorVersion >= 4);
         }
     }
 }

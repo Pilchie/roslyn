@@ -16,15 +16,15 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
     public sealed class CA1060DiagnosticAnalyzer : AbstractNamedTypeAnalyzer
     {
         internal const string RuleId = "CA1060";
-        private static LocalizableString localizableTitleAndMessage = new LocalizableResourceString(nameof(FxCopRulesResources.MovePInvokesToNativeMethodsClass), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableTitleAndMessage = new LocalizableResourceString(nameof(FxCopRulesResources.MovePInvokesToNativeMethodsClass), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
 
         internal static readonly DiagnosticDescriptor Rule = new DiagnosticDescriptor(RuleId,
-                                                                         localizableTitleAndMessage,
-                                                                         localizableTitleAndMessage,
+                                                                         s_localizableTitleAndMessage,
+                                                                         s_localizableTitleAndMessage,
                                                                          FxCopDiagnosticCategory.Design,
                                                                          DiagnosticSeverity.Warning,
                                                                          isEnabledByDefault: false,
-                                                                         helpLink: "http://msdn.microsoft.com/library/ms182161.aspx",
+                                                                         helpLinkUri: "http://msdn.microsoft.com/library/ms182161.aspx",
                                                                          customTags: DiagnosticCustomTags.Microsoft);
 
         private const string NativeMethodsText = "NativeMethods";

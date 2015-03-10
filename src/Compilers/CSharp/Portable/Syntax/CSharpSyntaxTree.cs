@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Instrumentation;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 using InternalSyntax = Microsoft.CodeAnalysis.CSharp.Syntax.InternalSyntax;
@@ -65,15 +64,14 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <summary>
         /// Gets the root node of the syntax tree asynchronously.
         /// </summary>
+        /// <remarks>
+        /// By default, the work associated with this method will be executed immediately on the current thread.
+        /// Implementations that wish to schedule this work differently should override <see cref="GetRootAsync(CancellationToken)"/>.
+        /// </remarks>
         public new virtual Task<CSharpSyntaxNode> GetRootAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             CSharpSyntaxNode node;
-            if (this.TryGetRoot(out node))
-            {
-                return Task.FromResult(node);
-            }
-
-            return Task.Factory.StartNew(() => this.GetRoot(cancellationToken), cancellationToken); // TODO: Should we use ExceptionFilter.ExecuteWithErrorReporting here?
+            return Task.FromResult(this.TryGetRoot(out node) ? node : this.GetRoot(cancellationToken));
         }
 
         /// <summary>
@@ -113,24 +111,24 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         #region Preprocessor Symbols
-        private bool hasDirectives;
-        private InternalSyntax.DirectiveStack directives;
+        private bool _hasDirectives;
+        private InternalSyntax.DirectiveStack _directives;
 
         internal void SetDirectiveStack(InternalSyntax.DirectiveStack directives)
         {
-            this.directives = directives;
-            this.hasDirectives = true;
+            _directives = directives;
+            _hasDirectives = true;
         }
 
         private InternalSyntax.DirectiveStack GetDirectives()
         {
-            if (!this.hasDirectives)
+            if (!_hasDirectives)
             {
                 var stack = this.GetRoot().CsGreen.ApplyDirectives(default(InternalSyntax.DirectiveStack));
                 SetDirectiveStack(stack);
             }
 
-            return this.directives;
+            return _directives;
         }
 
         internal bool IsAnyPreprocessorSymbolDefined(ImmutableArray<string> conditionalSymbols)
@@ -168,23 +166,23 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         /// <summary>
         /// Stores positions where preprocessor state changes. Sorted by position.
-        /// The updated state can be found in <see cref="preprocessorStates"/> array at the same index.
+        /// The updated state can be found in <see cref="_preprocessorStates"/> array at the same index.
         /// </summary>
-        private ImmutableArray<int> preprocessorStateChangePositions;
+        private ImmutableArray<int> _preprocessorStateChangePositions;
 
         /// <summary>
-        /// Preprocessor states corresponding to positions in <see cref="preprocessorStateChangePositions"/>.
+        /// Preprocessor states corresponding to positions in <see cref="_preprocessorStateChangePositions"/>.
         /// </summary>
-        private ImmutableArray<InternalSyntax.DirectiveStack> preprocessorStates;
+        private ImmutableArray<InternalSyntax.DirectiveStack> _preprocessorStates;
 
         internal bool IsPreprocessorSymbolDefined(string symbolName, int position)
         {
-            if (preprocessorStateChangePositions.IsDefault)
+            if (_preprocessorStateChangePositions.IsDefault)
             {
                 BuildPreprocessorStateChangeMap();
             }
 
-            int searchResult = preprocessorStateChangePositions.BinarySearch(position);
+            int searchResult = _preprocessorStateChangePositions.BinarySearch(position);
             InternalSyntax.DirectiveStack directives;
 
             if (searchResult < 0)
@@ -193,7 +191,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                 if (searchResult >= 0)
                 {
-                    directives = preprocessorStates[searchResult];
+                    directives = _preprocessorStates[searchResult];
                 }
                 else
                 {
@@ -202,7 +200,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
             else
             {
-                directives = preprocessorStates[searchResult];
+                directives = _preprocessorStates[searchResult];
             }
 
             return IsPreprocessorSymbolDefined(directives, symbolName);
@@ -277,8 +275,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
 #endif
 
-            ImmutableInterlocked.InterlockedInitialize(ref preprocessorStates, states.ToImmutableAndFree());
-            ImmutableInterlocked.InterlockedInitialize(ref preprocessorStateChangePositions, positions.ToImmutableAndFree());
+            ImmutableInterlocked.InterlockedInitialize(ref _preprocessorStates, states.ToImmutableAndFree());
+            ImmutableInterlocked.InterlockedInitialize(ref _preprocessorStateChangePositions, positions.ToImmutableAndFree());
         }
 
         #endregion
@@ -344,8 +342,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 checksumAlgorithm: SourceHashAlgorithm.Sha1,
                 path: "",
                 options: CSharpParseOptions.Default,
-                root: root, 
-                directives: InternalSyntax.DirectiveStack.Empty, 
+                root: root,
+                directives: InternalSyntax.DirectiveStack.Empty,
                 cloneRoot: false);
         }
 
@@ -381,19 +379,16 @@ namespace Microsoft.CodeAnalysis.CSharp
                 throw new ArgumentNullException("path");
             }
 
-            using (Logger.LogBlock(FunctionId.CSharp_SyntaxTree_FullParse, path, text.Length, cancellationToken))
-            {
-                options = options ?? CSharpParseOptions.Default;
+            options = options ?? CSharpParseOptions.Default;
 
-                using (var lexer = new InternalSyntax.Lexer(text, options))
+            using (var lexer = new InternalSyntax.Lexer(text, options))
+            {
+                using (var parser = new InternalSyntax.LanguageParser(lexer, oldTree: null, changes: null, cancellationToken: cancellationToken))
                 {
-                    using (var parser = new InternalSyntax.LanguageParser(lexer, oldTree: null, changes: null, cancellationToken: cancellationToken))
-                    {
-                        var compilationUnit = (CompilationUnitSyntax)parser.ParseCompilationUnit().CreateRed();
-                        var tree = new ParsedSyntaxTree(text, text.Encoding, text.ChecksumAlgorithm, path, options, compilationUnit, parser.Directives);
-                        tree.VerifySource();
-                        return tree;
-                    }
+                    var compilationUnit = (CompilationUnitSyntax)parser.ParseCompilationUnit().CreateRed();
+                    var tree = new ParsedSyntaxTree(text, text.Encoding, text.ChecksumAlgorithm, path, options, compilationUnit, parser.Directives);
+                    tree.VerifySource();
+                    return tree;
                 }
             }
         }
@@ -412,25 +407,22 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// </remarks>
         public override SyntaxTree WithChangedText(SourceText newText)
         {
-            using (Logger.LogBlock(FunctionId.CSharp_SyntaxTree_IncrementalParse, message: this.FilePath))
+            // try to find the changes between the old text and the new text.
+            SourceText oldText;
+            if (this.TryGetText(out oldText))
             {
-                // try to find the changes between the old text and the new text.
-                SourceText oldText;
-                if (this.TryGetText(out oldText))
+                var changes = newText.GetChangeRanges(oldText);
+
+                if (changes.Count == 0 && newText == oldText)
                 {
-                    var changes = newText.GetChangeRanges(oldText);
-
-                    if (changes.Count == 0 && newText == oldText)
-                    {
-                        return this;
-                    }
-
-                    return this.WithChanges(newText, changes);
+                    return this;
                 }
 
-                // if we do not easily know the old text, then specify entire text as changed so we do a full reparse.
-                return this.WithChanges(newText, new[] { new TextChangeRange(new TextSpan(0, this.Length), newText.Length) });
+                return this.WithChanges(newText, changes);
             }
+
+            // if we do not easily know the old text, then specify entire text as changed so we do a full reparse.
+            return this.WithChanges(newText, new[] { new TextChangeRange(new TextSpan(0, this.Length), newText.Length) });
         }
 
         private SyntaxTree WithChanges(SourceText newText, IReadOnlyList<TextChangeRange> changes)
@@ -527,24 +519,24 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// </returns>
         public override FileLinePositionSpan GetMappedLineSpan(TextSpan span, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (lazyLineDirectiveMap == null)
+            if (_lazyLineDirectiveMap == null)
             {
                 // Create the line directive map on demand.
-                Interlocked.CompareExchange(ref lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
+                Interlocked.CompareExchange(ref _lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
             }
 
-            return lazyLineDirectiveMap.TranslateSpan(this.GetText(cancellationToken), this.FilePath, span);
+            return _lazyLineDirectiveMap.TranslateSpan(this.GetText(cancellationToken), this.FilePath, span);
         }
 
         public override LineVisibility GetLineVisibility(int position, CancellationToken cancellationToken = default(CancellationToken))
         {
-            if (lazyLineDirectiveMap == null)
+            if (_lazyLineDirectiveMap == null)
             {
                 // Create the line directive map on demand.
-                Interlocked.CompareExchange(ref lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
+                Interlocked.CompareExchange(ref _lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
             }
 
-            return lazyLineDirectiveMap.GetLineVisibility(this.GetText(cancellationToken), position);
+            return _lazyLineDirectiveMap.GetLineVisibility(this.GetText(cancellationToken), position);
         }
 
         /// <summary>
@@ -556,13 +548,13 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns>A resulting <see cref="FileLinePositionSpan"/>.</returns>
         internal override FileLinePositionSpan GetMappedLineSpanAndVisibility(TextSpan span, out bool isHiddenPosition)
         {
-            if (lazyLineDirectiveMap == null)
+            if (_lazyLineDirectiveMap == null)
             {
                 // Create the line directive map on demand.
-                Interlocked.CompareExchange(ref lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
+                Interlocked.CompareExchange(ref _lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
             }
 
-            return lazyLineDirectiveMap.TranslateSpanAndVisibility(this.GetText(), this.FilePath, span, out isHiddenPosition);
+            return _lazyLineDirectiveMap.TranslateSpanAndVisibility(this.GetText(), this.FilePath, span, out isHiddenPosition);
         }
 
         /// <summary>
@@ -571,13 +563,13 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns>True if there is at least one hidden region.</returns>
         public override bool HasHiddenRegions()
         {
-            if (lazyLineDirectiveMap == null)
+            if (_lazyLineDirectiveMap == null)
             {
                 // Create the line directive map on demand.
-                Interlocked.CompareExchange(ref lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
+                Interlocked.CompareExchange(ref _lazyLineDirectiveMap, new CSharpLineDirectiveMap(this), null);
             }
 
-            return lazyLineDirectiveMap.HasAnyHiddenRegions();
+            return _lazyLineDirectiveMap.HasAnyHiddenRegions();
         }
 
         /// <summary>
@@ -587,18 +579,18 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <param name="position">Source location.</param>
         internal ReportDiagnostic GetPragmaDirectiveWarningState(string id, int position)
         {
-            if (lazyPragmaWarningStateMap == null)
+            if (_lazyPragmaWarningStateMap == null)
             {
                 // Create the warning state map on demand.
-                Interlocked.CompareExchange(ref lazyPragmaWarningStateMap, new CSharpPragmaWarningStateMap(this), null);
+                Interlocked.CompareExchange(ref _lazyPragmaWarningStateMap, new CSharpPragmaWarningStateMap(this), null);
             }
 
-            return lazyPragmaWarningStateMap.GetWarningState(id, position);
+            return _lazyPragmaWarningStateMap.GetWarningState(id, position);
         }
 
-        private CSharpLineDirectiveMap lazyLineDirectiveMap;
+        private CSharpLineDirectiveMap _lazyLineDirectiveMap;
 
-        private CSharpPragmaWarningStateMap lazyPragmaWarningStateMap;
+        private CSharpPragmaWarningStateMap _lazyPragmaWarningStateMap;
 
         private LinePosition GetLinePosition(int position)
         {

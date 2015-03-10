@@ -1,4 +1,4 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Collections.Immutable
 Imports System.IO
@@ -78,7 +78,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Dim assemblyName = Me.GetAssemblyName()
 
                 Return New ProjectFileInfo(
-                    Me.Guid,
                     outputPath,
                     assemblyName,
                     compilerInputs.CompilationOptions,
@@ -156,7 +155,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     projectDirectory += Path.DirectorySeparatorChar
                 End If
 
-                Return sources.Where(Function(s) Not System.IO.Path.GetFileName(s.ItemSpec).StartsWith("TemporaryGeneratedFile_")) _
+                Return sources.Where(Function(s) Not System.IO.Path.GetFileName(s.ItemSpec).StartsWith("TemporaryGeneratedFile_", StringComparison.Ordinal)) _
                          .Select(Function(s) New DocumentFileInfo(GetDocumentFilePath(s), GetDocumentLogicalPath(s, projectDirectory), IsDocumentLinked(s), IsDocumentGenerated(s))).ToImmutableArray()
             End Function
 

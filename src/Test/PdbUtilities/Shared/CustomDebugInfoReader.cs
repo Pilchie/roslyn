@@ -9,6 +9,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Collections;
 using CDI = Microsoft.Cci.CustomDebugInfoConstants;
 
+#pragma warning disable RS0010 // Avoid using cref tags with a prefix
+
 namespace Microsoft.VisualStudio.SymReaderInterop
 {
     /// <summary>
@@ -39,7 +41,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             kind = (CustomDebugInfoKind)bytes[offset + 1];
 
             // two bytes of padding after kind
-            size = BitConverter.ToInt32(bytes, offset + 4); 
+            size = BitConverter.ToInt32(bytes, offset + 4);
 
             offset += CDI.CdiRecordHeaderSize;
         }
@@ -58,6 +60,9 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             return default(ImmutableArray<byte>);
         }
 
+        /// <remarks>
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
+        /// </remarks>
         /// <exception cref="InvalidOperationException"></exception>
         public static IEnumerable<CustomDebugInfoRecord> GetCustomDebugInfoRecords(byte[] customDebugInfo)
         {
@@ -106,6 +111,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// </summary>
         /// <remarks>
         /// There's always at least one entry (for the global namespace).
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
         /// </remarks>
         public static ImmutableArray<short> DecodeUsingRecord(ImmutableArray<byte> bytes)
         {
@@ -127,6 +133,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// </summary>
         /// <remarks>
         /// Appears when multiple method would otherwise have identical using records (see <see cref="DecodeUsingRecord"/>).
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
         /// </remarks>
         public static int DecodeForwardRecord(ImmutableArray<byte> bytes)
         {
@@ -140,6 +147,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// </summary>
         /// <remarks>
         /// Appears when there are extern aliases and edit-and-continue is disabled.
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
         /// </remarks>
         public static int DecodeForwardToModuleRecord(ImmutableArray<byte> bytes)
         {
@@ -150,6 +158,9 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// <summary>
         /// Scopes of state machine hoisted local variables.
         /// </summary>
+        /// <remarks>
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
+        /// </remarks>
         public static ImmutableArray<StateMachineHoistedLocalScope> DecodeStateMachineHoistedLocalScopesRecord(ImmutableArray<byte> bytes)
         {
             int offset = 0;
@@ -173,6 +184,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// </summary>
         /// <remarks>
         /// Appears when are iterator methods.
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
         /// </remarks>
         public static string DecodeForwardIteratorRecord(ImmutableArray<byte> bytes)
         {
@@ -200,6 +212,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         /// </summary>
         /// <remarks>
         /// Appears when there are dynamic locals.
+        /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
         /// </remarks>
         /// <exception cref="InvalidOperationException">Bad data.</exception>
         public static ImmutableArray<DynamicLocalBucket> DecodeDynamicLocalsRecord(ImmutableArray<byte> bytes)
@@ -284,8 +297,8 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             ImmutableArray<short> groupSizes = default(ImmutableArray<short>);
             bool seenForward = false;
 
-            RETRY:
-            byte[] bytes = reader.GetCustomDebugInfo(methodToken, methodVersion);
+        RETRY:
+            byte[] bytes = reader.GetCustomDebugInfoBytes(methodToken, methodVersion);
             if (bytes == null)
             {
                 return default(ImmutableArray<ImmutableArray<string>>);
@@ -311,7 +324,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
                         }
 
                         methodToken = DecodeForwardRecord(record.Data);
-                        
+
                         // Follow at most one forward link (as in FUNCBRECEE::ensureNamespaces).
                         // NOTE: Dev11 may produce chains of forward links (e.g. for System.Collections.Immutable).
                         if (!seenForward)
@@ -451,6 +464,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             return importStrings;
         }
 
+        // TODO (acasey): caller should depend on abstraction (GH #702)
         public static ImmutableSortedSet<int> GetCSharpInScopeHoistedLocalIndices(byte[] customDebugInfo, int methodToken, int methodVersion, int ilOffset)
         {
             var record = TryGetCustomDebugInfoRecord(customDebugInfo, CustomDebugInfoKind.StateMachineHoistedLocalScopes);
@@ -478,6 +492,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             return result;
         }
 
+        // TODO (acasey): caller should depend on abstraction (GH #702)
         /// <exception cref="InvalidOperationException">Bad data.</exception>
         public static void GetCSharpDynamicLocalInfo(
             byte[] customDebugInfo,
@@ -581,7 +596,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             return bytes[i];
         }
 
-        public static bool IsCSharpExternAliasInfo(string import)
+        private static bool IsCSharpExternAliasInfo(string import)
         {
             return import.Length > 0 && import[0] == 'Z';
         }
@@ -676,19 +691,20 @@ namespace Microsoft.VisualStudio.SymReaderInterop
                     }
 
                 case 'X': // C# extern alias (in file)
-                    externAlias = import.Substring(1);
-                    alias = null;
+                    externAlias = null;
+                    alias = import.Substring(1); // For consistency with the portable format, store it in alias, rather than externAlias.
                     target = null;
                     kind = ImportTargetKind.Assembly;
                     return true;
 
                 case 'Z': // C# extern alias (module-level)
-                    if (!TrySplit(import, 1, ' ', out externAlias, out target))
+                    // For consistency with the portable format, store it in alias, rather than externAlias.
+                    if (!TrySplit(import, 1, ' ', out alias, out target))
                     {
                         return false;
                     }
 
-                    alias = null;
+                    externAlias = null;
                     kind = ImportTargetKind.Assembly;
                     return true;
 
@@ -715,7 +731,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             }
 
             // VB current namespace
-            if (import.Length == 0) 
+            if (import.Length == 0)
             {
                 alias = null;
                 target = import;
@@ -728,7 +744,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
             switch (import[pos])
             {
                 case '&':
-                    // Indicates the presence of embedded PIA types from a given assembly.  No longer required (as of Roslyn).
+                // Indicates the presence of embedded PIA types from a given assembly.  No longer required (as of Roslyn).
                 case '$':
                 case '#':
                     // From ProcedureContext::LoadImportsAndDefaultNamespaceNormal:
@@ -839,7 +855,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
                             return true;
                     }
 
-                default: 
+                default:
                     // VB current namespace
                     alias = null;
                     target = import;
@@ -875,6 +891,9 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         }
     }
 
+    /// <remarks>
+    /// Exposed for <see cref="T:Roslyn.Test.PdbUtilities.PdbToXmlConverter"/>.
+    /// </remarks>
     internal struct CustomDebugInfoRecord
     {
         public readonly CustomDebugInfoKind Kind;
@@ -986,5 +1005,7 @@ namespace Microsoft.VisualStudio.SymReaderInterop
         ForwardIterator = CDI.CdiKindForwardIterator,
         DynamicLocals = CDI.CdiKindDynamicLocals,
         EditAndContinueLocalSlotMap = CDI.CdiKindEditAndContinueLocalSlotMap,
+        EditAndContinueLambdaMap = CDI.CdiKindEditAndContinueLambdaMap,
     }
 }
+#pragma warning restore RS0010 // Avoid using cref tags with a prefix

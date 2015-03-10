@@ -22,12 +22,12 @@ namespace AsyncPackage
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = BlockingAsyncAnalyzer.BlockingAsyncId), Shared]
     public class BlockingAsyncCodeFix : CodeFixProvider
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(BlockingAsyncAnalyzer.BlockingAsyncId);
+            get { return ImmutableArray.Create(BlockingAsyncAnalyzer.BlockingAsyncId); }
         }
 
-        public sealed override async Task ComputeFixesAsync(CodeFixContext context)
+        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -49,7 +49,7 @@ namespace AsyncPackage
                     var name = invokemethod.Name.Identifier.Text;
 
                     // Register a code action that will invoke the fix.
-                    context.RegisterFix(
+                    context.RegisterCodeFix(
                         new CodeActionChangetoAwaitAsync("Change synchronous operation to asynchronous counterpart",
                                                          c => ChangetoAwaitAsync(context.Document, invocation, name, c)),
                         diagnostic);
@@ -59,7 +59,7 @@ namespace AsyncPackage
                 if (invokemethod != null && invokemethod.Name.Identifier.Text.Equals("GetAwaiter"))
                 {
                     // Register a code action that will invoke the fix.
-                    context.RegisterFix(
+                    context.RegisterCodeFix(
                         new CodeActionChangetoAwaitGetAwaiterAsync("Change synchronous operation to asynchronous counterpart",
                                                                    c => ChangetoAwaitGetAwaiterAsync(context.Document, invocation, c)),
                         diagnostic);
@@ -71,7 +71,7 @@ namespace AsyncPackage
                     var name = invokemethod.Name.Identifier.Text;
 
                     // Register a code action that will invoke the fix.
-                    context.RegisterFix(
+                    context.RegisterCodeFix(
                         new CodeActionChangetoAwaitAsync("Change synchronous operation to asynchronous counterpart",
                                                          c => ChangetoAwaitAsync(context.Document, invocation, name, c)),
                         diagnostic);
@@ -83,7 +83,7 @@ namespace AsyncPackage
                     var name = invokemethod.Name.Identifier.Text;
 
                     // Register a code action that will invoke the fix.
-                    context.RegisterFix(
+                    context.RegisterCodeFix(
                         new CodeActionToDelayWhenAnyWhenAllAsync("Change synchronous operation to asynchronous counterpart",
                                                                  c => ToDelayWhenAnyWhenAllAsync(context.Document, invocation, name, c)),
                         diagnostic);
@@ -95,7 +95,7 @@ namespace AsyncPackage
                     var name = invokemethod.Name.Identifier.Text;
 
                     // Register a code action that will invoke the fix.
-                    context.RegisterFix(
+                    context.RegisterCodeFix(
                         new CodeActionToDelayWhenAnyWhenAllAsync("Change synchronous operation to asynchronous counterpart",
                                                                  c => ToDelayWhenAnyWhenAllAsync(context.Document, invocation, name, c)),
                         diagnostic);
@@ -107,7 +107,7 @@ namespace AsyncPackage
                     var name = invokemethod.Name.Identifier.Text;
 
                     // Register a code action that will invoke the fix.
-                    context.RegisterFix(
+                    context.RegisterCodeFix(
                         new CodeActionToDelayWhenAnyWhenAllAsync("Change synchronous operation to asynchronous counterpart",
                                                                  c => ToDelayWhenAnyWhenAllAsync(context.Document, invocation, name, c)),
                         diagnostic);
@@ -201,58 +201,58 @@ namespace AsyncPackage
 
         private class CodeActionToDelayWhenAnyWhenAllAsync : CodeAction
         {
-            private Func<CancellationToken, Task<Document>> generateDocument;
-            private string title;
+            private Func<CancellationToken, Task<Document>> _generateDocument;
+            private string _title;
 
             public CodeActionToDelayWhenAnyWhenAllAsync(string title, Func<CancellationToken, Task<Document>> generateDocument)
             {
-                this.title = title;
-                this.generateDocument = generateDocument;
+                _title = title;
+                _generateDocument = generateDocument;
             }
 
-            public override string Title { get { return title; } }
+            public override string Title { get { return _title; } }
 
             protected override Task<Document> GetChangedDocumentAsync(CancellationToken cancellationToken)
             {
-                return this.generateDocument(cancellationToken);
+                return _generateDocument(cancellationToken);
             }
         }
 
         private class CodeActionChangetoAwaitAsync : CodeAction
         {
-            private Func<CancellationToken, Task<Document>> generateDocument;
-            private string title;
+            private Func<CancellationToken, Task<Document>> _generateDocument;
+            private string _title;
 
             public CodeActionChangetoAwaitAsync(string title, Func<CancellationToken, Task<Document>> generateDocument)
             {
-                this.title = title;
-                this.generateDocument = generateDocument;
+                _title = title;
+                _generateDocument = generateDocument;
             }
 
-            public override string Title { get { return title; } }
+            public override string Title { get { return _title; } }
 
             protected override Task<Document> GetChangedDocumentAsync(CancellationToken cancellationToken)
             {
-                return this.generateDocument(cancellationToken);
+                return _generateDocument(cancellationToken);
             }
         }
 
         private class CodeActionChangetoAwaitGetAwaiterAsync : CodeAction
         {
-            private Func<CancellationToken, Task<Document>> generateDocument;
-            private string title;
+            private Func<CancellationToken, Task<Document>> _generateDocument;
+            private string _title;
 
             public CodeActionChangetoAwaitGetAwaiterAsync(string title, Func<CancellationToken, Task<Document>> generateDocument)
             {
-                this.title = title;
-                this.generateDocument = generateDocument;
+                _title = title;
+                _generateDocument = generateDocument;
             }
 
-            public override string Title { get { return title; } }
+            public override string Title { get { return _title; } }
 
             protected override Task<Document> GetChangedDocumentAsync(CancellationToken cancellationToken)
             {
-                return this.generateDocument(cancellationToken);
+                return _generateDocument(cancellationToken);
             }
         }
     }

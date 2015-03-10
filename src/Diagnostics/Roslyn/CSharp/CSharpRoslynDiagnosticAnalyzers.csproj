@@ -15,7 +15,6 @@
     <RootNamespace>Roslyn.Diagnostics.Analyzers.CSharp</RootNamespace>
     <AssemblyName>Roslyn.Diagnostics.Analyzers.CSharp</AssemblyName>
     <SolutionDir Condition="'$(SolutionDir)' == '' OR '$(SolutionDir)' == '*Undefined*'">..\..\..\..\</SolutionDir>
-    <NeedsFakeSign>true</NeedsFakeSign>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -75,6 +74,9 @@
   <ItemGroup>
     <Compile Include="ApiDesign\CancellationTokenMustBeLastCodeFixProvider.cs" />
     <Compile Include="Documentation\CSharpDoNotUseVerbatimCrefsAnalyzer.cs" />
+    <Compile Include="Reliability\CSharpDoNotCreateTasksWithoutTaskSchedulerAnalyzer.cs" />
+    <Compile Include="Maintainability\CSharpUnusedDeclarationsAnalyzer.cs" />
+    <Compile Include="Reliability\CSharpSymbolDeclaredEventAnalyzer.cs" />
     <Compile Include="Reliability\CSharpConsumePreserveSigAnalyzer.cs" />
     <Compile Include="Performance\CSharpDiagnosticDescriptorAccessAnalyzer.cs" />
     <Compile Include="Performance\CSharpCodeActionCreateAnalyzer.cs" />
@@ -89,7 +91,6 @@
   <ImportGroup Label="Targets">
     <Import Project="..\..\..\Tools\Microsoft.CodeAnalysis.Toolset.Open\Targets\VSL.Imports.targets" />
     <Import Project="..\..\..\..\build\VSL.Imports.Closed.targets" />
-    <Import Project="..\..\..\..\packages\StyleCop.MSBuild.4.7.48.2\build\StyleCop.MSBuild.Targets" Condition="Exists('..\..\..\..\packages\StyleCop.MSBuild.4.7.48.2\build\StyleCop.MSBuild.Targets')" />
     <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   </ImportGroup>
 </Project>

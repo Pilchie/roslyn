@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -41,7 +42,7 @@ class main1
         [WorkItem(537401, "DevDiv")]
         [Fact]
         public void EventEscapedIdentifier()
-        { 
+        {
             var text = @"
 delegate void @out();
 class C1
@@ -297,10 +298,10 @@ public class E
             compVerifier.VerifyDiagnostics(DiagnosticDescription.None);
             var semanticModel = compVerifier.Compilation.GetSemanticModel(compVerifier.Compilation.SyntaxTrees.Single());
 
-            var eventSymbol1 = semanticModel.LookupSymbols(text.IndexOf("/*anchorE_1*/"), name: "E1").SingleOrDefault() as EventSymbol;
+            var eventSymbol1 = semanticModel.LookupSymbols(text.IndexOf("/*anchorE_1*/", StringComparison.Ordinal), name: "E1").SingleOrDefault() as EventSymbol;
             Assert.NotNull(eventSymbol1);
 
-            var eventSymbol2 = semanticModel.LookupSymbols(text.IndexOf("/*anchorE_2*/"), name: "E1").SingleOrDefault() as EventSymbol;
+            var eventSymbol2 = semanticModel.LookupSymbols(text.IndexOf("/*anchorE_2*/", StringComparison.Ordinal), name: "E1").SingleOrDefault() as EventSymbol;
             Assert.NotNull(eventSymbol2);
         }
 
@@ -345,9 +346,9 @@ class C
                 Diagnostic(ErrorCode.ERR_NoVoidHere, "void"),
                 // (7,11): error CS1547: Keyword 'void' cannot be used in this context
                 Diagnostic(ErrorCode.ERR_NoVoidHere, "void"),
-                
+
                 //CONSIDER: it would be nice to suppress these
-                
+
                 // (7,11): error CS0670: Field cannot have void type
                 Diagnostic(ErrorCode.ERR_FieldCantHaveVoidType, "void"),
                 // (7,16): warning CS0067: The event 'C.E' is never used
@@ -936,7 +937,7 @@ interface i1
     event myDelegate myevent { }
 }
 ";
-            
+
             CreateCompilationWithMscorlib(text).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_EventNeedsBothAccessors, "myevent").WithArguments("i1.myevent"));
         }
@@ -1312,7 +1313,7 @@ class C
 ";
 
             var compilation = CreateCompilationWithCustomILSource(csharpSource, ilSource);
-                
+
             compilation.VerifyDiagnostics(
                 // (6,9): error CS0122: 'Base.Event1.add' is inaccessible due to its protection level
                 //         b.Event1 += null;
@@ -1882,7 +1883,6 @@ public abstract class A
             Assert.Null(eventE.AssociatedField);
             Assert.NotNull(eventF.AssociatedField); // Since it has an initializer.
         }
-
 
         #endregion
     }

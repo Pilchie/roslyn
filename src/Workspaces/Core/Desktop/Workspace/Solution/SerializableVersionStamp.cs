@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,7 +13,7 @@ namespace Microsoft.CodeAnalysis
     [Serializable]
     public sealed class SerializableVersionStamp
     {
-        private readonly byte[] bytes;
+        private readonly byte[] _bytes;
 
         public SerializableVersionStamp(VersionStamp versionStamp)
         {
@@ -22,7 +24,7 @@ namespace Microsoft.CodeAnalysis
                     versionStamp.WriteTo(objectWriter);
                 }
 
-                bytes = memoryStream.ToArray();
+                _bytes = memoryStream.ToArray();
             }
         }
 
@@ -30,7 +32,7 @@ namespace Microsoft.CodeAnalysis
         {
             get
             {
-                using (var stream = new MemoryStream(bytes))
+                using (var stream = new MemoryStream(_bytes))
                 {
                     using (var objectReader = new ObjectReader(stream))
                     {

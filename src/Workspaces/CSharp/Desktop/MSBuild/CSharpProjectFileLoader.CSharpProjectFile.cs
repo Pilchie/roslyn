@@ -23,12 +23,12 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         private class CSharpProjectFile : ProjectFile
         {
-            private readonly IMetadataService metadataService;
+            private readonly IMetadataService _metadataService;
 
             public CSharpProjectFile(CSharpProjectFileLoader loader, MSB.Evaluation.Project project, IMetadataService metadataService)
                 : base(loader, project)
             {
-                this.metadataService = metadataService;
+                _metadataService = metadataService;
             }
 
             public override SourceCodeKind GetSourceCodeKind(string documentFileName)
@@ -65,32 +65,25 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return CreateProjectFileInfo(compilerInputs, executedProject);
             }
 
-            protected override IEnumerable<ProjectFileReference> GetProjectReferences(ProjectInstance executedProject)
+            protected override ProjectFileReference CreateProjectFileReference(ProjectItemInstance reference)
             {
-                return this.GetProjectReferencesCore(executedProject);
-            }
+                var filePath = reference.EvaluatedInclude;
+                var aliases = GetAliases(reference);
 
-            private IEnumerable<ProjectFileReference> GetProjectReferencesCore(ProjectInstance executedProject)
-            {
-                foreach (var projectReference in GetProjectReferenceItems(executedProject))
-                {
-                    var filePath = projectReference.EvaluatedInclude;
-                    var aliases = GetAliases(projectReference);
-
-                    yield return new ProjectFileReference(filePath, aliases);
-                }
+                return new ProjectFileReference(filePath, aliases);
             }
 
             private ProjectFileInfo CreateProjectFileInfo(CSharpCompilerInputs compilerInputs, MSB.Execution.ProjectInstance executedProject)
             {
                 string projectDirectory = executedProject.Directory;
-                if (!projectDirectory.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.OrdinalIgnoreCase))
+                string directorySeparator = Path.DirectorySeparatorChar.ToString();
+                if (!projectDirectory.EndsWith(directorySeparator, StringComparison.OrdinalIgnoreCase))
                 {
-                    projectDirectory += Path.DirectorySeparatorChar;
+                    projectDirectory += directorySeparator;
                 }
 
                 var docs = compilerInputs.Sources
-                       .Where(s => !Path.GetFileName(s.ItemSpec).StartsWith("TemporaryGeneratedFile_"))
+                       .Where(s => !Path.GetFileName(s.ItemSpec).StartsWith("TemporaryGeneratedFile_", StringComparison.Ordinal))
                        .Select(s => MakeDocumentFileInfo(projectDirectory, s))
                        .ToImmutableArray();
 
@@ -106,7 +99,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                 var assemblyName = this.GetAssemblyName();
 
                 return new ProjectFileInfo(
-                    this.Guid,
                     outputPath,
                     assemblyName,
                     compilerInputs.CompilationOptions,
@@ -143,7 +135,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             private void GetReferences(
                 CSharpCompilerInputs compilerInputs,
                 MSB.Execution.ProjectInstance executedProject,
-                out IEnumerable<MetadataReference> metadataReferences, 
+                out IEnumerable<MetadataReference> metadataReferences,
                 out IEnumerable<AnalyzerReference> analyzerReferences)
             {
                 // use command line parser to do reference translation same as command line compiler
@@ -160,7 +152,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var filePath = GetDocumentFilePath(mr);
 
                     var aliases = GetAliases(mr);
-                    if (aliases.IsDefault || aliases.IsEmpty)
+                    if (aliases.IsDefaultOrEmpty)
                     {
                         args.Add("/r:\"" + filePath + "\"");
                     }
@@ -188,7 +180,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 var commandLineArgs = commandLineParser.Parse(args, executedProject.Directory);
 
                 var resolver = new MetadataFileReferenceResolver(commandLineArgs.ReferencePaths, commandLineArgs.BaseDirectory);
-                metadataReferences = commandLineArgs.ResolveMetadataReferences(new AssemblyReferenceResolver(resolver, this.metadataService.GetProvider()));
+                metadataReferences = commandLineArgs.ResolveMetadataReferences(new AssemblyReferenceResolver(resolver, _metadataService.GetProvider()));
                 analyzerReferences = commandLineArgs.ResolveAnalyzerReferences();
             }
 
@@ -267,7 +259,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 MSB.Tasks.Hosting.ICscHostObject4
 #endif
             {
-                private readonly CSharpProjectFile projectFile;
+                private readonly CSharpProjectFile _projectFile;
 
                 internal bool Initialized { get; private set; }
                 internal CSharpParseOptions ParseOptions { get; private set; }
@@ -279,18 +271,18 @@ namespace Microsoft.CodeAnalysis.CSharp
                 internal IEnumerable<MSB.Framework.ITaskItem> AdditionalFiles { get; private set; }
                 internal IReadOnlyList<string> LibPaths { get; private set; }
                 internal bool NoStandardLib { get; private set; }
-                internal Dictionary<string, ReportDiagnostic> Warnings { get; private set; }
+                internal Dictionary<string, ReportDiagnostic> Warnings { get; }
                 internal string OutputFileName { get; private set; }
 
-                private static readonly CSharpParseOptions defaultParseOptions = new CSharpParseOptions(languageVersion: LanguageVersion.CSharp6, documentationMode: DocumentationMode.Parse);
+                private static readonly CSharpParseOptions s_defaultParseOptions = new CSharpParseOptions(languageVersion: LanguageVersion.CSharp6, documentationMode: DocumentationMode.Parse);
 
                 internal CSharpCompilerInputs(CSharpProjectFile projectFile)
                 {
-                    this.projectFile = projectFile;
+                    _projectFile = projectFile;
                     var projectDirectory = Path.GetDirectoryName(projectFile.FilePath);
                     var outputDirectory = projectFile.GetOutputDirectory();
 
-                    this.ParseOptions = defaultParseOptions;
+                    this.ParseOptions = s_defaultParseOptions;
                     this.CompilationOptions = new CSharpCompilationOptions(
                         OutputKind.ConsoleApplication,
                         xmlReferenceResolver: new XmlFileResolver(projectDirectory),
@@ -369,7 +361,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     if (!string.IsNullOrEmpty(applicationConfiguration))
                     {
-                        var appConfigPath = FileUtilities.ResolveRelativePath(applicationConfiguration, Path.GetDirectoryName(this.projectFile.FilePath));
+                        var appConfigPath = FileUtilities.ResolveRelativePath(applicationConfiguration, Path.GetDirectoryName(_projectFile.FilePath));
                         try
                         {
                             using (var appConfigStream = new FileStream(appConfigPath, FileMode.Open, FileAccess.Read))
@@ -457,7 +449,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return false;
                 }
 
-                private static readonly char[] preprocessorSymbolSeparators = new char[] { ';', ',' };
+                private static readonly char[] s_preprocessorSymbolSeparators = new char[] { ';', ',' };
 
                 public bool SetDelaySign(bool delaySignExplicitlySet, bool delaySign)
                 {
@@ -475,7 +467,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     if (!string.IsNullOrEmpty(warnings))
                     {
-                        foreach (var warning in warnings.Split(preprocessorSymbolSeparators, StringSplitOptions.None))
+                        foreach (var warning in warnings.Split(s_preprocessorSymbolSeparators, StringSplitOptions.None))
                         {
                             int warningId;
                             if (int.TryParse(warning, out warningId))
@@ -535,7 +527,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     if (!string.IsNullOrEmpty(keyFile))
                     {
-                        var fullPath = FileUtilities.ResolveRelativePath(keyFile, Path.GetDirectoryName(this.projectFile.FilePath));
+                        var fullPath = FileUtilities.ResolveRelativePath(keyFile, Path.GetDirectoryName(_projectFile.FilePath));
                         this.CompilationOptions = this.CompilationOptions.WithCryptoKeyFile(fullPath);
                     }
 
@@ -685,7 +677,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     // Get options from the ruleset file, if any.
                     if (!string.IsNullOrEmpty(ruleSetFile))
                     {
-                        var fullPath = FileUtilities.ResolveRelativePath(ruleSetFile, Path.GetDirectoryName(this.projectFile.FilePath));
+                        var fullPath = FileUtilities.ResolveRelativePath(ruleSetFile, Path.GetDirectoryName(_projectFile.FilePath));
 
                         Dictionary<string, ReportDiagnostic> specificDiagnosticOptions;
                         var generalDiagnosticOption = RuleSet.GetDiagnosticOptionsFromRulesetFile(fullPath, out specificDiagnosticOptions);

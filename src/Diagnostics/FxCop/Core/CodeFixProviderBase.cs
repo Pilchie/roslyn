@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers
 
         internal abstract Task<Document> GetUpdatedDocumentAsync(Document document, SemanticModel model, SyntaxNode root, SyntaxNode nodeToFix, Diagnostic diagnostic, CancellationToken cancellationToken);
 
-        public sealed override async Task ComputeFixesAsync(CodeFixContext context)
+        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var document = context.Document;
             var cancellationToken = context.CancellationToken;
@@ -34,12 +34,12 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers
                 if (newDocument != document)
                 {
                     var codeFixDescription = GetCodeFixDescription(diagnostic);
-                    context.RegisterFix(new MyCodeAction(codeFixDescription, newDocument), diagnostic);
+                    context.RegisterCodeFix(new MyCodeAction(codeFixDescription, newDocument), diagnostic);
                 }
             }
         }
 
-        private class MyCodeAction : CodeAction.DocumentChangeAction
+        private class MyCodeAction : DocumentChangeAction
         {
             public MyCodeAction(string title, Document newDocument) :
                 base(title, c => Task.FromResult(newDocument))

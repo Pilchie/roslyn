@@ -84,7 +84,7 @@ namespace A.B {
             Assert.Equal(1, comp.ExternalReferences.Length);
             var ref1 = comp.ExternalReferences[0];
             Assert.True(ref1.Properties.EmbedInteropTypes);
-            Assert.True(ref1.Properties.Aliases.IsDefault);
+            Assert.True(ref1.Properties.Aliases.IsEmpty);
 
             // Create Compilation with PreProcessorSymbols of Option is empty
             var ops1 = TestOptions.DebugExe;
@@ -383,7 +383,6 @@ namespace A.B {
                 // (1,1): info CS8020: Unused extern alias.
                 Diagnostic(ErrorCode.HDN_UnusedExternAlias, "extern alias Alias")
                 );
-
         }
 
         [Fact]
@@ -1667,13 +1666,13 @@ class C { }", options: TestOptions.Script);
 
         private sealed class EvolvingTestReference : PortableExecutableReference
         {
-            private readonly IEnumerator<Metadata> metadataSequence;
+            private readonly IEnumerator<Metadata> _metadataSequence;
             public int QueryCount;
 
             public EvolvingTestReference(IEnumerable<Metadata> metadataSequence)
                 : base(MetadataReferenceProperties.Assembly)
             {
-                this.metadataSequence = metadataSequence.GetEnumerator();
+                _metadataSequence = metadataSequence.GetEnumerator();
             }
 
             protected override DocumentationProvider CreateDocumentationProvider()
@@ -1684,8 +1683,8 @@ class C { }", options: TestOptions.Script);
             protected override Metadata GetMetadataImpl()
             {
                 QueryCount++;
-                metadataSequence.MoveNext();
-                return metadataSequence.Current;
+                _metadataSequence.MoveNext();
+                return _metadataSequence.Current;
             }
 
             protected override PortableExecutableReference WithPropertiesImpl(MetadataReferenceProperties properties)

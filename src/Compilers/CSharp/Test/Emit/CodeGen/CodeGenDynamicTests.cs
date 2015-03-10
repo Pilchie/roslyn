@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
@@ -19,10 +20,10 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         #region Helpers
 
         private CompilationVerifier CompileAndVerifyIL(
-            string source, 
-            string methodName, 
-            string expectedOptimizedIL = null, 
-            string expectedUnoptimizedIL = null, 
+            string source,
+            string methodName,
+            string expectedOptimizedIL = null,
+            string expectedUnoptimizedIL = null,
             MetadataReference[] references = null,
             bool allowUnsafe = false,
             [CallerFilePath]string callerPath = null,
@@ -56,7 +57,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
 
         #region C# Runtime and System.Core sources
 
-        const string CSharpBinderTemplate = @"
+        private const string CSharpBinderTemplate = @"
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -68,7 +69,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 }}
 ";
 
-        const string CSharpBinderFlagsSource = @"
+        private const string CSharpBinderFlagsSource = @"
 public enum CSharpBinderFlags
 {
     None = 0,
@@ -84,7 +85,7 @@ public enum CSharpBinderFlags
 }
 ";
 
-        const string CSharpArgumentInfoFlagsSource = @"
+        private const string CSharpArgumentInfoFlagsSource = @"
 public enum CSharpArgumentInfoFlags
 {
     None = 0,
@@ -96,13 +97,13 @@ public enum CSharpArgumentInfoFlags
     IsStaticType = 32
 }
 ";
-        const string CSharpArgumentInfoSource = @"
+        private const string CSharpArgumentInfoSource = @"
 public sealed class CSharpArgumentInfo
 {
     public static CSharpArgumentInfo Create(CSharpArgumentInfoFlags flags, string name) { return null; }
 }
 ";
-        private readonly string[] BinderFactoriesSource = new[]
+        private readonly string[] _binderFactoriesSource = new[]
         {
             "CallSiteBinder BinaryOperation(CSharpBinderFlags flags, ExpressionType operation, Type context, IEnumerable<CSharpArgumentInfo> argumentInfo)",
             "CallSiteBinder Convert(CSharpBinderFlags flags, Type type, Type context)",
@@ -125,17 +126,17 @@ public sealed class CSharpArgumentInfo
             sb.AppendLine(excludeArgumentInfoFlags ? "public enum CSharpArgumentInfoFlags { A }" : CSharpArgumentInfoFlagsSource);
             sb.AppendLine(CSharpArgumentInfoSource);
 
-            foreach (var src in excludeBinder == null ? BinderFactoriesSource : BinderFactoriesSource.Where(src => src.IndexOf(excludeBinder) == -1))
+            foreach (var src in excludeBinder == null ? _binderFactoriesSource : _binderFactoriesSource.Where(src => src.IndexOf(excludeBinder, StringComparison.Ordinal) == -1))
             {
                 sb.AppendFormat("public partial class Binder {{ public static {0} {{ return null; }} }}", src);
                 sb.AppendLine();
             }
 
-            string source =  string.Format(CSharpBinderTemplate, sb.ToString());
+            string source = string.Format(CSharpBinderTemplate, sb.ToString());
             return CreateCompilationWithMscorlib(source, new[] { systemCore ?? SystemCoreRef }, assemblyName: GetUniqueName()).EmitToImageReference();
         }
 
-        const string ExpressionTypeSource = @"
+        private const string ExpressionTypeSource = @"
 namespace System.Linq.Expressions
 {
     public enum ExpressionType
@@ -151,7 +152,7 @@ namespace System.Linq.Expressions
     }
 }
 ";
-        const string DynamicAttributeSource = @"
+        private const string DynamicAttributeSource = @"
 namespace System.Runtime.CompilerServices
 {
     public sealed class DynamicAttribute : Attribute
@@ -161,7 +162,7 @@ namespace System.Runtime.CompilerServices
     }
 }";
 
-        const string CallSiteSource = @"
+        private const string CallSiteSource = @"
 namespace System.Runtime.CompilerServices
 {
     public class CallSite { }
@@ -179,7 +180,7 @@ namespace System.Runtime.CompilerServices
     public abstract class CallSiteBinder { }
 }";
 
-        const string SystemCoreSource = ExpressionTypeSource + DynamicAttributeSource + CallSiteSource;
+        private const string SystemCoreSource = ExpressionTypeSource + DynamicAttributeSource + CallSiteSource;
 
         #endregion
 
@@ -240,7 +241,7 @@ class C
                 Diagnostic(ErrorCode.ERR_MissingPredefinedMember, "new C(d.M(d.M = d[-d], d[(int)d()] = d * d.M))").WithArguments("Microsoft.CSharp.RuntimeBinder.Binder", "InvokeConstructor")
                 );
         }
-        
+
         [Fact]
         public void Missing_Flags()
         {
@@ -267,7 +268,7 @@ class C
         {
             var systemCoreRef = CreateCompilationWithMscorlib(SystemCoreSource, assemblyName: GetUniqueName()).EmitToImageReference();
             var csrtRef = MakeCSharpRuntime(systemCore: systemCoreRef);
- 
+
             string source = @"
 class C
 {
@@ -397,7 +398,7 @@ class C
     Diagnostic(ErrorCode.ERR_MissingPredefinedMember, "d").WithArguments("System.Runtime.CompilerServices.CallSite`1", "Create").WithLocation(6, 16)
                 );
         }
-        
+
         #endregion
 
         #region Generated Metadata (call-site containers, delegates)
@@ -480,7 +481,7 @@ public class C
                 var c = peModule.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
                 var containers = c.GetMembers().OfType<NamedTypeSymbol>().ToArray();
                 Assert.Equal(2, containers.Length);
-                
+
                 foreach (var container in containers)
                 {
                     Assert.Equal(Accessibility.Private, container.DeclaredAccessibility);
@@ -496,7 +497,7 @@ public class C
                     Assert.True(field.IsStatic);
                     Assert.False(field.IsReadOnly);
 
-                    Assert.Equal("System.Runtime.CompilerServices.CallSite<System.Action<System.Runtime.CompilerServices.CallSite, object, int, int, int>>", 
+                    Assert.Equal("System.Runtime.CompilerServices.CallSite<System.Action<System.Runtime.CompilerServices.CallSite, object, int, int, int>>",
                         field.Type.ToDisplayString());
 
                     Assert.Equal(0, field.GetAttributes().Length);
@@ -535,7 +536,7 @@ public class C
             {
                 var c = peModule.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
                 Assert.Equal(2, c.GetMembers().OfType<NamedTypeSymbol>().Count());
-                
+
                 var container = c.GetMember<NamedTypeSymbol>("<>o__0");
 
                 // all call-site storage fields of the method are added to a single container:
@@ -545,7 +546,7 @@ public class C
                 var displayClass = c.GetMember<NamedTypeSymbol>("<>c__DisplayClass0_0");
                 var d = displayClass.GetMember<FieldSymbol>("d");
                 Assert.Equal(0, d.GetAttributes().Length);
-           });
+            });
         }
 
         [Fact]
@@ -714,7 +715,7 @@ public class C
                 // members:
                 var members = d.GetMembers();
                 Assert.Equal(2, members.Length);
-                foreach (var member in members) 
+                foreach (var member in members)
                 {
                     Assert.Equal(Accessibility.Public, member.DeclaredAccessibility);
 
@@ -3168,7 +3169,7 @@ class C
  -IL_00a7:  ldloc.2
   IL_00a8:  ret
 }
-", 
+",
  expectedOptimizedIL: @"
 {
   // Code size      154 (0x9a)
@@ -4176,7 +4177,7 @@ class C
 }
 ");
         }
-        
+
         [Fact]
         public void BooleanOperation_Or_UserDefinedTrue_Dynamic()
         {
@@ -5116,7 +5117,6 @@ public class C
   IL_0056:  ret
 }
 ");
-
         }
 
         [Fact]
@@ -6339,8 +6339,8 @@ public class A
   IL_0067:  ret
 }");
 
-            CompileAndVerify(source, 
-                new [] { SystemCoreRef, CSharpRef },
+            CompileAndVerify(source,
+                new[] { SystemCoreRef, CSharpRef },
                 expectedOutput: "The call is ambiguous between the following methods or properties: 'A.M(A)' and 'A.M(string)'");
         }
 
@@ -7255,7 +7255,7 @@ void Foo()
 }
 ";
             var script = CreateCompilationWithMscorlib(
-                Parse(sourceScript, options: TestOptions.Script), 
+                Parse(sourceScript, options: TestOptions.Script),
                 new[] { new CSharpCompilationReference(lib), SystemCoreRef, CSharpRef },
                 TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.All));
 
@@ -7511,7 +7511,7 @@ class C
 }
 ");
         }
-        
+
         [Fact]
         public void InvokeMember_UseCompileTimeType_ConvertedReceiver()
         {
@@ -8447,7 +8447,7 @@ public class C
 ";
             CompileAndVerify(source, expectedOutput: "", emitOptions: TestEmitters.CCI, additionalRefs: new[] { SystemCoreRef, CSharpRef });
         }
-        
+
         /// <summary>
         /// By-ref dynamic argument doesn't make the call dynamic.
         /// </summary>
@@ -8798,8 +8798,8 @@ public struct S
   IL_0065:  ret
 }");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_Parameter()
         {
             string source = @"
@@ -8855,8 +8855,8 @@ public struct S
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_This()
         {
             string source = @"
@@ -8908,8 +8908,8 @@ public struct S
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_FieldAccess()
         {
             string source = @"
@@ -8968,8 +8968,8 @@ public struct S
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_ArrayAccess()
         {
             string source = @"
@@ -9030,8 +9030,8 @@ public struct S
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_PointerIndirectionOperator1()
         {
             string source = @"
@@ -9099,8 +9099,8 @@ public struct S
 }
 ", allowUnsafe: true);
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_PointerIndirectionOperator2()
         {
             string source = @"
@@ -9168,8 +9168,8 @@ public struct S
 }
 ", allowUnsafe: true);
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_PointerElementAccess()
         {
             string source = @"
@@ -9238,8 +9238,8 @@ public struct S
 }
 ", allowUnsafe: true);
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_TypeReference()
         {
             string source = @"
@@ -9300,8 +9300,8 @@ public class C
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_Literal()
         {
             string source = @"
@@ -9351,8 +9351,8 @@ public class C
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_Assignment()
         {
             string source = @"
@@ -9409,11 +9409,11 @@ public struct S
   IL_005e:  ret
 }");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_PropertyAccess()
         {
-             string source = @"
+            string source = @"
 public class C
 {
     private S P { get; set; }
@@ -9430,7 +9430,7 @@ public struct S
     public void foo(int a) {}
 }
 ";
-             CompileAndVerifyIL(source, "C.M", @"
+            CompileAndVerifyIL(source, "C.M", @"
 {
   // Code size       97 (0x61)
   .maxstack  9
@@ -9469,8 +9469,8 @@ public struct S
 }
 ");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_IndexerAccess()
         {
             string source = @"
@@ -9529,8 +9529,8 @@ public struct S
   IL_0061:  ret
 }");
         }
-                                     
-        [Fact]                       
+
+        [Fact]
         public void InvokeMember_ValueTypeReceiver_Invocation()
         {
             string source = @"
@@ -9586,7 +9586,7 @@ public struct S
   IL_0060:  ret
 }");
         }
-       
+
         [Fact]
         public void InvokeMember_InvokeMember()
         {
@@ -9710,7 +9710,7 @@ public class D
         [Fact]
         public void Invoke_Dynamic()
         {
- string source = @"
+            string source = @"
 public class C
 {
     public dynamic M(dynamic d, int a)
@@ -9718,7 +9718,7 @@ public class C
         return d(foo: d, bar: a, baz: 123);
     }
 }";
- 
+
             CompileAndVerifyIL(source, "C.M", @"
 {
   // Code size      117 (0x75)
@@ -10035,7 +10035,7 @@ class C
 }
 ");
         }
-            
+
         [Fact]
         public void InvokeMember_InConstructorInitializer()
         {
@@ -10251,7 +10251,7 @@ class C : B
 }
 ");
         }
-        
+
         #endregion
 
         #region GetMember, GetIndex, SetMember, SetIndex
@@ -10301,7 +10301,7 @@ public class C
         [Fact]
         public void GetMember_GetMember()
         {
-             string source = @"
+            string source = @"
 public class C
 {
     public dynamic M(dynamic d)
@@ -11305,7 +11305,7 @@ class C
 }
 ");
         }
-        
+
         [Fact]
         public void SetIndex_SetIndex_Receiver()
         {
@@ -12553,7 +12553,7 @@ public class C
         return d[i, f()] *= v;
     }
 }";
-            CompileAndVerifyIL(source, "C.M", 
+            CompileAndVerifyIL(source, "C.M",
 @"
 {
   // Code size      292 (0x124)
@@ -13718,7 +13718,7 @@ class C
         #endregion
 
         #region Object And Collection Initializers
-        
+
         [Fact]
         public void DynamicObjectInitializer_Level2()
         {

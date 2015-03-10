@@ -337,12 +337,12 @@ class Test
         {
             var oldMsCorLib = TestReferences.NetFx.v4_0_21006.mscorlib;
 
-            var c1 = CSharpCompilation.Create("C1", 
+            var c1 = CSharpCompilation.Create("C1",
                 new[] { Parse(@"public struct S { }") },
                 new[] { oldMsCorLib },
                 TestOptions.ReleaseDll);
 
-            var c2 = CSharpCompilation.Create("C2", 
+            var c2 = CSharpCompilation.Create("C2",
                 new[] { Parse(@"public class C { void M() { S s = new S(); System.Console.WriteLine(s);} }") },
                 new[] { MscorlibRef, new CSharpCompilationReference(c1) },
                 TestOptions.ReleaseDll);
@@ -603,12 +603,12 @@ public struct X1
 
 ";
             CreateExperimentalCompilationWithMscorlib45(source).VerifyDiagnostics(
-    // (4,13): error CS8075: Parameterless struct constructors must be public
-    //     private X()
-    Diagnostic(ErrorCode.ERR_ParameterlessStructCtorsMustBePublic, "X").WithLocation(4, 13),
-    // (11,5): error CS8075: Parameterless struct constructors must be public
+    // (11,5): error CS0568: Structs cannot contain explicit parameterless constructors
     //     X1()
-    Diagnostic(ErrorCode.ERR_ParameterlessStructCtorsMustBePublic, "X1").WithLocation(11, 5)
+    Diagnostic(ErrorCode.ERR_StructsCantContainDefaultConstructor, "X1").WithLocation(11, 5),
+    // (4,13): error CS0568: Structs cannot contain explicit parameterless constructors
+    //     private X()
+    Diagnostic(ErrorCode.ERR_StructsCantContainDefaultConstructor, "X").WithLocation(4, 13)
                 );
         }
     }

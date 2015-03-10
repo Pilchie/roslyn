@@ -3,6 +3,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -10,11 +11,9 @@ namespace Microsoft.CodeAnalysis.UnitTests
 {
     public class CommonCommandLineParserTests : TestBase
     {
-        private const int EN_US = 1033;
-        
-        private void VerifyCommandLineSplitter(string commandLine, string[] expected)
+        private void VerifyCommandLineSplitter(string commandLine, string[] expected, bool removeHashComments = false)
         {
-            string[] actual = CommandLineSplitter.SplitCommandLine(commandLine);
+            var actual = CommandLineParser.SplitCommandLineIntoArguments(commandLine, removeHashComments).ToArray();
 
             Assert.Equal(expected.Length, actual.Length);
             for (int i = 0; i < actual.Length; ++i)
@@ -45,7 +44,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
 
         private void VerifyRuleSetError(string source, Func<string> messageFormatter, bool locSpecific = true, params string[] otherSources)
         {
-            CultureInfo saveUICulture = System.Threading.Thread.CurrentThread.CurrentUICulture;
+            CultureInfo saveUICulture = Thread.CurrentThread.CurrentUICulture;
 
             if (locSpecific)
             {
@@ -55,8 +54,8 @@ namespace Microsoft.CodeAnalysis.UnitTests
                     locSpecific = false;
                 }
                 else
-                { 
-                    System.Threading.Thread.CurrentThread.CurrentUICulture = preferred;
+                {
+                    Thread.CurrentThread.CurrentUICulture = preferred;
                 }
             }
 
@@ -73,7 +72,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             {
                 if (locSpecific)
                 {
-                    System.Threading.Thread.CurrentThread.CurrentUICulture = saveUICulture;
+                    Thread.CurrentThread.CurrentUICulture = saveUICulture;
                 }
             }
 
@@ -85,15 +84,17 @@ namespace Microsoft.CodeAnalysis.UnitTests
         {
             VerifyCommandLineSplitter("", new string[0]);
             VerifyCommandLineSplitter("   \t   ", new string[0]);
-            VerifyCommandLineSplitter("   abc\tdef baz    quuz   ", new string[] {"abc", "def", "baz", "quuz"});
+            VerifyCommandLineSplitter("   abc\tdef baz    quuz   ", new[] { "abc", "def", "baz", "quuz" });
             VerifyCommandLineSplitter(@"  ""abc def""  fi""ddle dee de""e  ""hi there ""dude  he""llo there""  ",
                                         new string[] { @"abc def", @"fi""ddle dee de""e", @"""hi there ""dude", @"he""llo there""" });
             VerifyCommandLineSplitter(@"  ""abc def \"" baz quuz"" ""\""straw berry"" fi\""zz \""buzz fizzbuzz",
-                                        new string[] { @"abc def "" baz quuz", @"""straw berry", @"fi""zz", @"""buzz", @"fizzbuzz"});
+                                        new string[] { @"abc def "" baz quuz", @"""straw berry", @"fi""zz", @"""buzz", @"fizzbuzz" });
             VerifyCommandLineSplitter(@"  \\""abc def""  \\\""abc def"" ",
                                         new string[] { @"\""abc def""", @"\""abc", @"def""" });
             VerifyCommandLineSplitter(@"  \\\\""abc def""  \\\\\""abc def"" ",
                                         new string[] { @"\\""abc def""", @"\\""abc", @"def""" });
+            VerifyCommandLineSplitter(@"abc #Comment ignored",
+                                        new string[] { @"abc" }, removeHashComments: true);
         }
 
         [Fact]
@@ -451,7 +452,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
   </Rules>
 </RuleSet>
 ";
-            VerifyRuleSetError(source, () => string.Format(CodeAnalysisResources.InvalidRuleSetInclude, "foo.ruleset", string.Format(CodeAnalysisResources.FailedToResolveRuleSetName, "foo.ruleset")), otherSources: new string[] {""});
+            VerifyRuleSetError(source, () => string.Format(CodeAnalysisResources.InvalidRuleSetInclude, "foo.ruleset", string.Format(CodeAnalysisResources.FailedToResolveRuleSetName, "foo.ruleset")), otherSources: new string[] { "" });
         }
 
         [Fact]
@@ -967,7 +968,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
                 }
                 catch (InvalidRuleSetException e)
                 {
-                    Assert.Contains(string.Format(CodeAnalysisResources.InvalidRuleSetInclude, newFile.Path, string.Format(CodeAnalysisResources.RuleSetSchemaViolation, "")), e.Message);
+                    Assert.Contains(string.Format(CodeAnalysisResources.InvalidRuleSetInclude, newFile.Path, string.Format(CodeAnalysisResources.RuleSetSchemaViolation, "")), e.Message, StringComparison.Ordinal);
                 }
             }
         }

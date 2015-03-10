@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -13,62 +13,56 @@ namespace Microsoft.CodeAnalysis.MSBuild
     internal sealed class ProjectFileInfo
     {
         /// <summary>
-        /// The project's individual GUID
-        /// </summary>
-        public Guid Guid { get; private set; }
-
-        /// <summary>
         /// The path to the output file this project generates.
         /// </summary>
-        public string OutputFilePath { get; private set; }
+        public string OutputFilePath { get; }
 
         /// <summary>
         /// The assembly name of the output.
         /// </summary>
-        public string AssemblyName { get; private set; }
+        public string AssemblyName { get; }
 
         /// <summary>
         /// The compilation options for this project.
         /// </summary>
-        public CompilationOptions CompilationOptions { get; private set; }
+        public CompilationOptions CompilationOptions { get; }
 
         /// <summary>
         /// The parse options for this project.
         /// </summary>
-        public ParseOptions ParseOptions { get; private set; }
+        public ParseOptions ParseOptions { get; }
 
         /// <summary>
         /// The codepage for this project.
         /// </summary>
-        public int CodePage { get; private set; }
+        public int CodePage { get; }
 
         /// <summary>
         /// The source documents.
         /// </summary>
-        public IReadOnlyList<DocumentFileInfo> Documents { get; private set; }
+        public IReadOnlyList<DocumentFileInfo> Documents { get; }
 
         /// <summary>
         /// The additional documents.
         /// </summary>
-        public IReadOnlyList<DocumentFileInfo> AdditionalDocuments { get; private set; }
+        public IReadOnlyList<DocumentFileInfo> AdditionalDocuments { get; }
 
         /// <summary>
         /// References to other projects.
         /// </summary>
-        public IReadOnlyList<ProjectFileReference> ProjectReferences { get; private set; }
+        public IReadOnlyList<ProjectFileReference> ProjectReferences { get; }
 
         /// <summary>
         /// References to other metadata files; libraries and executables.
         /// </summary>
-        public IReadOnlyList<MetadataReference> MetadataReferences { get; private set; }
+        public IReadOnlyList<MetadataReference> MetadataReferences { get; }
 
         /// <summary>
         /// References to analyzer assembly files; contains diagnostic analyzers.
         /// </summary>
-        public IReadOnlyList<AnalyzerReference> AnalyzerReferences { get; private set; }
+        public IReadOnlyList<AnalyzerReference> AnalyzerReferences { get; }
 
         public ProjectFileInfo(
-            Guid guid,
             string outputPath,
             string assemblyName,
             CompilationOptions compilationOptions,
@@ -80,7 +74,6 @@ namespace Microsoft.CodeAnalysis.MSBuild
             IEnumerable<MetadataReference> metadataReferences,
             IEnumerable<AnalyzerReference> analyzerReferences)
         {
-            this.Guid = guid;
             this.OutputFilePath = outputPath;
             this.AssemblyName = assemblyName;
             this.CompilationOptions = compilationOptions;

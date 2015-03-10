@@ -17,37 +17,43 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.FxCopAnalyzers.Design
     Public Class CA1052BasicCodeFixProvider
         Inherits CodeFixProvider
 
-        Public NotOverridable Overrides Function GetFixableDiagnosticIds() As ImmutableArray(Of String)
-            Return ImmutableArray.Create(StaticTypeRulesDiagnosticAnalyzer.CA1052RuleId)
-        End Function
+        Public NotOverridable Overrides ReadOnly Property FixableDiagnosticIds As ImmutableArray(Of String)
+            Get
+                Return ImmutableArray.Create(StaticTypeRulesDiagnosticAnalyzer.CA1052RuleId)
+            End Get
+        End Property
 
         Public NotOverridable Overrides Function GetFixAllProvider() As FixAllProvider
             Return WellKnownFixAllProviders.BatchFixer
         End Function
 
-        Public NotOverridable Overrides Async Function ComputeFixesAsync(context As CodeFixContext) As Task
+        Public NotOverridable Overrides Async Function RegisterCodeFixesAsync(context As CodeFixContext) As Task
             Dim document = context.Document
             Dim span = context.Span
             Dim cancellationToken = context.CancellationToken
 
             cancellationToken.ThrowIfCancellationRequested()
             Dim root = Await document.GetSyntaxRootAsync(cancellationToken)
-            Dim classStatement = root.FindToken(span.Start).GetAncestor(Of ClassStatementSyntax)
+            Dim classStatement = root.FindToken(span.Start).Parent?.FirstAncestorOrSelf(Of ClassStatementSyntax)
             If classStatement IsNot Nothing Then
-                Dim notInheritableKeyword = SyntaxFactory.Token(SyntaxKind.NotInheritableKeyword).WithAdditionalAnnotations(Formatter.Annotation)
-                Dim newClassStatement = classStatement.AddModifiers(notInheritableKeyword)
-                Dim newRoot = root.ReplaceNode(classStatement, newClassStatement)
-                context.RegisterFix(
-                    New MyCodeAction(String.Format(FxCopRulesResources.StaticHolderTypeIsNotStatic, classStatement.Identifier.Text), document.WithSyntaxRoot(newRoot)),
-                    context.Diagnostics)
+                Dim title As String = String.Format(FxCopRulesResources.StaticHolderTypeIsNotStatic, classStatement.Identifier.Text)
+                Dim fix = New MyCodeAction(title, Function(ct) AddNotInheritableKeyword(document, root, classStatement))
+                context.RegisterCodeFix(fix, context.Diagnostics)
             End If
         End Function
 
-        Private Class MyCodeAction
-            Inherits CodeAction.DocumentChangeAction
+        Private Function AddNotInheritableKeyword(document As Document, root As SyntaxNode, classStatement As ClassStatementSyntax) As Task(Of Document)
+            Dim notInheritableKeyword = SyntaxFactory.Token(SyntaxKind.NotInheritableKeyword).WithAdditionalAnnotations(Formatter.Annotation)
+            Dim newClassStatement = classStatement.AddModifiers(notInheritableKeyword)
+            Dim newRoot = root.ReplaceNode(classStatement, newClassStatement)
+            Return Task.FromResult(document.WithSyntaxRoot(newRoot))
+        End Function
 
-            Public Sub New(title As String, newDocument As Document)
-                MyBase.New(title, Function(c) Task.FromResult(newDocument))
+        Private Class MyCodeAction
+            Inherits DocumentChangeAction
+
+            Public Sub New(title As String, createChangedDocument As Func(Of CancellationToken, Task(Of Document)))
+                MyBase.New(title, createChangedDocument)
             End Sub
         End Class
     End Class

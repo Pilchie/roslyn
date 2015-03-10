@@ -2,8 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.Diagnostics
@@ -37,35 +40,35 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             /// Maps from a full path to a file to a corresponding <see cref="Assembly"/>
             /// that we've already loaded.
             /// </summary>
-            private static readonly Dictionary<string, Assembly> assembliesFromFiles =
+            private static readonly Dictionary<string, Assembly> s_assembliesFromFiles =
                 new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>
             /// Maps from an assembly full name to the directory where we found the
             /// corresponding file.
             /// </summary>
-            private static readonly Dictionary<string, string> filesFromAssemblyNames =
+            private static readonly Dictionary<string, string> s_filesFromAssemblyNames =
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>
             /// Maps from an assembly full name to the corresponding <see cref="Assembly"/>.
             /// </summary>
-            private static readonly Dictionary<string, Assembly> assembliesFromNames =
+            private static readonly Dictionary<string, Assembly> s_assembliesFromNames =
                 new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>
             /// Maps from the full path to an assembly to the full path of the assembly
             /// that requested it.
             /// </summary>
-            private static readonly Dictionary<string, string> requestingFilesFromFiles =
+            private static readonly Dictionary<string, string> s_requestingFilesFromFiles =
                 new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             /// <summary>
             /// Controls access to the loader's data structures.
             /// </summary>
-            private static readonly object guard = new object();
+            private static readonly object s_guard = new object();
 
-            private static bool hookedAssemblyResolve = false;
+            private static bool s_hookedAssemblyResolve = false;
 
             /// <summary>
             /// Loads the <see cref="Assembly"/> at the given path without locking the file.
@@ -83,19 +86,19 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     throw new ArgumentException(e.Message, "fullPath");
                 }
 
-                lock (guard)
+                lock (s_guard)
                 {
                     Assembly assembly;
-                    if (assembliesFromFiles.TryGetValue(fullPath, out assembly))
+                    if (s_assembliesFromFiles.TryGetValue(fullPath, out assembly))
                     {
                         return assembly;
                     }
 
                     assembly = LoadCore(fullPath);
 
-                    if (!hookedAssemblyResolve)
+                    if (!s_hookedAssemblyResolve)
                     {
-                        hookedAssemblyResolve = true;
+                        s_hookedAssemblyResolve = true;
 
                         AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
                     }
@@ -106,10 +109,10 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
             public static string TryGetRequestingAssembly(string fullPath)
             {
-                lock (guard)
+                lock (s_guard)
                 {
                     string requestingAssemblyFullPath;
-                    if (requestingFilesFromFiles.TryGetValue(fullPath, out requestingAssemblyFullPath))
+                    if (s_requestingFilesFromFiles.TryGetValue(fullPath, out requestingAssemblyFullPath))
                     {
                         return requestingAssemblyFullPath;
                     }
@@ -129,9 +132,9 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
                 string assemblyName = assembly.FullName;
 
-                assembliesFromFiles[fullPath] = assembly;
-                filesFromAssemblyNames[assemblyName] = fullPath;
-                assembliesFromNames[assemblyName] = assembly;
+                s_assembliesFromFiles[fullPath] = assembly;
+                s_filesFromAssemblyNames[assemblyName] = fullPath;
+                s_assembliesFromNames[assemblyName] = assembly;
 
                 EventHandler<AnalyzerAssemblyLoadEventArgs> handler = AnalyzerFileReference.AssemblyLoad;
                 if (handler != null)
@@ -143,35 +146,106 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             }
 
             /// <summary>
-            /// Handles the <see cref="AppDomain.AssemblyResolve"/> event when the requesting
-            /// assembly is one that we've loaded.
-            /// 
-            /// We assume that an assembly's dependencies can be found next to it in the file
-            /// system.
+            /// Handles the <see cref="AppDomain.AssemblyResolve"/> event.
             /// </summary>
+            /// <remarks>
+            /// This handler catches and swallow any and all exceptions that
+            /// arise, and simply returns null when they do. Leaking an exception
+            /// from the event handler may interrupt the entire assembly
+            /// resolution process, which is undesirable.
+            /// </remarks>
             private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
             {
-                if (args.RequestingAssembly == null)
+                try
                 {
-                    // We don't know who is requesting the load; don't try to satisfy the request.
+                    if (args.RequestingAssembly == null)
+                    {
+                        return ResolveForUnknownRequestor(args.Name);
+                    }
+                    else
+                    {
+                        return ResolveForKnownRequestor(args.Name, args.RequestingAssembly);
+                    }
+                }
+                catch { }
+
+                return null;
+            }
+
+            /// <summary>
+            /// Attempts to find and load an <see cref="Assembly"/> when the requesting <see cref="Assembly"/>
+            /// is unknown.
+            /// </summary>
+            /// <remarks>
+            /// In this case we simply look next to all the assemblies we have previously loaded for one with the
+            /// correct name and a matching <see cref="AssemblyIdentity"/>.
+            /// </remarks>
+            private static Assembly ResolveForUnknownRequestor(string requestedAssemblyName)
+            {
+                lock (s_guard)
+                {
+                    string requestedNameWithPolicyApplied = AppDomain.CurrentDomain.ApplyPolicy(requestedAssemblyName);
+
+                    Assembly assembly;
+                    if (s_assembliesFromNames.TryGetValue(requestedNameWithPolicyApplied, out assembly))
+                    {
+                        // We've already loaded an assembly by this name; use that.
+                        return assembly;
+                    }
+
+                    AssemblyIdentity requestedAssemblyIdentity;
+                    if (!AssemblyIdentity.TryParseDisplayName(requestedNameWithPolicyApplied, out requestedAssemblyIdentity))
+                    {
+                        return null;
+                    }
+
+                    foreach (string loadedAssemblyFullPath in s_assembliesFromFiles.Keys)
+                    {
+                        string directoryPath = Path.GetDirectoryName(loadedAssemblyFullPath);
+                        string candidateAssemblyFullPath = Path.Combine(directoryPath, requestedAssemblyIdentity.Name + ".dll");
+
+                        AssemblyIdentity candidateAssemblyIdentity = TryGetAssemblyIdentity(candidateAssemblyFullPath);
+
+                        if (requestedAssemblyIdentity.Equals(candidateAssemblyIdentity))
+                        {
+                            return LoadCore(candidateAssemblyFullPath);
+                        }
+                    }
+
                     return null;
                 }
+            }
 
-                lock (guard)
+            /// <summary>
+            /// Attempts to find and load an <see cref="Assembly"/> when the requesting <see cref="Assembly"/>
+            /// is known.
+            /// </summary>
+            /// <remarks>
+            /// This method differs from <see cref="ResolveForUnknownRequestor(string)"/> in a couple of ways.
+            /// First, we only attempt to handle the load if the requesting assembly is one we've loaded.
+            /// If it isn't one of ours, then presumably some other component is hooking <see cref="AppDomain.AssemblyResolve"/>
+            /// and will have a better idea of how to load the assembly.
+            /// Second, we only look immediately next to the requesting assembly, instead of next to all the assemblies
+            /// we've previously loaded. An analyzer needs to ship with all of its dependencies, and if it doesn't we don't
+            /// want to mask the problem.
+            /// </remarks>
+            private static Assembly ResolveForKnownRequestor(string requestedAssemblyName, Assembly requestingAssembly)
+            {
+                lock (s_guard)
                 {
-                    string requestingAssemblyName = args.RequestingAssembly.FullName;
+                    string requestingAssemblyName = requestingAssembly.FullName;
 
                     string requestingAssemblyFullPath;
-                    if (!filesFromAssemblyNames.TryGetValue(requestingAssemblyName, out requestingAssemblyFullPath))
+                    if (!s_filesFromAssemblyNames.TryGetValue(requestingAssemblyName, out requestingAssemblyFullPath))
                     {
                         // The requesting assembly is not one of ours; don't try to satisfy the request.
                         return null;
                     }
 
-                    string nameWithPolicyApplied = AppDomain.CurrentDomain.ApplyPolicy(args.Name);
+                    string nameWithPolicyApplied = AppDomain.CurrentDomain.ApplyPolicy(requestedAssemblyName);
 
                     Assembly assembly;
-                    if (assembliesFromNames.TryGetValue(nameWithPolicyApplied, out assembly))
+                    if (s_assembliesFromNames.TryGetValue(nameWithPolicyApplied, out assembly))
                     {
                         // We've already loaded an assembly by this name; use that.
                         return assembly;
@@ -185,13 +259,71 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
                     string directoryPath = Path.GetDirectoryName(requestingAssemblyFullPath);
                     string assemblyFullPath = Path.Combine(directoryPath, assemblyIdentity.Name + ".dll");
+                    if (!File.Exists(assemblyFullPath))
+                    {
+                        return null;
+                    }
 
                     assembly = LoadCore(assemblyFullPath);
 
-                    requestingFilesFromFiles[assemblyFullPath] = requestingAssemblyFullPath;
+                    s_requestingFilesFromFiles[assemblyFullPath] = requestingAssemblyFullPath;
 
                     return assembly;
                 }
+            }
+
+            private static AssemblyIdentity TryGetAssemblyIdentity(string filePath)
+            {
+                try
+                {
+                    if (!File.Exists(filePath))
+                    {
+                        return null;
+                    }
+
+                    using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete))
+                    using (var peReader = new PEReader(stream))
+                    {
+                        var metadataReader = peReader.GetMetadataReader();
+
+                        AssemblyDefinition assemblyDefinition = metadataReader.GetAssemblyDefinition();
+
+                        string name = metadataReader.GetString(assemblyDefinition.Name);
+                        if (!MetadataHelpers.IsValidMetadataIdentifier(name))
+                        {
+                            return null;
+                        }
+
+                        Version version = assemblyDefinition.Version;
+
+                        StringHandle cultureHandle = assemblyDefinition.Culture;
+                        string cultureName = (!cultureHandle.IsNil) ? metadataReader.GetString(cultureHandle) : null;
+                        if (cultureName != null && !MetadataHelpers.IsValidMetadataIdentifier(cultureName))
+                        {
+                            return null;
+                        }
+
+                        AssemblyFlags flags = assemblyDefinition.Flags;
+
+                        bool hasPublicKey = (flags & AssemblyFlags.PublicKey) != 0;
+                        BlobHandle publicKeyHandle = assemblyDefinition.PublicKey;
+                        ImmutableArray<byte> publicKeyOrToken = !publicKeyHandle.IsNil
+                            ? metadataReader.GetBlobBytes(publicKeyHandle).AsImmutableOrNull()
+                            : default(ImmutableArray<byte>);
+                        if (hasPublicKey)
+                        {
+                            if (!MetadataHelpers.IsValidPublicKey(publicKeyOrToken))
+                            {
+                                return null;
+                            }
+                        }
+
+                        return new AssemblyIdentity(name, version, cultureName, publicKeyOrToken, hasPublicKey);
+                    }
+                }
+                catch { }
+
+                return null;
             }
         }
     }

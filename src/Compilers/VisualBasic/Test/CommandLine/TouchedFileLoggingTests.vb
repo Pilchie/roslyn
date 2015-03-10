@@ -218,12 +218,6 @@ End Class
 
             Dim writes = New List(Of String)
             writes.Add(outputPath)
-            cmd.PathGetTempFileName = Function()
-                                          ' Named 'GetFileName', but actually a path
-                                          Dim tempPath As String = Path.GetTempFileName()
-                                          writes.Add(tempPath)
-                                          Return tempPath
-                                      End Function
             expectedWrites = writes
         End Sub
 

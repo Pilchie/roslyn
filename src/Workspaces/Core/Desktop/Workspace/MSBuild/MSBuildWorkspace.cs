@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -15,6 +15,7 @@ using Microsoft.Build.Construction;
 #endif
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Host;
 using Microsoft.CodeAnalysis.Host.Mef;
 using Microsoft.CodeAnalysis.Text;
@@ -28,17 +29,17 @@ namespace Microsoft.CodeAnalysis.MSBuild
     public sealed class MSBuildWorkspace : Workspace
     {
         // used to serialize access to public methods
-        private readonly NonReentrantLock serializationLock = new NonReentrantLock();
+        private readonly NonReentrantLock _serializationLock = new NonReentrantLock();
 
         // used to protect access to mutable state
-        private readonly NonReentrantLock dataGuard = new NonReentrantLock();
+        private readonly NonReentrantLock _dataGuard = new NonReentrantLock();
 
-        private readonly Dictionary<string, string> extensionToLanguageMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, ProjectId> projectPathToProjectIdMap = new Dictionary<string, ProjectId>(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, IProjectFileLoader> projectPathToLoaderMap = new Dictionary<string, IProjectFileLoader>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _extensionToLanguageMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, ProjectId> _projectPathToProjectIdMap = new Dictionary<string, ProjectId>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, IProjectFileLoader> _projectPathToLoaderMap = new Dictionary<string, IProjectFileLoader>(StringComparer.OrdinalIgnoreCase);
 
-        private string solutionFilePath;
-        private ImmutableDictionary<string, string> properties;
+        private string _solutionFilePath;
+        private ImmutableDictionary<string, string> _properties;
 
         private MSBuildWorkspace(
             HostServices hostServices,
@@ -46,7 +47,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
             : base(hostServices, "MSBuildWorkspace")
         {
             // always make a copy of these build properties (no mutation please!)
-            this.properties = properties ?? ImmutableDictionary<string, string>.Empty;
+            _properties = properties ?? ImmutableDictionary<string, string>.Empty;
             this.SetSolutionProperties(solutionFilePath: null);
             this.LoadMetadataForReferencedProjects = false;
             this.SkipUnrecognizedProjects = true;
@@ -97,7 +98,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
         /// </summary>
         public ImmutableDictionary<string, string> Properties
         {
-            get { return this.properties; }
+            get { return _properties; }
         }
 
         /// <summary>
@@ -135,9 +136,9 @@ namespace Microsoft.CodeAnalysis.MSBuild
                 throw new ArgumentNullException("projectFileExtension");
             }
 
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait())
             {
-                this.extensionToLanguageMap[projectFileExtension] = language;
+                _extensionToLanguageMap[projectFileExtension] = language;
             }
         }
 
@@ -146,7 +147,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
         /// </summary>
         public void CloseSolution()
         {
-            using (this.serializationLock.DisposableWait())
+            using (_serializationLock.DisposableWait())
             {
                 this.ClearSolution();
             }
@@ -156,13 +157,13 @@ namespace Microsoft.CodeAnalysis.MSBuild
         {
             base.ClearSolutionData();
 
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait())
             {
                 this.SetSolutionProperties(solutionFilePath: null);
 
                 // clear project related data
-                this.projectPathToProjectIdMap.Clear();
-                this.projectPathToLoaderMap.Clear();
+                _projectPathToProjectIdMap.Clear();
+                _projectPathToLoaderMap.Clear();
             }
         }
 
@@ -170,7 +171,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         private void SetSolutionProperties(string solutionFilePath)
         {
-            this.solutionFilePath = solutionFilePath;
+            _solutionFilePath = solutionFilePath;
 
             if (!string.IsNullOrEmpty(solutionFilePath))
             {
@@ -182,14 +183,14 @@ namespace Microsoft.CodeAnalysis.MSBuild
                 if (!string.IsNullOrEmpty(solutionFilePath))
                 {
                     string solutionDirectory = Path.GetDirectoryName(solutionFilePath);
-                    if (!solutionDirectory.EndsWith("\\"))
+                    if (!solutionDirectory.EndsWith(@"\", StringComparison.Ordinal))
                     {
-                        solutionDirectory += "\\";
+                        solutionDirectory += @"\";
                     }
 
                     if (Directory.Exists(solutionDirectory))
                     {
-                        this.properties = this.properties.SetItem(SolutionDirProperty, solutionDirectory);
+                        _properties = _properties.SetItem(SolutionDirProperty, solutionDirectory);
                     }
                 }
             }
@@ -197,23 +198,23 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         private ProjectId GetProjectId(string fullProjectPath)
         {
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait())
             {
                 ProjectId id;
-                this.projectPathToProjectIdMap.TryGetValue(fullProjectPath, out id);
+                _projectPathToProjectIdMap.TryGetValue(fullProjectPath, out id);
                 return id;
             }
         }
 
         private ProjectId GetOrCreateProjectId(string fullProjectPath)
         {
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait())
             {
                 ProjectId id;
-                if (!this.projectPathToProjectIdMap.TryGetValue(fullProjectPath, out id))
+                if (!_projectPathToProjectIdMap.TryGetValue(fullProjectPath, out id))
                 {
                     id = ProjectId.CreateNewId(debugName: fullProjectPath);
-                    this.projectPathToProjectIdMap.Add(fullProjectPath, id);
+                    _projectPathToProjectIdMap.Add(fullProjectPath, id);
                 }
 
                 return id;
@@ -222,20 +223,20 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         private bool TryGetLoaderFromProjectPath(string projectFilePath, ReportMode mode, out IProjectFileLoader loader)
         {
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait())
             {
                 // check to see if we already know the loader
-                if (!this.projectPathToLoaderMap.TryGetValue(projectFilePath, out loader))
+                if (!_projectPathToLoaderMap.TryGetValue(projectFilePath, out loader))
                 {
                     // otherwise try to figure it out from extension
                     var extension = Path.GetExtension(projectFilePath);
-                    if (extension.StartsWith("."))
+                    if (extension.Length > 0 && extension[0] == '.')
                     {
                         extension = extension.Substring(1);
                     }
 
                     string language;
-                    if (this.extensionToLanguageMap.TryGetValue(extension, out language))
+                    if (_extensionToLanguageMap.TryGetValue(extension, out language))
                     {
                         if (this.Services.SupportedLanguages.Contains(language))
                         {
@@ -260,7 +261,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
                     if (loader != null)
                     {
-                        this.projectPathToLoaderMap[projectFilePath] = loader;
+                        _projectPathToLoaderMap[projectFilePath] = loader;
                     }
                 }
 
@@ -325,23 +326,23 @@ namespace Microsoft.CodeAnalysis.MSBuild
         {
             switch (mode)
             {
-            case ReportMode.Throw:
-                if (createException != null)
-                {
-                    throw createException(message);
-                }
-                else
-                {
-                    throw new InvalidOperationException(message);
-                }
+                case ReportMode.Throw:
+                    if (createException != null)
+                    {
+                        throw createException(message);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(message);
+                    }
 
-            case ReportMode.Log:
-                this.OnWorkspaceFailed(new WorkspaceDiagnostic(WorkspaceDiagnosticKind.Failure, message));
-                break;
+                case ReportMode.Log:
+                    this.OnWorkspaceFailed(new WorkspaceDiagnostic(WorkspaceDiagnosticKind.Failure, message));
+                    break;
 
-            case ReportMode.Ignore:
-            default:
-                break;
+                case ReportMode.Ignore:
+                default:
+                    break;
             }
         }
 
@@ -358,14 +359,14 @@ namespace Microsoft.CodeAnalysis.MSBuild
         {
             if (solutionFilePath == null)
             {
-                throw new ArgumentNullException("solutionFilePath");
+                throw new ArgumentNullException(nameof(solutionFilePath));
             }
 
             this.ClearSolution();
 
             var absoluteSolutionPath = this.GetAbsoluteSolutionPath(solutionFilePath, Environment.CurrentDirectory);
 
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait(cancellationToken))
             {
                 this.SetSolutionProperties(absoluteSolutionPath);
             }
@@ -378,20 +379,28 @@ namespace Microsoft.CodeAnalysis.MSBuild
             var invalidProjects = new List<ProjectInSolution>();
 
             // seed loaders from known project types
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait(cancellationToken))
             {
                 foreach (var project in solutionFile.ProjectsInOrder)
                 {
+                    if (project.ProjectType == SolutionProjectType.SolutionFolder)
+                    {
+                        continue;
+                    }
+
                     var projectAbsolutePath = TryGetAbsolutePath(project.AbsolutePath, reportMode);
                     if (projectAbsolutePath != null)
                     {
                         var extension = Path.GetExtension(projectAbsolutePath);
-                        extension = extension.StartsWith(".") ? extension.Substring(1) : extension;
+                        if (extension.Length > 0 && extension[0] == '.')
+                        {
+                            extension = extension.Substring(1);
+                        }
 
                         var loader = ProjectFileLoader.GetLoaderForProjectFileExtension(this, extension);
                         if (loader != null)
                         {
-                            this.projectPathToLoaderMap[projectAbsolutePath] = loader;
+                            _projectPathToLoaderMap[projectAbsolutePath] = loader;
                         }
                     }
                     else
@@ -409,7 +418,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (!invalidProjects.Contains(project))
+                if (project.ProjectType != SolutionProjectType.SolutionFolder && !invalidProjects.Contains(project))
                 {
                     var projectAbsolutePath = TryGetAbsolutePath(project.AbsolutePath, reportMode);
                     if (projectAbsolutePath != null)
@@ -437,7 +446,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
             var solutionFolder = Path.GetDirectoryName(absoluteSolutionPath);
 
             // seed loaders from known project types
-            using (this.dataGuard.DisposableWait())
+            using (_dataGuard.DisposableWait())
             {
                 foreach (var projectBlock in solutionFile.ProjectBlocks)
                 {
@@ -447,7 +456,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                         var loader = ProjectFileLoader.GetLoaderForProjectTypeGuid(this, projectBlock.ProjectTypeGuid);
                         if (loader != null)
                         {
-                            this.projectPathToLoaderMap[absoluteProjectPath] = loader;
+                            _projectPathToLoaderMap[absoluteProjectPath] = loader;
                         }
                     }
                 }
@@ -546,7 +555,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         private void UpdateReferencesAfterAdd()
         {
-            using (this.serializationLock.DisposableWait())
+            using (_serializationLock.DisposableWait())
             {
                 var oldSolution = this.CurrentSolution;
                 var newSolution = this.UpdateReferencesAfterAdd(oldSolution);
@@ -629,7 +638,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
             var name = Path.GetFileNameWithoutExtension(projectFilePath);
 
-            var projectFile = await loader.LoadProjectFileAsync(projectFilePath, this.properties, cancellationToken).ConfigureAwait(false);
+            var projectFile = await loader.LoadProjectFileAsync(projectFilePath, _properties, cancellationToken).ConfigureAwait(false);
             var projectFileInfo = await projectFile.GetProjectFileInfoAsync(cancellationToken).ConfigureAwait(false);
 
             VersionStamp version;
@@ -737,7 +746,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
             }
         }
 
-        private static readonly char[] DirectorySplitChars = new char[] { Path.DirectorySeparatorChar };
+        private static readonly char[] s_directorySplitChars = new char[] { Path.DirectorySeparatorChar };
 
         private static ImmutableArray<string> GetDocumentFolders(string logicalPath)
         {
@@ -745,7 +754,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
             if (!string.IsNullOrEmpty(logicalDirectory))
             {
-                return logicalDirectory.Split(DirectorySplitChars, StringSplitOptions.None).ToImmutableArray();
+                return logicalDirectory.Split(s_directorySplitChars, StringSplitOptions.None).ToImmutableArray();
             }
 
             return ImmutableArray.Create<string>();
@@ -801,7 +810,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                     // get metadata if preferred or if loader is unknown
                     if (preferMetadata || loader == null)
                     {
-                        var projectMetadata = await this.GetProjectMetadata(fullPath, projectFileReference.Aliases, this.properties, cancellationToken).ConfigureAwait(false);
+                        var projectMetadata = await this.GetProjectMetadata(fullPath, projectFileReference.Aliases, _properties, cancellationToken).ConfigureAwait(false);
                         if (projectMetadata != null)
                         {
                             resolvedReferences.MetadataReferences.Add(projectMetadata);
@@ -868,20 +877,38 @@ namespace Microsoft.CodeAnalysis.MSBuild
         {
             switch (feature)
             {
-            case ApplyChangesKind.ChangeDocument:
-            case ApplyChangesKind.AddDocument:
-            case ApplyChangesKind.RemoveDocument:
-                return true;
-            default:
-                return false;
+                case ApplyChangesKind.ChangeDocument:
+                case ApplyChangesKind.AddDocument:
+                case ApplyChangesKind.RemoveDocument:
+                case ApplyChangesKind.AddMetadataReference:
+                case ApplyChangesKind.RemoveMetadataReference:
+                case ApplyChangesKind.AddProjectReference:
+                case ApplyChangesKind.RemoveProjectReference:
+                case ApplyChangesKind.AddAnalyzerReference:
+                case ApplyChangesKind.RemoveAnalyzerReference:
+                    return true;
+                default:
+                    return false;
             }
         }
 
-        private IProjectFile applyChangesProjectFile;
+        private bool HasProjectFileChanges(ProjectChanges changes)
+        {
+            return changes.GetAddedDocuments().Any() ||
+                   changes.GetRemovedDocuments().Any() ||
+                   changes.GetAddedMetadataReferences().Any() ||
+                   changes.GetRemovedMetadataReferences().Any() ||
+                   changes.GetAddedProjectReferences().Any() ||
+                   changes.GetRemovedProjectReferences().Any() ||
+                   changes.GetAddedAnalyzerReferences().Any() ||
+                   changes.GetRemovedAnalyzerReferences().Any();
+        }
+
+        private IProjectFile _applyChangesProjectFile;
 
         public override bool TryApplyChanges(Solution newSolution)
         {
-            using (this.serializationLock.DisposableWait())
+            using (_serializationLock.DisposableWait())
             {
                 return base.TryApplyChanges(newSolution);
             }
@@ -889,15 +916,14 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         protected override void ApplyProjectChanges(ProjectChanges projectChanges)
         {
-            System.Diagnostics.Debug.Assert(this.applyChangesProjectFile == null);
+            System.Diagnostics.Debug.Assert(_applyChangesProjectFile == null);
 
             var project = projectChanges.OldProject ?? projectChanges.NewProject;
 
             try
             {
                 // if we need to modify the project file, load it first.
-                if (projectChanges.GetAddedDocuments().Any() ||
-                    projectChanges.GetRemovedDocuments().Any())
+                if (this.HasProjectFileChanges(projectChanges))
                 {
                     var projectPath = project.FilePath;
                     IProjectFileLoader loader;
@@ -905,7 +931,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                     {
                         try
                         {
-                            this.applyChangesProjectFile = loader.LoadProjectFileAsync(projectPath, this.properties, CancellationToken.None).Result;
+                            _applyChangesProjectFile = loader.LoadProjectFileAsync(projectPath, _properties, CancellationToken.None).Result;
                         }
                         catch (System.IO.IOException exception)
                         {
@@ -918,11 +944,11 @@ namespace Microsoft.CodeAnalysis.MSBuild
                 base.ApplyProjectChanges(projectChanges);
 
                 // save project file
-                if (this.applyChangesProjectFile != null)
+                if (_applyChangesProjectFile != null)
                 {
                     try
                     {
-                        this.applyChangesProjectFile.Save();
+                        _applyChangesProjectFile.Save();
                     }
                     catch (System.IO.IOException exception)
                     {
@@ -932,7 +958,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
             }
             finally
             {
-                this.applyChangesProjectFile = null;
+                _applyChangesProjectFile = null;
             }
         }
 
@@ -978,14 +1004,14 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         protected override void ApplyDocumentAdded(DocumentInfo info, SourceText text)
         {
-            System.Diagnostics.Debug.Assert(this.applyChangesProjectFile != null);
+            System.Diagnostics.Debug.Assert(_applyChangesProjectFile != null);
 
             var project = this.CurrentSolution.GetProject(info.Id.ProjectId);
 
             IProjectFileLoader loader;
             if (this.TryGetLoaderFromProjectPath(project.FilePath, ReportMode.Ignore, out loader))
             {
-                var extension = this.applyChangesProjectFile.GetDocumentExtension(info.SourceCodeKind);
+                var extension = _applyChangesProjectFile.GetDocumentExtension(info.SourceCodeKind);
                 var fileName = Path.ChangeExtension(info.Name, extension);
 
                 var relativePath = (info.Folders != null && info.Folders.Count > 0)
@@ -999,7 +1025,7 @@ namespace Microsoft.CodeAnalysis.MSBuild
                     .WithTextLoader(new FileTextLoader(fullPath, text.Encoding));
 
                 // add document to project file
-                this.applyChangesProjectFile.AddDocument(relativePath);
+                _applyChangesProjectFile.AddDocument(relativePath);
 
                 // add to solution
                 this.OnDocumentAdded(newDocumentInfo);
@@ -1039,27 +1065,14 @@ namespace Microsoft.CodeAnalysis.MSBuild
 
         protected override void ApplyDocumentRemoved(DocumentId documentId)
         {
-            System.Diagnostics.Debug.Assert(this.applyChangesProjectFile != null);
+            Debug.Assert(_applyChangesProjectFile != null);
 
             var document = this.CurrentSolution.GetDocument(documentId);
             if (document != null)
             {
-                this.applyChangesProjectFile.RemoveDocument(document.FilePath);
+                _applyChangesProjectFile.RemoveDocument(document.FilePath);
                 this.DeleteDocumentFile(document.Id, document.FilePath);
                 this.OnDocumentRemoved(documentId);
-            }
-        }
-
-        protected override void ApplyAdditionalDocumentRemoved(DocumentId documentId)
-        {
-            System.Diagnostics.Debug.Assert(this.applyChangesProjectFile != null);
-
-            var document = this.CurrentSolution.GetAdditionalDocument(documentId);
-            if (document != null)
-            {
-                this.applyChangesProjectFile.RemoveDocument(document.FilePath);
-                this.DeleteDocumentFile(document.Id, document.FilePath);
-                this.OnAdditionalDocumentRemoved(documentId);
             }
         }
 
@@ -1084,6 +1097,75 @@ namespace Microsoft.CodeAnalysis.MSBuild
             {
                 this.OnWorkspaceFailed(new DocumentDiagnostic(WorkspaceDiagnosticKind.Failure, exception.Message, documentId));
             }
+        }
+
+        protected override void ApplyMetadataReferenceAdded(ProjectId projectId, MetadataReference metadataReference)
+        {
+            Debug.Assert(_applyChangesProjectFile != null);
+            var identity = GetAssemblyIdentity(projectId, metadataReference);
+            _applyChangesProjectFile.AddMetadataReference(metadataReference, identity);
+            this.OnMetadataReferenceAdded(projectId, metadataReference);
+        }
+
+        protected override void ApplyMetadataReferenceRemoved(ProjectId projectId, MetadataReference metadataReference)
+        {
+            Debug.Assert(_applyChangesProjectFile != null);
+            var identity = GetAssemblyIdentity(projectId, metadataReference);
+            _applyChangesProjectFile.RemoveMetadataReference(metadataReference, identity);
+            this.OnMetadataReferenceRemoved(projectId, metadataReference);
+        }
+
+        private AssemblyIdentity GetAssemblyIdentity(ProjectId projectId, MetadataReference metadataReference)
+        {
+            var project = this.CurrentSolution.GetProject(projectId);
+            if (!project.MetadataReferences.Contains(metadataReference))
+            {
+                project = project.AddMetadataReference(metadataReference);
+            }
+
+            var compilation = project.GetCompilationAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+            var symbol = compilation.GetAssemblyOrModuleSymbol(metadataReference) as IAssemblySymbol;
+            return symbol != null ? symbol.Identity : null;
+        }
+
+        protected override void ApplyProjectReferenceAdded(ProjectId projectId, ProjectReference projectReference)
+        {
+            Debug.Assert(_applyChangesProjectFile != null);
+
+            var project = this.CurrentSolution.GetProject(projectReference.ProjectId);
+            if (project != null)
+            {
+                _applyChangesProjectFile.AddProjectReference(project.Name, new ProjectFileReference(project.FilePath, projectReference.Aliases));
+            }
+
+            this.OnProjectReferenceAdded(projectId, projectReference);
+        }
+
+        protected override void ApplyProjectReferenceRemoved(ProjectId projectId, ProjectReference projectReference)
+        {
+            Debug.Assert(_applyChangesProjectFile != null);
+
+            var project = this.CurrentSolution.GetProject(projectReference.ProjectId);
+            if (project != null)
+            {
+                _applyChangesProjectFile.RemoveProjectReference(project.Name, project.FilePath);
+            }
+
+            this.OnProjectReferenceRemoved(projectId, projectReference);
+        }
+
+        protected override void ApplyAnalyzerReferenceAdded(ProjectId projectId, AnalyzerReference analyzerReference)
+        {
+            Debug.Assert(_applyChangesProjectFile != null);
+            _applyChangesProjectFile.AddAnalyzerReference(analyzerReference);
+            this.OnAnalyzerReferenceAdded(projectId, analyzerReference);
+        }
+
+        protected override void ApplyAnalyzerReferenceRemoved(ProjectId projectId, AnalyzerReference analyzerReference)
+        {
+            Debug.Assert(_applyChangesProjectFile != null);
+            _applyChangesProjectFile.RemoveAnalyzerReference(analyzerReference);
+            this.OnAnalyzerReferenceRemoved(projectId, analyzerReference);
         }
     }
     #endregion

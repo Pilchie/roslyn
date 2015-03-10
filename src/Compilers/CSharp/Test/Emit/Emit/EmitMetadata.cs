@@ -162,7 +162,6 @@ public class Test : C107
                 Assert.Equal(refs[0].Name, "MDTestLib1", StringComparer.OrdinalIgnoreCase);
                 Assert.Equal(refs[1].Name, "mscorlib", StringComparer.OrdinalIgnoreCase);
             }, emitOptions: TestEmitters.CCI); // TODO(tomat): Ref.Emit infrastructure can't locate the dependent assemblies
-
         }
 
         [Fact]
@@ -234,8 +233,8 @@ public class Test : Class2
                 Cci.PeWriter.WritePeToStream(
                     context,
                     compilation.MessageProvider,
-                    stream,
-                    pdbWriterOpt: null,
+                    () => stream,
+                    nativePdbWriterOpt: null,
                     allowMissingMethodBodies: false,
                     deterministic: false,
                     cancellationToken: CancellationToken.None);

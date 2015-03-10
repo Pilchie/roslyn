@@ -14,7 +14,6 @@
     <AnalyzerProject>true</AnalyzerProject>
     <AssemblyName>Roslyn.Diagnostics.Analyzers</AssemblyName>
     <SolutionDir Condition="'$(SolutionDir)' == '' OR '$(SolutionDir)' == '*Undefined*'">..\..\..\..\</SolutionDir>
-    <NeedsFakeSign>true</NeedsFakeSign>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <ItemGroup Label="File References">
@@ -67,24 +66,23 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ApiDesign\CancellationTokenMustBeLastAnalyzer.cs">
-      <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
-    </Compile>
-    <Compile Include="ApiDesign\DeclarePublicAPIAnalyzer.cs">
-      <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
-    </Compile>
-    <Compile Include="ApiDesign\DeclarePublicAPIFix.cs">
-      <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
-    </Compile>
+    <Compile Include="ApiDesign\CancellationTokenMustBeLastAnalyzer.cs" />
+    <Compile Include="ApiDesign\DeclarePublicAPIAnalyzer.cs" />
+    <Compile Include="ApiDesign\DeclarePublicAPIFix.cs" />
     <Compile Include="CodeFixProviderBase.cs" />
     <Compile Include="Documentation\DoNotUseVerbatimCrefsAnalyzer.cs" />
     <Compile Include="DocumentChangedAction.cs" />
+    <Compile Include="ISymbolExtensions.cs" />
     <Compile Include="Performance\CodeActionCreateAnalyzer.cs" />
+    <Compile Include="Maintainability\UnusedDeclarationsAnalyzer.cs" />
+    <Compile Include="Maintainability\UnusedDeclarationsCodeFixer.cs" />
     <Compile Include="Performance\EmptyArrayDiagnosticAnalyzer.cs" />
     <Compile Include="Performance\EquatableAnalyzer.cs" />
     <Compile Include="Performance\SpecializedEnumerableCreationAnalyzer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Reliability\AttributeHelpers.cs" />
+    <Compile Include="Reliability\DoNotCreateTasksWithoutTaskSchedulerAnalyzer.cs" />
+    <Compile Include="Reliability\SymbolDeclaredEventAnalyzer.cs" />
     <Compile Include="Reliability\DirectlyAwaitingTaskAnalyzer.cs" />
     <Compile Include="Reliability\DirectlyAwaitingTaskAnalyzerRule.cs" />
     <Compile Include="Reliability\DirectlyAwaitingTaskFix.cs" />
@@ -110,7 +108,6 @@
   <ImportGroup Label="Targets">
     <Import Project="..\..\..\Tools\Microsoft.CodeAnalysis.Toolset.Open\Targets\VSL.Imports.targets" />
     <Import Project="..\..\..\..\build\VSL.Imports.Closed.targets" />
-    <Import Project="..\..\..\..\packages\StyleCop.MSBuild.4.7.48.2\build\StyleCop.MSBuild.Targets" Condition="Exists('..\..\..\..\packages\StyleCop.MSBuild.4.7.48.2\build\StyleCop.MSBuild.Targets')" />
     <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   </ImportGroup>
 </Project>

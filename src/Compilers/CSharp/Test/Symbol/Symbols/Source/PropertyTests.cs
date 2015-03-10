@@ -118,12 +118,15 @@ struct S
 }
 
 ").VerifyDiagnostics(
-    // (27,9): error CS0200: Property or indexer 'S.Ps' cannot be assigned to -- it is read only
-    //         Ps = 5;
-    Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "Ps").WithArguments("S.Ps").WithLocation(27, 9),
+    // (24,12): error CS0568: Structs cannot contain explicit parameterless constructors
+    //     public S()
+    Diagnostic(ErrorCode.ERR_StructsCantContainDefaultConstructor, "S").WithLocation(24, 12),
     // (9,9): error CS0200: Property or indexer 'C.Ps' cannot be assigned to -- it is read only
     //         Ps = 3;
     Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "Ps").WithArguments("C.Ps").WithLocation(9, 9),
+    // (27,9): error CS0200: Property or indexer 'S.Ps' cannot be assigned to -- it is read only
+    //         Ps = 5;
+    Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "Ps").WithArguments("S.Ps").WithLocation(27, 9),
     // (14,9): error CS0200: Property or indexer 'C.P' cannot be assigned to -- it is read only
     //         P = 10;
     Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "P").WithArguments("C.P").WithLocation(14, 9),
@@ -136,6 +139,7 @@ struct S
     // (33,9): error CS0200: Property or indexer 'S.Ps' cannot be assigned to -- it is read only
     //         S.Ps = 1;
     Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "S.Ps").WithArguments("S.Ps").WithLocation(33, 9)
+
     );
         }
 
@@ -202,10 +206,10 @@ struct S
             var comp = CreateCompilationWithMscorlib(text, parseOptions: TestOptions.ExperimentalParseOptions);
             comp.VerifyDiagnostics(
     // (4,16): error CS0573: 'S': cannot have instance property or field initializers in structs
-//     public int P { get; set; } = 1;
+    //     public int P { get; set; } = 1;
     Diagnostic(ErrorCode.ERR_FieldInitializerInStruct, "P").WithArguments("S").WithLocation(4, 16),
     // (6,20): error CS0573: 'S': cannot have instance property or field initializers in structs
-//     public decimal R { get; } = 300;
+    //     public decimal R { get; } = 300;
     Diagnostic(ErrorCode.ERR_FieldInitializerInStruct, "R").WithArguments("S").WithLocation(6, 20)
                 );
         }
@@ -433,7 +437,7 @@ class Program
     }
 }
 ";
-            var compilation = CompileAndVerify(source, new[] { PropertiesDll }, expectedOutput: "0");
+            var compilation = CompileAndVerify(source, new[] { s_propertiesDll }, expectedOutput: "0");
 
             compilation.VerifyIL("Program.Main",
 @"{
@@ -619,7 +623,7 @@ class Program
     }
 }
 ";
-            var compilation = CompileAndVerify(source, new[] { PropertiesDll }, expectedOutput: "0");
+            var compilation = CompileAndVerify(source, new[] { s_propertiesDll }, expectedOutput: "0");
 
             compilation.VerifyIL("Program.Main",
 @"{
@@ -654,7 +658,7 @@ class Program
     }
 }
 ";
-            var verifier = CompileAndVerify(source, new[] { PropertiesDll }, expectedOutput: "0");
+            var verifier = CompileAndVerify(source, new[] { s_propertiesDll }, expectedOutput: "0");
 
             verifier.VerifyIL("Program.Main",
 @"{
@@ -1124,13 +1128,13 @@ class B {
 }
 ";
             CreateCompilationWithCustomILSource(cSharpSource, ilSource).VerifyDiagnostics(
-                // (5,11): error CS0268: Imported type 'E' is invalid. It contains a circular base class dependency.
-                //     B y = A.Foo; 
+    // (5,11): error CS0268: Imported type 'E' is invalid. It contains a circular base class dependency.
+    //     B y = A.Foo; 
     Diagnostic(ErrorCode.ERR_ImportedCircularBase, "A.Foo").WithArguments("E", "E"),
-                // (5,11): error CS0029: Cannot implicitly convert type 'E' to 'B'
-                //     B y = A.Foo; 
+    // (5,11): error CS0029: Cannot implicitly convert type 'E' to 'B'
+    //     B y = A.Foo; 
     Diagnostic(ErrorCode.ERR_NoImplicitConv, "A.Foo").WithArguments("E", "B")
-                );            
+                );
             // Dev10 errors:
             // error CS0268: Imported type 'E' is invalid. It contains a circular base class dependency.
             // error CS0570: 'A.Foo' is not supported by the language
@@ -1779,7 +1783,7 @@ class Program
 ";
             var compilation = CreateCompilationWithMscorlib(
                 source,
-                new[] {TestReferences.SymbolsTests.Properties },
+                new[] { TestReferences.SymbolsTests.Properties },
                 TestOptions.ReleaseExe);
 
             Action<ModuleSymbol> validator = module =>
@@ -2456,10 +2460,10 @@ End Class";
 
         private CSharpCompilation CompileWithCustomPropertiesAssembly(string source, CSharpCompilationOptions options = null)
         {
-            return CreateCompilationWithMscorlib(source, new[] { PropertiesDll }, options ?? TestOptions.ReleaseDll);
+            return CreateCompilationWithMscorlib(source, new[] { s_propertiesDll }, options ?? TestOptions.ReleaseDll);
         }
 
-        private static MetadataReference PropertiesDll = TestReferences.SymbolsTests.Properties;
+        private static MetadataReference s_propertiesDll = TestReferences.SymbolsTests.Properties;
 
         #endregion
 
@@ -2615,7 +2619,7 @@ public interface IA
             Assert.Equal(SpecialType.System_String, iam2.ReturnType.SpecialType);
         }
 
-        delegate void VerifyType(bool isWinMd, params string[] expectedMembers);
+        private delegate void VerifyType(bool isWinMd, params string[] expectedMembers);
 
         /// <summary>
         /// When the output type is .winmdobj properties should emit put_Property methods instead
@@ -2646,33 +2650,33 @@ public interface IA
                 AssertEx.SetEqual(actualMembers.Select(s => s.Name), expectedMembers);
             };
 
-           VerifyType verify = (winmd, expected) =>
-            {
-                var validator = getValidator(expected);
+            VerifyType verify = (winmd, expected) =>
+             {
+                 var validator = getValidator(expected);
 
-                // We should see the same members from both source and metadata
-                var verifier = CompileAndVerify(
-                    libSrc,
-                    emitOptions: TestEmitters.RefEmitBug,
-                    sourceSymbolValidator: validator,
-                    symbolValidator: validator,
-                    options: winmd ? TestOptions.ReleaseWinMD : TestOptions.ReleaseDll);
-                verifier.VerifyDiagnostics();
-            };
+                 // We should see the same members from both source and metadata
+                 var verifier = CompileAndVerify(
+                      libSrc,
+                      emitOptions: TestEmitters.RefEmitBug,
+                      sourceSymbolValidator: validator,
+                      symbolValidator: validator,
+                      options: winmd ? TestOptions.ReleaseWinMD : TestOptions.ReleaseDll);
+                 verifier.VerifyDiagnostics();
+             };
 
             // Test winmd
-            verify(true, 
+            verify(true,
                 "a",
-                "A", 
-                "get_A", 
+                "A",
+                "get_A",
                 "put_A",
                 WellKnownMemberNames.InstanceConstructorName);
 
             // Test normal
             verify(false,
                 "a",
-                "A", 
-                "get_A", 
+                "A",
+                "get_A",
                 "set_A",
                 WellKnownMemberNames.InstanceConstructorName);
         }
@@ -2781,6 +2785,5 @@ unsafe class Test
     Diagnostic(ErrorCode.ERR_IllegalUnsafe, "Test").WithLocation(2, 14)
                 );
         }
-
     }
 }

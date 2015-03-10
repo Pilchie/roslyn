@@ -78,14 +78,14 @@ namespace Microsoft.CodeAnalysis
         public readonly PEModule Module;
 
         // Identity of an assembly containing the module, or null if the module is a standalone module
-        private readonly AssemblyIdentity containingAssemblyIdentity;
+        private readonly AssemblyIdentity _containingAssemblyIdentity;
 
         internal MetadataDecoder(PEModule module, AssemblyIdentity containingAssemblyIdentity, SymbolFactory<ModuleSymbol, TypeSymbol> factory, ModuleSymbol moduleSymbol) :
             base(factory, moduleSymbol)
         {
             Debug.Assert(module != null);
             this.Module = module;
-            this.containingAssemblyIdentity = containingAssemblyIdentity;
+            _containingAssemblyIdentity = containingAssemblyIdentity;
         }
 
         internal TypeSymbol GetTypeOfToken(Handle token)
@@ -408,7 +408,7 @@ namespace Microsoft.CodeAnalysis
                 TypeSymbol result1 = cache.GetOrAdd(typeRef, result);
                 Debug.Assert(result1.Equals(result));
             }
-                
+
             return result;
         }
 
@@ -898,11 +898,11 @@ namespace Microsoft.CodeAnalysis
         }
 
         /// <exception cref="BadImageFormatException">An exception from metadata reader.</exception>
-        internal void GetSignatureCountsOrThrow(MethodDefinitionHandle methodDef, out int parameterCount, out int typeParameterCount)
+        internal static void GetSignatureCountsOrThrow(PEModule module, MethodDefinitionHandle methodDef, out int parameterCount, out int typeParameterCount)
         {
-            BlobHandle signature = Module.GetMethodSignatureOrThrow(methodDef);
+            BlobHandle signature = module.GetMethodSignatureOrThrow(methodDef);
             SignatureHeader signatureHeader;
-            BlobReader signatureReader = DecodeSignatureHeaderOrThrow(signature, out signatureHeader);
+            BlobReader signatureReader = DecodeSignatureHeaderOrThrow(module, signature, out signatureHeader);
 
             GetSignatureCountsOrThrow(ref signatureReader, signatureHeader, out parameterCount, out typeParameterCount);
         }
@@ -1497,7 +1497,13 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="BadImageFormatException">An exception from metadata reader.</exception>
         internal BlobReader DecodeSignatureHeaderOrThrow(BlobHandle signature, out SignatureHeader signatureHeader)
         {
-            BlobReader reader = Module.GetMemoryReaderOrThrow(signature);
+            return DecodeSignatureHeaderOrThrow(Module, signature, out signatureHeader);
+        }
+
+        /// <exception cref="BadImageFormatException">An exception from metadata reader.</exception>
+        internal static BlobReader DecodeSignatureHeaderOrThrow(PEModule module, BlobHandle signature, out SignatureHeader signatureHeader)
+        {
+            BlobReader reader = module.GetMemoryReaderOrThrow(signature);
             signatureHeader = reader.ReadSignatureHeader();
             return reader;
         }
@@ -1645,7 +1651,6 @@ namespace Microsoft.CodeAnalysis
                 // get the type
                 bool refersToNoPiaLocalType;
                 return DecodeTypeOrThrow(ref signatureReader, typeCode, out refersToNoPiaLocalType);
-
             }
             catch (UnsupportedSignatureContent)
             {
@@ -1895,7 +1900,7 @@ namespace Microsoft.CodeAnalysis
 
         protected override bool IsContainingAssembly(AssemblyIdentity identity)
         {
-            return this.containingAssemblyIdentity != null && this.containingAssemblyIdentity.Equals(identity);
+            return _containingAssemblyIdentity != null && _containingAssemblyIdentity.Equals(identity);
         }
 
         /// <summary>
@@ -1937,12 +1942,9 @@ namespace Microsoft.CodeAnalysis
             return new TypedConstant(type, kind, value);
         }
 
-        private readonly static object BoxedTrue = true;
-        private readonly static object BoxedFalse = false;
-
         private TypedConstant CreateTypedConstant(TypeSymbol type, TypedConstantKind kind, bool value)
         {
-            return CreateTypedConstant(type, kind, value ? BoxedTrue : BoxedFalse);
+            return CreateTypedConstant(type, kind, Boxes.Box(value));
         }
 
         /// <summary>

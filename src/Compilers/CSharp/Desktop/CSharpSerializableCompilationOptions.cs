@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         private const string AllowUnsafeString = "AllowUnsafe";
         private const string UsingsString = "Usings";
 
-        private readonly CSharpCompilationOptions options; 
+        private readonly CSharpCompilationOptions _options;
 
         public CSharpSerializableCompilationOptions(CSharpCompilationOptions options)
         {
@@ -23,12 +23,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 throw new ArgumentNullException("options");
             }
 
-            this.options = options;
+            _options = options;
         }
 
         private CSharpSerializableCompilationOptions(SerializationInfo info, StreamingContext context)
         {
-            this.options = new CSharpCompilationOptions(
+            _options = new CSharpCompilationOptions(
                 outputKind: (OutputKind)info.GetInt32(OutputKindString),
                 moduleName: info.GetString(ModuleNameString),
                 mainTypeName: info.GetString(MainTypeNameString),
@@ -36,6 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 usings: (string[])info.GetValue(UsingsString, typeof(string[])),
                 cryptoKeyContainer: info.GetString(CryptoKeyContainerString),
                 cryptoKeyFile: info.GetString(CryptoKeyFileString),
+                cryptoPublicKey: ((byte[])info.GetValue(CryptoPublicKeyString, typeof(byte[]))).AsImmutableOrNull(),
                 delaySign: (bool?)info.GetValue(DelaySignString, typeof(bool?)),
                 optimizationLevel: (OptimizationLevel)info.GetInt32(OptimizeString),
                 checkOverflow: info.GetBoolean(CheckOverflowString),
@@ -57,20 +58,20 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            CommonGetObjectData(options, info, context);
+            CommonGetObjectData(_options, info, context);
 
-            info.AddValue(UsingsString, options.Usings.ToArray());
-            info.AddValue(AllowUnsafeString, options.AllowUnsafe);
+            info.AddValue(UsingsString, _options.Usings.ToArray());
+            info.AddValue(AllowUnsafeString, _options.AllowUnsafe);
         }
 
         public new CSharpCompilationOptions Options
         {
-            get { return options; }
+            get { return _options; }
         }
 
         protected override CompilationOptions CommonOptions
         {
-            get { return options; }
+            get { return _options; }
         }
     }
 }
