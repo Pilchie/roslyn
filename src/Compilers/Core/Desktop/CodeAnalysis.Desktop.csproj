@@ -56,7 +56,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>CodeAnalysisDesktopResources.resx</DependentUpon>
     </Compile>
-    <Compile Include="AssemblyIdentityExtensions.cs" />
     <Compile Include="AssemblyPortabilityPolicy.cs" />
     <Compile Include="AssemblyVersion.cs" />
     <Compile Include="CommandLine\CommandLineReference.cs" />
@@ -97,9 +96,6 @@
     <Compile Include="MetadataFileReferenceResolver.cs" />
     <Compile Include="PathKind.cs" />
     <Compile Include="PathUtilities.cs" />
-    <Compile Include="SerializableCompilationOptions.cs" />
-    <Compile Include="SerializableParseOptions.cs" />
-    <Compile Include="SerializationInfoExtensions.cs" />
     <Compile Include="SourceFileResolver.cs" />
     <Compile Include="SqmServiceProvider.cs" />
     <Compile Include="XmlFileResolver.cs" />
