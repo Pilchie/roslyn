@@ -260,11 +260,21 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The Compiler Analyzer &apos;{0}&apos; threw an exception with message &apos;{1}&apos;..
+        ///   Looks up a localized string similar to The Compiler Analyzer &apos;{0}&apos; threw an exception of type &apos;{1}&apos; with message &apos;{2}&apos;..
         /// </summary>
         internal static string CompilerAnalyzerThrows {
             get {
                 return ResourceManager.GetString("CompilerAnalyzerThrows", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Analyzer &apos;{0}&apos; threw the following exception:
+        ///&apos;{1}&apos;..
+        /// </summary>
+        internal static string CompilerAnalyzerThrowsDescription {
+            get {
+                return ResourceManager.GetString("CompilerAnalyzerThrowsDescription", resourceCulture);
             }
         }
         
@@ -805,15 +815,6 @@ namespace Microsoft.CodeAnalysis {
         internal static string RuleSetHasDuplicateRules {
             get {
                 return ResourceManager.GetString("RuleSetHasDuplicateRules", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The file does not conform to the rule set schema - {0}.
-        /// </summary>
-        internal static string RuleSetSchemaViolation {
-            get {
-                return ResourceManager.GetString("RuleSetSchemaViolation", resourceCulture);
             }
         }
         
