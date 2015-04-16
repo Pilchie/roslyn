@@ -82,13 +82,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return vbTree.IsInNonUserCode(position, cancellationToken)
         End Function
 
-        Public Function IsEntirelyWithinStringOrCharLiteral(syntaxTree As SyntaxTree, position As Integer, cancellationToken As CancellationToken) As Boolean Implements ISyntaxFactsService.IsEntirelyWithinStringOrCharLiteral
+        Public Function IsEntirelyWithinStringOrCharOrNumericLiteral(syntaxTree As SyntaxTree, position As Integer, cancellationToken As CancellationToken) As Boolean Implements ISyntaxFactsService.IsEntirelyWithinStringOrCharOrNumericLiteral
             Dim vbTree = TryCast(syntaxTree, SyntaxTree)
             If vbTree Is Nothing Then
                 Return False
             End If
 
-            Return vbTree.IsEntirelyWithinStringOrCharLiteral(position, cancellationToken)
+            Return vbTree.IsEntirelyWithinStringOrCharOrNumericLiteral(position, cancellationToken)
         End Function
 
         Public Function IsDirective(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsDirective
@@ -492,11 +492,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function GetContainingTypeDeclaration(root As SyntaxNode, position As Integer) As SyntaxNode Implements ISyntaxFactsService.GetContainingTypeDeclaration
             If root Is Nothing Then
-                Throw New ArgumentNullException("root")
+                Throw New ArgumentNullException(NameOf(root))
             End If
 
             If position < 0 OrElse position > root.Span.End Then
-                Throw New ArgumentOutOfRangeException("position")
+                Throw New ArgumentOutOfRangeException(NameOf(position))
             End If
 
             Return root.
@@ -507,7 +507,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function GetContainingVariableDeclaratorOfFieldDeclaration(node As SyntaxNode) As SyntaxNode Implements ISyntaxFactsService.GetContainingVariableDeclaratorOfFieldDeclaration
             If node Is Nothing Then
-                Throw New ArgumentNullException("node")
+                Throw New ArgumentNullException(NameOf(node))
             End If
 
             Dim parent = node.Parent
@@ -579,8 +579,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Function GetContainingMemberDeclaration(root As SyntaxNode, position As Integer) As SyntaxNode Implements ISyntaxFactsService.GetContainingMemberDeclaration
-            Contract.ThrowIfNull(root, "root")
-            Contract.ThrowIfTrue(position < 0 OrElse position > root.FullSpan.End, "position")
+            Contract.ThrowIfNull(root, NameOf(root))
+            Contract.ThrowIfTrue(position < 0 OrElse position > root.FullSpan.End, NameOf(position))
 
             Dim [end] = root.FullSpan.End
             If [end] = 0 Then
@@ -739,15 +739,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Return True
                 Case SyntaxKind.ConstructorBlock
                     Dim constructor = CType(node, ConstructorBlockSyntax)
-                    Dim typeBlock = CType(constructor.Parent, TypeBlockSyntax)
-                    declaredSymbolInfo = New DeclaredSymbolInfo(
-                        typeBlock.BlockStatement.Identifier.ValueText,
-                        GetContainerDisplayName(node.Parent),
-                        GetFullyQualifiedContainerName(node.Parent),
-                        DeclaredSymbolInfoKind.Constructor,
-                        constructor.SubNewStatement.NewKeyword.Span,
-                        parameterCount:=CType(If(constructor.SubNewStatement.ParameterList?.Parameters.Count, 0), UShort))
-                    Return True
+                    Dim typeBlock = TryCast(constructor.Parent, TypeBlockSyntax)
+                    If typeBlock IsNot Nothing Then
+                        declaredSymbolInfo = New DeclaredSymbolInfo(
+                            typeBlock.BlockStatement.Identifier.ValueText,
+                            GetContainerDisplayName(node.Parent),
+                            GetFullyQualifiedContainerName(node.Parent),
+                            DeclaredSymbolInfoKind.Constructor,
+                            constructor.SubNewStatement.NewKeyword.Span,
+                            parameterCount:=CType(If(constructor.SubNewStatement.ParameterList?.Parameters.Count, 0), UShort))
+
+                        Return True
+                    End If
                 Case SyntaxKind.DelegateFunctionStatement, SyntaxKind.DelegateSubStatement
                     Dim delegateDecl = CType(node, DelegateStatementSyntax)
                     declaredSymbolInfo = New DeclaredSymbolInfo(delegateDecl.Identifier.ValueText,
@@ -846,6 +849,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Shared Function GetContainer(node As SyntaxNode, immediate As Boolean) As String
+            If node Is Nothing Then
+                Return String.Empty
+            End If
+
             Dim name = GetNodeName(node, includeTypeParameters:=immediate)
             Dim names = New List(Of String) From {name}
 

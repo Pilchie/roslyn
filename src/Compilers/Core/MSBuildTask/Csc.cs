@@ -196,7 +196,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
 
                 if (null == pathToTool)
                 {
-                    Log.LogErrorWithCodeFromResources("General.FrameworksFileNotFound", ToolName, ToolLocationHelper.GetDotNetFrameworkVersionFolderPrefix(TargetDotNetFrameworkVersion.VersionLatest));
+                    Log.LogErrorWithCodeFromResources("General_FrameworksFileNotFound", ToolName, ToolLocationHelper.GetDotNetFrameworkVersionFolderPrefix(TargetDotNetFrameworkVersion.VersionLatest));
                 }
             }
 
@@ -424,7 +424,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 }
                 else if (singleIdentifier.Length > 0)
                 {
-                    Log.LogWarningWithCodeFromResources("Csc.InvalidParameterWarning", "/define:", singleIdentifier);
+                    Log.LogWarningWithCodeFromResources("Csc_InvalidParameterWarning", "/define:", singleIdentifier);
                 }
             }
 
@@ -487,6 +487,13 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 {
                     param = "Analyzers"; this.CheckHostObjectSupport(param, analyzerHostObject.SetAnalyzers(this.Analyzers));
                 }
+
+                // For host objects which support it, pass the list of analyzer dependencies.
+                IAnalyzerDependencyHostObject analyzerDependencyHostObject = cscHostObject as IAnalyzerDependencyHostObject;
+                if (analyzerDependencyHostObject != null)
+                {
+                    param = "AnalyzerDependencies"; this.CheckHostObjectSupport(param, analyzerDependencyHostObject.SetAnalyzerDependencies(this.AnalyzerDependencies));
+                }
             }
             catch (Exception e) when (!Utilities.IsCriticalException(e))
             {
@@ -496,7 +503,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     // shelling out to the command-line compiler anyway.  That means the command-line
                     // compiler will log the error.  So here, we only log the error if we would've
                     // tried to use the host compiler.
-                    Log.LogErrorWithCodeFromResources("General.CouldNotSetHostObjectParameter", param, e.Message);
+                    Log.LogErrorWithCodeFromResources("General_CouldNotSetHostObjectParameter", param, e.Message);
                 }
                 return false;
             }
@@ -628,7 +635,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     // shelling out to the command-line compiler anyway.  That means the command-line
                     // compiler will log the error.  So here, we only log the error if we would've
                     // tried to use the host compiler.
-                    Log.LogErrorWithCodeFromResources("General.CouldNotSetHostObjectParameter", param, e.Message);
+                    Log.LogErrorWithCodeFromResources("General_CouldNotSetHostObjectParameter", param, e.Message);
                 }
                 return false;
             }
@@ -726,7 +733,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                     }
                     else
                     {
-                        Log.LogErrorWithCodeFromResources("General.IncorrectHostObject", "Csc", "ICscHostObject");
+                        Log.LogErrorWithCodeFromResources("General_IncorrectHostObject", "Csc", "ICscHostObject");
                     }
                 }
             }

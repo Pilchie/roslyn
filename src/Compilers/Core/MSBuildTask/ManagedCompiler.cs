@@ -56,6 +56,12 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             get { return (ITaskItem[])_store["Analyzers"]; }
         }
 
+        public ITaskItem[] AnalyzerDependencies
+        {
+            set { _store["AnalyzerDependencies"] = value; }
+            get { return (ITaskItem[])_store["AnalyzerDependencies"]; }
+        }
+
         // We do not support BugReport because it always requires user interaction,
         // which will cause a hang.
 
@@ -334,7 +340,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 }
                 catch (Exception e)
                 {
-                    Log.LogErrorWithCodeFromResources("Compiler.UnexpectedException");
+                    Log.LogErrorWithCodeFromResources("Compiler_UnexpectedException");
                     LogErrorOutput(e.ToString());
                     ExitCode = -1;
                 }
@@ -379,7 +385,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             // if ToolTask didn't override. MSBuild uses the process directory.
             string workingDirectory = GetWorkingDirectory();
             if (string.IsNullOrEmpty(workingDirectory))
-                workingDirectory = Environment.CurrentDirectory;
+                workingDirectory = Directory.GetCurrentDirectory();
             return workingDirectory;
         }
 
@@ -587,6 +593,9 @@ namespace Microsoft.CodeAnalysis.BuildTasks
             // Append the analyzers.
             this.AddAnalyzersToCommandLine(commandLine);
 
+            // Append the analyzer dependencies.
+            this.AddAnalyzerDependenciesToCommandLine(commandLine);
+
             // Append additional files.
             this.AddAdditionalFilesToCommandLine(commandLine);
 
@@ -613,7 +622,28 @@ namespace Microsoft.CodeAnalysis.BuildTasks
         }
 
         /// <summary>
-        /// Adds a "/analyzer:" switch to the command line for each provided analyzer.
+        /// Adds a "/analyzerdependency:" switch to the command line for each provided analyzer dependency.
+        /// 
+        /// Note that even though MSBuild makes a distinction between analyzers and dependencies, the
+        /// command-line compilers do not--both are passed in via "/analyzer".
+        /// </summary>
+        private void AddAnalyzerDependenciesToCommandLine(CommandLineBuilderExtension commandLine)
+        {
+            // If there were no analyzers passed in, don't add any /analyzer: switches
+            // on the command-line.
+            if ((this.AnalyzerDependencies == null) || (this.AnalyzerDependencies.Length == 0))
+            {
+                return;
+            }
+
+            foreach (ITaskItem dependency in this.AnalyzerDependencies)
+            {
+                commandLine.AppendSwitchIfNotNull("/analyzer:", dependency.ItemSpec);
+            }
+        }
+
+        /// <summary>
+        /// Adds a "/additionalfile:" switch to the command line for each additional file.
         /// </summary>
         private void AddAdditionalFilesToCommandLine(CommandLineBuilderExtension commandLine)
         {
@@ -722,11 +752,11 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 {
                     if (disambiguatingMetadataName == null || String.IsNullOrEmpty(disambiguatingMetadataValue))
                     {
-                        Log.LogErrorWithCodeFromResources("General.DuplicateItemsNotSupported", item.ItemSpec, parameterName);
+                        Log.LogErrorWithCodeFromResources("General_DuplicateItemsNotSupported", item.ItemSpec, parameterName);
                     }
                     else
                     {
-                        Log.LogErrorWithCodeFromResources("General.DuplicateItemsNotSupportedWithMetadata", item.ItemSpec, parameterName, disambiguatingMetadataValue, disambiguatingMetadataName);
+                        Log.LogErrorWithCodeFromResources("General_DuplicateItemsNotSupportedWithMetadata", item.ItemSpec, parameterName, disambiguatingMetadataValue, disambiguatingMetadataName);
                     }
                     return false;
                 }
@@ -805,7 +835,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
         {
             if (!resultFromHostObjectSetOperation)
             {
-                Log.LogMessageFromResources(MessageImportance.Normal, "General.ParameterUnsupportedOnHostCompiler", parameterName);
+                Log.LogMessageFromResources(MessageImportance.Normal, "General_ParameterUnsupportedOnHostCompiler", parameterName);
                 _hostCompilerSupportsAllParameters = false;
             }
         }
@@ -829,7 +859,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                 if (!File.Exists(reference.ItemSpec))
                 {
                     success = false;
-                    Log.LogErrorWithCodeFromResources("General.ReferenceDoesNotExist", reference.ItemSpec);
+                    Log.LogErrorWithCodeFromResources("General_ReferenceDoesNotExist", reference.ItemSpec);
                 }
             }
 
@@ -881,7 +911,7 @@ namespace Microsoft.CodeAnalysis.BuildTasks
                             // So just a message is fine.
                             Log.LogMessageFromResources
                             (
-                                "General.ExpectedFileMissing",
+                                "General_ExpectedFileMissing",
                                 "default.win32manifest"
                             );
                         }

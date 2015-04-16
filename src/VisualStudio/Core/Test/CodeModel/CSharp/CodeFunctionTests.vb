@@ -9,6 +9,48 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.CodeModel.CSharp
     Public Class CodeFunctionTests
         Inherits AbstractCodeFunctionTests
 
+#Region "Get Start Point"
+        <WorkItem(1980, "https://github.com/dotnet/roslyn/issues/1980")>
+        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.CodeModel)>
+        Public Sub GetStartPointConversionOperatorFunction()
+            Dim code =
+<Code>
+class D
+{
+    public static implicit operator $$D(double d)
+    {
+        return new D();
+    }
+}
+</Code>
+
+            TestGetStartPoint(code,
+                Part(EnvDTE.vsCMPart.vsCMPartBody,
+                     TextPoint(line:=5, lineOffset:=1, absoluteOffset:=65, lineLength:=23)))
+        End Sub
+#End Region
+
+#Region "Get End Point"
+        <WorkItem(1980, "https://github.com/dotnet/roslyn/issues/1980")>
+        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.CodeModel)>
+        Public Sub GetEndPointConversionOperatorFunction()
+            Dim code =
+<Code>
+class D
+{
+    public static implicit operator $$D(double d)
+    {
+        return new D();
+    }
+}
+</Code>
+
+            TestGetEndPoint(code,
+                Part(EnvDTE.vsCMPart.vsCMPartBody,
+                     TextPoint(line:=6, lineOffset:=1, absoluteOffset:=89, lineLength:=5)))
+        End Sub
+#End Region
+
 #Region "Access tests"
 
         <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.CodeModel)>
@@ -2154,6 +2196,40 @@ class A
 }
 </Code>
             TestOverloadsUniqueSignatures(code, "A.#op_Plus(A,A)")
+        End Sub
+
+#End Region
+
+#Region "Parameter name tests"
+
+        <WorkItem(1147885)>
+        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.CodeModel)>
+        Public Sub TestParameterNameWithEscapeCharacters()
+            Dim code =
+<Code>
+public class C
+{
+    public void $$Foo(int @int)
+    {
+    }
+}
+</Code>
+            TestAllParameterNames(code, "@int")
+        End Sub
+
+        <WorkItem(1147885)>
+        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.CodeModel)>
+        Public Sub TestParameterNameWithEscapeCharacters_2()
+            Dim code =
+<Code>
+public class C
+{
+    public void $$Foo(int @int, string @string)
+    {
+    }
+}
+</Code>
+            TestAllParameterNames(code, "@int", "@string")
         End Sub
 
 #End Region
