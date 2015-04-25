@@ -26,6 +26,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Editting
             Return VisualBasicCompilation.Create("test").AddReferences(TestReferences.NetFx.v4_0_30319.mscorlib).AddSyntaxTrees(SyntaxFactory.ParseSyntaxTree(code))
         End Function
 
+        Public Function CompileRaw(code As String) As Compilation
+            Return VisualBasicCompilation.Create("test").AddReferences(TestReferences.NetFx.v4_0_30319.mscorlib).AddSyntaxTrees(SyntaxFactory.ParseSyntaxTree(code))
+        End Function
+
         Private Sub VerifySyntax(Of TSyntax As SyntaxNode)(type As SyntaxNode, expectedText As String)
             Assert.IsAssignableFrom(GetType(TSyntax), type)
             Dim normalized = type.NormalizeWhitespace().ToFullString()
@@ -101,6 +105,99 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Editting
             VerifySyntax(Of LiteralExpressionSyntax)(_g.LiteralExpression(True), "True")
             VerifySyntax(Of LiteralExpressionSyntax)(_g.LiteralExpression(False), "False")
         End Sub
+
+        <Fact>
+        Public Sub TestAttributeData()
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+End Class
+", "<MyAttribute>")), "<Global.MyAttribute>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(value As Object)
+  End Sub
+End Class
+", "<MyAttribute(Nothing)>")), "<Global.MyAttribute(Nothing)>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(value As Integer)
+  End Sub
+End Class
+", "<MyAttribute(123)>")), "<Global.MyAttribute(123)>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(value As Double)
+  End Sub
+End Class
+", "<MyAttribute(12.3)>")), "<Global.MyAttribute(12.3)>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(value As String)
+  End Sub
+End Class
+", "<MyAttribute(""value"")>")), "<Global.MyAttribute(""value"")>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Enum E
+    A
+End Enum
+
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(value As E)
+  End Sub
+End Class
+", "<MyAttribute(E.A)>")), "<Global.MyAttribute(Global.E.A)>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(value As Type)
+  End Sub
+End Class
+", "<MyAttribute(GetType(MyAttribute))>")), "<Global.MyAttribute(GetType(Global.MyAttribute))>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute
+  Public Sub New(values as Integer())
+  End Sub
+End Class
+", "<MyAttribute({1, 2, 3})>")), "<Global.MyAttribute({1, 2, 3})>")
+
+            VerifySyntax(Of AttributeListSyntax)(_g.Attribute(GetAttributeData("
+Imports System
+Public Class MyAttribute
+  Inherits Attribute 
+  Public Property Value As Integer
+End Class
+", "<MyAttribute(Value := 123)>")), "<Global.MyAttribute(Value:=123)>")
+
+        End Sub
+
+        Private Function GetAttributeData(decl As String, use As String) As AttributeData
+            Dim code = decl & vbCrLf & use & vbCrLf & "Public Class C " & vbCrLf & "End Class" & vbCrLf
+            Dim compilation = CompileRaw(code)
+            Dim typeC = DirectCast(compilation.GlobalNamespace.GetMembers("C").First, INamedTypeSymbol)
+            Return typeC.GetAttributes().First()
+        End Function
 
         <Fact>
         Public Sub TestNameExpressions()
@@ -280,6 +377,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Editting
         Public Sub TestIsAndAsExpressions()
             VerifySyntax(Of TypeOfExpressionSyntax)(_g.IsTypeExpression(_g.IdentifierName("x"), _g.IdentifierName("y")), "TypeOf(x) Is y")
             VerifySyntax(Of TryCastExpressionSyntax)(_g.TryCastExpression(_g.IdentifierName("x"), _g.IdentifierName("y")), "TryCast(x, y)")
+            VerifySyntax(Of GetTypeExpressionSyntax)(_g.TypeOfExpression(_g.IdentifierName("x")), "GetType(x)")
         End Sub
 
         <Fact>
@@ -320,6 +418,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests.Editting
             VerifySyntax(Of LocalDeclarationStatementSyntax)(_g.LocalDeclarationStatement(_g.IdentifierName("x"), "y", isConst:=True), "Const y As x")
             VerifySyntax(Of LocalDeclarationStatementSyntax)(_g.LocalDeclarationStatement(_g.IdentifierName("x"), "y", _g.IdentifierName("z"), isConst:=True), "Const y As x = z")
             VerifySyntax(Of LocalDeclarationStatementSyntax)(_g.LocalDeclarationStatement(DirectCast(Nothing, SyntaxNode), "y", _g.IdentifierName("z"), isConst:=True), "Const y = z")
+        End Sub
+
+        <Fact>
+        Public Sub TestAwaitExpressions()
+            VerifySyntax(Of AwaitExpressionSyntax)(_g.AwaitExpression(_g.IdentifierName("x")), "Await x")
         End Sub
 
         <Fact>
@@ -689,6 +792,22 @@ End Function</x>.Value)
             VerifySyntax(Of MethodBlockSyntax)(
                 _g.MethodDeclaration("m", accessibility:=Accessibility.Private, modifiers:=DeclarationModifiers.Partial),
 <x>Private Partial Sub m()
+End Sub</x>.Value)
+        End Sub
+
+        <Fact>
+        Public Sub MethodDeclarationCanRoundTrip()
+            Dim tree = VisualBasicSyntaxTree.ParseText(
+<x>
+Public Sub Test()
+End Sub</x>.Value)
+            Dim compilation = VisualBasicCompilation.Create("AssemblyName", syntaxTrees:={tree})
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim node = tree.GetRoot().DescendantNodes().First()
+            Dim symbol = CType(model.GetDeclaredSymbol(node), IMethodSymbol)
+            VerifySyntax(Of MethodBlockSyntax)(
+                _g.MethodDeclaration(symbol),
+<x>Public Sub Test()
 End Sub</x>.Value)
         End Sub
 
@@ -1732,15 +1851,6 @@ End Class ' end</x>.Value)
                 attrWithComment,
 <x>' comment
 &lt;a&gt;</x>.Value)
-
-            ' added attributes are stripped of trivia
-            Dim added2 = _g.AddAttributes(cls, attrWithComment)
-            VerifySyntax(Of ClassBlockSyntax)(
-                added2,
-<x>' comment
-&lt;a&gt;
-Class C
-End Class ' end</x>.Value)
 
         End Sub
 

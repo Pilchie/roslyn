@@ -2726,7 +2726,8 @@ class C
 
             Assert.Equal((int)ErrorCode.FTL_DebugEmitFailure, err.Code);
             Assert.Equal(1, err.Arguments.Count);
-            Assert.True(((string)err.Arguments[0]).EndsWith(" HRESULT: 0x806D0004", StringComparison.Ordinal));
+            var ioExceptionMessage = new IOException().Message;
+            Assert.Equal(ioExceptionMessage, (string)err.Arguments[0]);
 
             pdb.Dispose();
             result = compilation.Emit(output, pdb);
@@ -2736,7 +2737,7 @@ class C
 
             Assert.Equal((int)ErrorCode.FTL_DebugEmitFailure, err.Code);
             Assert.Equal(1, err.Arguments.Count);
-            Assert.True(((string)err.Arguments[0]).EndsWith(" HRESULT: 0x806D0004", StringComparison.Ordinal));
+            Assert.Equal(ioExceptionMessage, (string)err.Arguments[0]);
         }
 
         [Fact]
@@ -2891,7 +2892,7 @@ class C6
         /// metadata should be deterministic.
         /// </summary>
         [WorkItem(1440, "https://github.com/dotnet/roslyn/issues/1440")]
-        [Fact(Skip = "1440")]
+        [Fact]
         public void SynthesizedDelegateMetadataOrder()
         {
             var source =
@@ -2933,9 +2934,9 @@ class C4
                     {
                         "<Module>",
                         "<>A{00000004}`3",
+                        "<>A{00000018}`5",
                         "<>F{00000004}`5",
                         "<>F{00000008}`5",
-                        "<>A{00000018}`5",
                         "C1",
                         "C2",
                         "C3",

@@ -773,7 +773,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                 }
             }
 
-            replacementNode = memberAccess.Name.WithLeadingTrivia(memberAccess.GetLeadingTrivia()).WithTrailingTrivia(memberAccess.GetTrailingTrivia());
+            replacementNode = memberAccess.Name
+                .WithLeadingTrivia(memberAccess.GetLeadingTriviaForSimplifiedMemberAccess())
+                .WithTrailingTrivia(memberAccess.GetTrailingTrivia());
             issueSpan = memberAccess.Expression.Span;
 
             if (replacementNode == null)
@@ -782,6 +784,24 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             }
 
             return memberAccess.CanReplaceWithReducedName(replacementNode, semanticModel, cancellationToken);
+        }
+
+        private static SyntaxTriviaList GetLeadingTriviaForSimplifiedMemberAccess(this MemberAccessExpressionSyntax memberAccess)
+        {
+            // We want to include any user-typed trivia that may be present between the 'Expression', 'OperatorToken' and 'Identifier' of the MemberAccessExpression.
+            // However, we don't want to include any elastic trivia that may have been introduced by the expander in these locations. This is to avoid triggering
+            // aggressive formatting. Otherwise, formatter will see this elastic trivia added by the expander and use that as a cue to introduce unnecessary blank lines
+            // etc. around the user's original code.
+            return memberAccess.GetLeadingTrivia()
+                .AddRange(memberAccess.Expression.GetTrailingTrivia().WithoutElasticTrivia())
+                .AddRange(memberAccess.OperatorToken.LeadingTrivia.WithoutElasticTrivia())
+                .AddRange(memberAccess.OperatorToken.TrailingTrivia.WithoutElasticTrivia())
+                .AddRange(memberAccess.Name.GetLeadingTrivia().WithoutElasticTrivia());
+        }
+
+        private static IEnumerable<SyntaxTrivia> WithoutElasticTrivia(this IEnumerable<SyntaxTrivia> list)
+        {
+            return list.Where(t => !t.IsElastic());
         }
 
         private static bool InsideCrefReference(ExpressionSyntax expr)
@@ -1343,9 +1363,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                     if (!name.IsVar && (symbol.Kind == SymbolKind.NamedType) && !name.IsLeftSideOfQualifiedName())
                     {
                         var type = (INamedTypeSymbol)symbol;
-                        if (!type.IsUnboundGenericType && // Don't rewrite unbound generic type "Nullable<>"
-                            type.IsNullable() &&
-                            aliasInfo == null)
+                        if (aliasInfo == null && CanSimplifyNullable(type, name))
                         {
                             GenericNameSyntax genericName;
                             if (name.Kind() == SyntaxKind.QualifiedName)
@@ -1418,6 +1436,54 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             }
 
             return name.CanReplaceWithReducedName(replacementNode, semanticModel, cancellationToken);
+        }
+
+        private static bool CanSimplifyNullable(INamedTypeSymbol type, NameSyntax name)
+        {
+            if (!type.IsNullable())
+            {
+                return false;
+            }
+
+            if (type.IsUnboundGenericType)
+            {
+                // Don't simplify unbound generic type "Nullable<>".
+                return false;
+            }
+
+            if (!InsideCrefReference(name))
+            {
+                // Nullable<T> can always be simplified to T? outside crefs.
+                return true;
+            }
+
+            // Inside crefs, if the T in this Nullable{T} is being declared right here
+            // then this Nullable{T} is not a constructed generic type and we should
+            // not offer to simplify this to T?.
+            //
+            // For example, we should not offer the simplification in the following cases where
+            // T does not bind to an existing type / type parameter in the user's code.
+            // - <see cref="Nullable{T}"/>
+            // - <see cref="System.Nullable{T}.Value"/>
+            //
+            // And we should offer the simplification in the following cases where SomeType and
+            // SomeMethod bind to a type and method declared elsewhere in the users code.
+            // - <see cref="SomeType.SomeMethod(Nullable{SomeType})"/>
+
+            var argument = type.TypeArguments.SingleOrDefault();
+            if (argument == null || argument.IsErrorType())
+            {
+                return false;
+            }
+
+            var argumentDecl = argument.DeclaringSyntaxReferences.FirstOrDefault();
+            if (argumentDecl == null)
+            {
+                // The type argument is a type from metadata - so this is a constructed generic nullable type that can be simplified (e.g. Nullable(Of Integer)).
+                return true;
+            }
+
+            return !name.Span.Contains(argumentDecl.Span);
         }
 
         private static bool CanReplaceWithPredefinedTypeKeywordInContext(NameSyntax name, SemanticModel semanticModel, out TypeSyntax replacementNode, ref TextSpan issueSpan, SyntaxKind keywordKind, CancellationToken cancellationToken)

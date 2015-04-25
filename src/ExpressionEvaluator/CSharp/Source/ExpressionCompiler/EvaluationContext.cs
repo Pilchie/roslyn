@@ -14,8 +14,8 @@ using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE;
 using Microsoft.CodeAnalysis.Emit;
 using Microsoft.CodeAnalysis.ExpressionEvaluator;
-using Microsoft.VisualStudio.Debugger.Evaluation;
 using Microsoft.DiaSymReader;
+using Microsoft.VisualStudio.Debugger.Evaluation;
 
 namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
 {
@@ -238,7 +238,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             if (syntax == null)
             {
                 resultProperties = default(ResultProperties);
-                return default(CompileResult);
+                return null;
             }
 
             var context = this.CreateCompilationContext(syntax);
@@ -247,7 +247,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             if (moduleBuilder == null)
             {
                 resultProperties = default(ResultProperties);
-                return default(CompileResult);
+                return null;
             }
 
             using (var stream = new MemoryStream())
@@ -265,16 +265,22 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 if (diagnostics.HasAnyErrors())
                 {
                     resultProperties = default(ResultProperties);
-                    return default(CompileResult);
+                    return null;
                 }
 
                 resultProperties = properties;
-                return new CompileResult(
+                return new CSharpCompileResult(
                     stream.ToArray(),
-                    typeName: TypeName,
-                    methodName: MethodName,
+                    GetSynthesizedMethod(moduleBuilder),
                     formatSpecifiers: formatSpecifiers);
             }
+        }
+
+        private static MethodSymbol GetSynthesizedMethod(CommonPEModuleBuilder moduleBuilder)
+        {
+            var method = ((EEAssemblyBuilder)moduleBuilder).Methods.Single(m => m.MetadataName == MethodName);
+            Debug.Assert(method.ContainingType.MetadataName == TypeName);
+            return method;
         }
 
         private static CSharpSyntaxNode Parse(
@@ -324,7 +330,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             if (assignment == null)
             {
                 resultProperties = default(ResultProperties);
-                return default(CompileResult);
+                return null;
             }
 
             var context = this.CreateCompilationContext(assignment);
@@ -333,7 +339,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             if (moduleBuilder == null)
             {
                 resultProperties = default(ResultProperties);
-                return default(CompileResult);
+                return null;
             }
 
             using (var stream = new MemoryStream())
@@ -351,14 +357,13 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                 if (diagnostics.HasAnyErrors())
                 {
                     resultProperties = default(ResultProperties);
-                    return default(CompileResult);
+                    return null;
                 }
 
                 resultProperties = properties;
-                return new CompileResult(
+                return new CSharpCompileResult(
                     stream.ToArray(),
-                    typeName: TypeName,
-                    methodName: MethodName,
+                    GetSynthesizedMethod(moduleBuilder),
                     formatSpecifiers: null);
             }
         }
@@ -366,6 +371,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
         private static readonly ReadOnlyCollection<byte> s_emptyBytes = new ReadOnlyCollection<byte>(new byte[0]);
 
         internal override ReadOnlyCollection<byte> CompileGetLocals(
+            ReadOnlyCollection<Alias> aliases,
             ArrayBuilder<LocalAndMethod> locals,
             bool argumentsOnly,
             DiagnosticBag diagnostics,
@@ -373,7 +379,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
             Microsoft.CodeAnalysis.CodeGen.CompilationTestData testData)
         {
             var context = this.CreateCompilationContext(null);
-            var moduleBuilder = context.CompileGetLocals(TypeName, locals, argumentsOnly, testData, diagnostics);
+            var moduleBuilder = context.CompileGetLocals(aliases, TypeName, locals, argumentsOnly, testData, diagnostics);
             ReadOnlyCollection<byte> assembly = null;
 
             if ((moduleBuilder != null) && (locals.Count > 0))
@@ -565,6 +571,7 @@ namespace Microsoft.CodeAnalysis.CSharp.ExpressionEvaluator
                         }
                     }
                     break;
+                case ErrorCode.ERR_NoSuchMemberOrExtension: // Commonly, but not always, caused by absence of System.Core.
                 case ErrorCode.ERR_DynamicAttributeMissing:
                 case ErrorCode.ERR_DynamicRequiredTypesMissing:
                 // MSDN says these might come from System.Dynamic.Runtime
