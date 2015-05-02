@@ -1,13 +1,7 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Collections.Generic
 Imports System.Collections.Immutable
-Imports System.Threading
-Imports Microsoft.Cci
-Imports Microsoft.CodeAnalysis
 Imports Microsoft.CodeAnalysis.CodeGen
-Imports Microsoft.CodeAnalysis.Collections
-Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
@@ -103,11 +97,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' to find the previous awaiter field.
                 If Not Me._awaiterFields.TryGetValue(awaiterType, result) Then
                     Dim slotIndex As Integer = -1
-                    If Me.SlotAllocatorOpt IsNot Nothing Then
-                        slotIndex = Me.SlotAllocatorOpt.GetPreviousAwaiterSlotIndex(DirectCast(awaiterType, Cci.ITypeReference))
-                    End If
-
-                    If slotIndex = -1 Then
+                    If Me.SlotAllocatorOpt Is Nothing OrElse Not Me.SlotAllocatorOpt.TryGetPreviousAwaiterSlotIndex(DirectCast(awaiterType, Cci.ITypeReference), slotIndex) Then
                         slotIndex = _nextAwaiterId
                         _nextAwaiterId = _nextAwaiterId + 1
                     End If
@@ -171,7 +161,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             Me.F.Catch(
                                 exceptionLocal,
                                 Me.F.Block(
-                                    Me.F.NoOp(If(Me._asyncMethodKind = AsyncMethodKind.Sub, NoOpStatementFlavor.AsyncMethodCatchHandler, NoOpStatementFlavor.Default)),
                                     Me.F.HiddenSequencePoint(),
                                     Me.F.Assignment(Me.F.Field(Me.F.Me(), Me.StateField, True), Me.F.Literal(StateMachineStates.FinishedStateMachine)),
                                     Me.F.ExpressionStatement(
@@ -180,7 +169,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                             Me._owner._builderType,
                                             "SetException",
                                             Me.F.Local(exceptionLocal, False))),
-                                    Me.F.Goto(Me._exitLabel))))))
+                                    Me.F.Goto(Me._exitLabel)),
+                                isSynthesizedAsyncCatchAll:=True))))
 
                 ' STMT:   ExprReturnLabel: ' for the rewritten 'Return <expressions>' statements in the user's method body
                 bodyBuilder.Add(Me.F.Label(Me._exprReturnLabel))
@@ -193,7 +183,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 If (block Is Nothing) Then
                     bodyBuilder.Add(stateDone)
                 Else
-                    bodyBuilder.Add(Me.F.SequencePointWithSpan(block, block.End.Span, stateDone))
+                    bodyBuilder.Add(Me.F.SequencePointWithSpan(block, block.EndBlockStatement.Span, stateDone))
                     bodyBuilder.Add(Me.F.HiddenSequencePoint())
                 End If
 

@@ -19,7 +19,7 @@ namespace Microsoft.CodeAnalysis
     /// </remarks>
     public abstract class MetadataReference
     {
-        public MetadataReferenceProperties Properties { get; private set; }
+        public MetadataReferenceProperties Properties { get; }
 
         internal MetadataReference(MetadataReferenceProperties properties)
         {
@@ -167,7 +167,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="filePath">Optional path that describes the location of the metadata. The file doesn't need to exist on disk. The path is opaque to the compiler.</param>
         /// <exception cref="ArgumentException"><paramref name="peStream"/> doesn't support read and seek operations.</exception>
         /// <exception cref="ArgumentNullException"><paramref name="peStream"/> is null.</exception>
-        /// <exception cref="IOException">An error occured while reading the stream.</exception>
+        /// <exception cref="IOException">An error occurred while reading the stream.</exception>
         /// <remarks>
         /// Performance considerations: 
         /// <para>
@@ -205,7 +205,7 @@ namespace Microsoft.CodeAnalysis
         /// <param name="documentation">Provides XML documentation for symbol found in the reference.</param>
         /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
         /// <exception cref="ArgumentException"><paramref name="path"/> is invalid.</exception>
-        /// <exception cref="IOException">An error occured while reading the file.</exception>
+        /// <exception cref="IOException">An error occurred while reading the file.</exception>
         /// <remarks>
         /// Performance considerations:
         /// <para>
@@ -234,9 +234,9 @@ namespace Microsoft.CodeAnalysis
 
             if (properties.Kind == MetadataImageKind.Module)
             {
-                return module.GetReference(documentation, path);                
+                return module.GetReference(documentation, path);
             }
-            
+
             // any additional modules constituting the assembly will be read lazily:
             var assemblyMetadata = AssemblyMetadata.CreateFromFile(module, path);
 
@@ -297,7 +297,7 @@ namespace Microsoft.CodeAnalysis
             Stream peStream = FileStreamLightUp.OpenFileStream(location);
 
             // The file is locked by the CLR assembly loader, so we can create a lazily read metadata, 
-            // which migth also lock the file until the reference is GC'd.
+            // which might also lock the file until the reference is GC'd.
             var metadata = AssemblyMetadata.CreateFromStream(peStream);
 
             return metadata.GetReference(filePath: location);

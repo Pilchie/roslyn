@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
-#pragma warning disable CS0618
 
+#pragma warning disable CS0618
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Security;
 using System.Threading;
 using Roslyn.Utilities;
@@ -20,76 +21,75 @@ namespace Microsoft.CodeAnalysis.Diagnostics
     /// <remarks>
     /// Analyzer are read from the file, owned by the reference, and doesn't change 
     /// since the reference is accessed until the reference object is garbage collected.
-    /// During this time the file is open and its content is read-only.
     /// 
     /// If you need to manage the lifetime of the anayzer reference (and the file stream) explicitly use <see cref="AnalyzerImageReference"/>.
     /// </remarks>
     public sealed partial class AnalyzerFileReference : AnalyzerReference, IEquatable<AnalyzerReference>
     {
-        private readonly string fullPath;
-        private readonly Func<string, Assembly> getAssembly;
+        private readonly string _fullPath;
+        private readonly Func<string, Assembly> _getAssembly;
 
-        private string lazyDisplayName;
-        private ImmutableArray<DiagnosticAnalyzer> lazyAllAnalyzers;
-        private ImmutableDictionary<string, ImmutableArray<DiagnosticAnalyzer>> lazyAnalyzersPerLanguage;
-        private Assembly lazyAssembly;
-        private static string diagnosticNamespaceName = string.Format("{0}.{1}.{2}", nameof(Microsoft), nameof(CodeAnalysis), nameof(Diagnostics));
-        private ImmutableDictionary<string, ImmutableHashSet<string>> lazyAnalyzerTypeNameMap;
+        private string _lazyDisplayName;
+        private ImmutableArray<DiagnosticAnalyzer> _lazyAllAnalyzers;
+        private ImmutableDictionary<string, ImmutableArray<DiagnosticAnalyzer>> _lazyAnalyzersPerLanguage;
+        private Assembly _lazyAssembly;
+        private static string s_diagnosticNamespaceName = string.Format("{0}.{1}.{2}", nameof(Microsoft), nameof(CodeAnalysis), nameof(Diagnostics));
+        private ImmutableDictionary<string, ImmutableHashSet<string>> _lazyAnalyzerTypeNameMap;
 
         public event EventHandler<AnalyzerLoadFailureEventArgs> AnalyzerLoadFailed;
-
-        /// <summary>
-        /// Fired when an <see cref="Assembly"/> referred to by an <see cref="AnalyzerFileReference"/>
-        /// (or a dependent <see cref="Assembly"/>) is loaded.
-        /// </summary>
-        public static event EventHandler<AnalyzerAssemblyLoadEventArgs> AssemblyLoad;
-
-        /// <summary>
-        /// Maps from one assembly back to the assembly that requested it, if known.
-        /// </summary>
-        public static string TryGetRequestingAssemblyPath(string assemblyPath)
-        {
-            return InMemoryAssemblyLoader.TryGetRequestingAssembly(assemblyPath);
-        }
 
         /// <summary>
         /// Creates an AnalyzerFileReference with the given <paramref name="fullPath"/>.
         /// </summary>
         /// <param name="fullPath">Full path of the analyzer assembly.</param>
-        /// <param name="getAssembly">An optional assembly loader to override the default assembly load mechanism.</param>
-        public AnalyzerFileReference(string fullPath, Func<string, Assembly> getAssembly = null)
+        /// <param name="getAssembly">Function for loading the analyzer assembly</param>
+        public AnalyzerFileReference(string fullPath, Func<string, Assembly> getAssembly)
         {
             if (fullPath == null)
             {
-                throw new ArgumentNullException("fullPath");
+                throw new ArgumentNullException(nameof(fullPath));
             }
 
             // TODO: remove full path normalization
-            CompilerPathUtilities.RequireAbsolutePath(fullPath, "fullPath");
+            CompilerPathUtilities.RequireAbsolutePath(fullPath, nameof(fullPath));
 
             try
             {
-                this.fullPath = Path.GetFullPath(fullPath);
+                _fullPath = Path.GetFullPath(fullPath);
             }
             catch (Exception e)
             {
                 throw new ArgumentException(e.Message, "fullPath");
             }
 
-            this.lazyAllAnalyzers = default(ImmutableArray<DiagnosticAnalyzer>);
-            this.lazyAnalyzersPerLanguage = ImmutableDictionary<string, ImmutableArray<DiagnosticAnalyzer>>.Empty;
-            this.getAssembly = getAssembly;
+            _lazyAllAnalyzers = default(ImmutableArray<DiagnosticAnalyzer>);
+            _lazyAnalyzersPerLanguage = ImmutableDictionary<string, ImmutableArray<DiagnosticAnalyzer>>.Empty;
+            _getAssembly = getAssembly;
         }
 
         public override ImmutableArray<DiagnosticAnalyzer> GetAnalyzersForAllLanguages()
         {
-            if (lazyAllAnalyzers.IsDefault)
+            if (_lazyAllAnalyzers.IsDefault)
             {
-                var allAnalyzers = MetadataCache.GetOrCreateAnalyzersFromFile(this);
-                ImmutableInterlocked.InterlockedInitialize(ref this.lazyAllAnalyzers, allAnalyzers);
+                ImmutableInterlocked.InterlockedInitialize(ref _lazyAllAnalyzers, CreateAnalyzersForAllLanguages(this));
             }
 
-            return lazyAllAnalyzers;
+            return _lazyAllAnalyzers;
+        }
+
+        private static ImmutableArray<DiagnosticAnalyzer> CreateAnalyzersForAllLanguages(AnalyzerFileReference reference)
+        {
+            // Get all analyzers in the assembly.
+            var map = ImmutableDictionary.CreateBuilder<string, ImmutableArray<DiagnosticAnalyzer>>();
+            reference.AddAnalyzers(map);
+
+            var builder = ImmutableArray.CreateBuilder<DiagnosticAnalyzer>();
+            foreach (var analyzers in map.Values)
+            {
+                builder.AddRange(analyzers);
+            }
+
+            return builder.ToImmutable();
         }
 
         public override ImmutableArray<DiagnosticAnalyzer> GetAnalyzers(string language)
@@ -99,19 +99,34 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 throw new ArgumentException("language");
             }
 
-            return ImmutableInterlocked.GetOrAdd(ref this.lazyAnalyzersPerLanguage, language, CreateLanguageSpecificAnalyzers, this);
+            return ImmutableInterlocked.GetOrAdd(ref _lazyAnalyzersPerLanguage, language, CreateLanguageSpecificAnalyzers, this);
         }
 
-        private static ImmutableArray<DiagnosticAnalyzer> CreateLanguageSpecificAnalyzers(string language, AnalyzerFileReference @this)
+        private static ImmutableArray<DiagnosticAnalyzer> CreateLanguageSpecificAnalyzers(string langauge, AnalyzerFileReference reference)
         {
-            return MetadataCache.GetOrCreateAnalyzersFromFile(@this, language);
+            // Get all analyzers in the assembly for the given language.
+            var builder = ImmutableArray.CreateBuilder<DiagnosticAnalyzer>();
+            reference.AddAnalyzers(builder, langauge);
+            return builder.ToImmutable();
         }
 
         public override string FullPath
         {
             get
             {
-                return this.fullPath;
+                return _fullPath;
+            }
+        }
+
+        private static string GetAssemblyNameFromPath(string path)
+        {
+            // AssemblyName.GetAssemblyName(path) is not available on CoreCLR.
+            // Use our metadata reader to do the equivalent thing.
+            using (var reader = new PEReader(FileUtilities.OpenRead(path)))
+            {
+                var metadataReader = reader.GetMetadataReader();
+                var assemblyDefinition = metadataReader.GetAssemblyDefinition();
+                return metadataReader.GetString(assemblyDefinition.Name);
             }
         }
 
@@ -119,34 +134,72 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         {
             get
             {
-                if (lazyDisplayName == null)
+                if (_lazyDisplayName == null)
                 {
                     try
                     {
-                        var assemblyName = AssemblyName.GetAssemblyName(this.FullPath);
-                        lazyDisplayName = assemblyName.Name;
-                        return lazyDisplayName;
+                        _lazyDisplayName = GetAssemblyNameFromPath(_fullPath);
                     }
-                    catch (ArgumentException)
-                    { }
-                    catch (BadImageFormatException)
-                    { }
-                    catch (SecurityException)
-                    { }
-                    catch (FileLoadException)
-                    { }
-                    catch (FileNotFoundException)
+                    catch (Exception)
                     { }
 
-                    lazyDisplayName = Path.GetFileName(this.FullPath);
+                    _lazyDisplayName = _lazyDisplayName ?? Path.GetFileName(this.FullPath);
                 }
 
-                return lazyDisplayName;
+                return _lazyDisplayName;
             }
         }
 
         /// <summary>
-        /// Adds the <see cref="ImmutableArray{T}"/> of <see cref="DiagnosticAnalyzer"/> defined in this assembly reference.
+        /// Adds the <see cref="ImmutableDictionary{TKey, TValue}"/> of <see cref="ImmutableArray{T}"/> of <see cref="DiagnosticAnalyzer"/> 
+        /// for all languages defined in this assembly reference.
+        /// </summary>
+        internal void AddAnalyzers(ImmutableDictionary<string, ImmutableArray<DiagnosticAnalyzer>>.Builder builder)
+        {
+            ImmutableDictionary<string, ImmutableHashSet<string>> analyzerTypeNameMap;
+            Assembly analyzerAssembly = null;
+
+            try
+            {
+                analyzerTypeNameMap = GetAnalyzerTypeNameMap();
+                if (analyzerTypeNameMap.Count == 0)
+                {
+                    return;
+                }
+
+                analyzerAssembly = GetAssembly();
+            }
+            catch (Exception e)
+            {
+                this.AnalyzerLoadFailed?.Invoke(this, new AnalyzerLoadFailureEventArgs(AnalyzerLoadFailureEventArgs.FailureErrorCode.UnableToLoadAnalyzer, e, null));
+                return;
+            }
+
+            var initialCount = builder.Count;
+            var reportedError = false;
+
+            // Add language specific analyzers.
+            foreach (var language in analyzerTypeNameMap.Keys)
+            {
+                if (language == null)
+                {
+                    continue;
+                }
+
+                var analyzers = GetLanguageSpecificAnalyzers(analyzerAssembly, analyzerTypeNameMap, language, ref reportedError);
+                builder.Add(language, analyzers.ToImmutableArray());
+            }
+
+            // If there were types with the attribute but weren't an analyzer, generate a diagnostic.
+            // If we've reported errors already while trying to instantiate types, don't complain that there are no analyzers.
+            if (builder.Count == initialCount && !reportedError)
+            {
+                this.AnalyzerLoadFailed?.Invoke(this, new AnalyzerLoadFailureEventArgs(AnalyzerLoadFailureEventArgs.FailureErrorCode.NoAnalyzers, null, null));
+            }
+        }
+
+        /// <summary>
+        /// Adds the <see cref="ImmutableArray{T}"/> of <see cref="DiagnosticAnalyzer"/> defined in this assembly reference of given <paramref name="language"/>.
         /// </summary>
         internal void AddAnalyzers(ImmutableArray<DiagnosticAnalyzer>.Builder builder, string language)
         {
@@ -160,13 +213,12 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 // If there are no analyzers, don't load the assembly at all.
                 if (!analyzerTypeNameMap.ContainsKey(language))
                 {
-                    this.AnalyzerLoadFailed?.Invoke(this, new AnalyzerLoadFailureEventArgs(AnalyzerLoadFailureEventArgs.FailureErrorCode.NoAnalyzers, null, null));
                     return;
                 }
 
                 analyzerAssembly = GetAssembly();
             }
-            catch (Exception e) when (e is IOException || e is BadImageFormatException || e is SecurityException || e is ArgumentException)
+            catch (Exception e)
             {
                 this.AnalyzerLoadFailed?.Invoke(this, new AnalyzerLoadFailureEventArgs(AnalyzerLoadFailureEventArgs.FailureErrorCode.UnableToLoadAnalyzer, e, null));
                 return;
@@ -176,9 +228,8 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             var reportedError = false;
 
             // Add language specific analyzers.
-            var languageSpecificAnalyzerTypeNames = GetLanguageSpecificAnalyzerTypeNames(analyzerTypeNameMap, language);
-            var languageSpecificAnalyzers = this.GetAnalyzersForTypeNames(analyzerAssembly, languageSpecificAnalyzerTypeNames, ref reportedError);
-            builder.AddRange(languageSpecificAnalyzers);
+            var analyzers = GetLanguageSpecificAnalyzers(analyzerAssembly, analyzerTypeNameMap, language, ref reportedError);
+            builder.AddRange(analyzers);
 
             // If there were types with the attribute but weren't an analyzer, generate a diagnostic.
             // If we've reported errors already while trying to instantiate types, don't complain that there are no analyzers.
@@ -186,6 +237,12 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             {
                 this.AnalyzerLoadFailed?.Invoke(this, new AnalyzerLoadFailureEventArgs(AnalyzerLoadFailureEventArgs.FailureErrorCode.NoAnalyzers, null, null));
             }
+        }
+
+        private IEnumerable<DiagnosticAnalyzer> GetLanguageSpecificAnalyzers(Assembly analyzerAssembly, ImmutableDictionary<string, ImmutableHashSet<string>> analyzerTypeNameMap, string language, ref bool reportedError)
+        {
+            var languageSpecificAnalyzerTypeNames = GetLanguageSpecificAnalyzerTypeNames(analyzerTypeNameMap, language);
+            return this.GetAnalyzersForTypeNames(analyzerAssembly, languageSpecificAnalyzerTypeNames, ref reportedError);
         }
 
         private static IEnumerable<string> GetLanguageSpecificAnalyzerTypeNames(ImmutableDictionary<string, ImmutableHashSet<string>> analyzerTypeNameMap, string language)
@@ -209,14 +266,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                 DiagnosticAnalyzer analyzer = null;
                 try
                 {
-                    var type = analyzerAssembly.GetType(typeName, throwOnError: true);
+                    var type = analyzerAssembly.GetType(typeName, throwOnError: true, ignoreCase: false);
                     if (DerivesFromDiagnosticAnalyzer(type))
                     {
                         analyzer = (DiagnosticAnalyzer)Activator.CreateInstance(type);
                     }
                 }
                 catch (Exception e) when (e is TypeLoadException || e is BadImageFormatException || e is FileNotFoundException || e is FileLoadException ||
-                                        e is ArgumentException || e is NotSupportedException || e is TargetInvocationException || e is MemberAccessException)
+                                          e is ArgumentException || e is NotSupportedException || e is TargetInvocationException || e is MemberAccessException)
                 {
                     this.AnalyzerLoadFailed?.Invoke(this, new AnalyzerLoadFailureEventArgs(AnalyzerLoadFailureEventArgs.FailureErrorCode.UnableToCreateAnalyzer, e, typeName));
                     analyzer = null;
@@ -234,13 +291,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
         internal ImmutableDictionary<string, ImmutableHashSet<string>> GetAnalyzerTypeNameMap()
         {
-            if (this.lazyAnalyzerTypeNameMap == null)
+            if (_lazyAnalyzerTypeNameMap == null)
             {
-                var analyzerTypeNameMap = GetAnalyzerTypeNameMap(this.fullPath);
-                Interlocked.CompareExchange(ref this.lazyAnalyzerTypeNameMap, analyzerTypeNameMap, null);
+                var analyzerTypeNameMap = GetAnalyzerTypeNameMap(_fullPath);
+                Interlocked.CompareExchange(ref _lazyAnalyzerTypeNameMap, analyzerTypeNameMap, null);
             }
 
-            return this.lazyAnalyzerTypeNameMap;
+            return _lazyAnalyzerTypeNameMap;
         }
 
         /// <summary>
@@ -276,7 +333,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             {
                 supportedLanguages = supportedLanguages.Concat(languages);
             }
-            
+
             return supportedLanguages;
         }
 
@@ -310,14 +367,14 @@ namespace Microsoft.CodeAnalysis.Diagnostics
                     }
                 }
             }
-           
+
             return SpecializedCollections.EmptyEnumerable<string>();
         }
 
         private static bool IsDiagnosticAnalyzerAttribute(PEModule peModule, CustomAttributeHandle customAttrHandle)
         {
             Handle ctor;
-            return peModule.IsTargetAttribute(customAttrHandle, diagnosticNamespaceName, nameof(DiagnosticAnalyzerAttribute), out ctor);
+            return peModule.IsTargetAttribute(customAttrHandle, s_diagnosticNamespaceName, nameof(DiagnosticAnalyzerAttribute), out ctor);
         }
 
         private static string GetFullyQualifiedTypeName(TypeDefinition typeDef, PEModule peModule)
@@ -338,7 +395,7 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
         private static bool DerivesFromDiagnosticAnalyzer(Type type)
         {
-            return type.IsSubclassOf(typeof(DiagnosticAnalyzer));
+            return type.GetTypeInfo().IsSubclassOf(typeof(DiagnosticAnalyzer));
         }
 
         public override bool Equals(object obj)
@@ -366,15 +423,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
 
         public Assembly GetAssembly()
         {
-            if (lazyAssembly == null)
+            if (_lazyAssembly == null)
             {
-                var assembly = getAssembly != null ?
-                    getAssembly(fullPath) :
-                    InMemoryAssemblyLoader.Load(fullPath);
-                Interlocked.CompareExchange(ref this.lazyAssembly, assembly, null);
+                var assembly = _getAssembly(_fullPath);
+                Interlocked.CompareExchange(ref _lazyAssembly, assembly, null);
             }
 
-            return lazyAssembly;
+            return _lazyAssembly;
         }
     }
 }

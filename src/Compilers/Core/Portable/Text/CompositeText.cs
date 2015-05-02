@@ -13,8 +13,8 @@ namespace Microsoft.CodeAnalysis.Text
     /// </summary>
     internal sealed class CompositeText : SourceText
     {
-        private readonly ImmutableArray<SourceText> texts;
-        private readonly int length;
+        private readonly ImmutableArray<SourceText> _texts;
+        private readonly int _length;
 
         public CompositeText(ImmutableArray<SourceText> texts)
             : base(checksumAlgorithm: texts[0].ChecksumAlgorithm)
@@ -22,24 +22,24 @@ namespace Microsoft.CodeAnalysis.Text
             Debug.Assert(!texts.IsDefaultOrEmpty);
             Debug.Assert(texts.All(t => texts.First().Encoding == t.Encoding && texts.First().ChecksumAlgorithm == t.ChecksumAlgorithm));
 
-            this.texts = texts;
+            _texts = texts;
             int len = 0;
             foreach (var text in texts)
             {
                 len += text.Length;
             }
 
-            this.length = len;
+            _length = len;
         }
 
         public override Encoding Encoding
         {
-            get { return texts[0].Encoding; }
+            get { return _texts[0].Encoding; }
         }
 
         public override int Length
         {
-            get { return this.length; }
+            get { return _length; }
         }
 
         public override char this[int position]
@@ -49,7 +49,7 @@ namespace Microsoft.CodeAnalysis.Text
                 int index;
                 int offset;
                 GetIndexAndOffset(position, out index, out offset);
-                return this.texts[index][offset];
+                return _texts[index][offset];
             }
         }
 
@@ -65,9 +65,9 @@ namespace Microsoft.CodeAnalysis.Text
             GetIndexAndOffset(sourceIndex, out segIndex, out segOffset);
 
             var newTexts = ArrayBuilder<SourceText>.GetInstance();
-            while (segIndex < this.texts.Length && count > 0)
+            while (segIndex < _texts.Length && count > 0)
             {
-                var segment = this.texts[segIndex];
+                var segment = _texts[segIndex];
                 var copyLength = Math.Min(count, segment.Length - segOffset);
 
                 AddSegments(newTexts, segment.GetSubText(new TextSpan(segOffset, copyLength)));
@@ -96,9 +96,9 @@ namespace Microsoft.CodeAnalysis.Text
 
         private void GetIndexAndOffset(int position, out int index, out int offset)
         {
-            for (int i = 0; i < texts.Length; i++)
+            for (int i = 0; i < _texts.Length; i++)
             {
-                var segment = this.texts[i];
+                var segment = _texts[i];
                 if (position < segment.Length)
                 {
                     index = i;
@@ -117,26 +117,22 @@ namespace Microsoft.CodeAnalysis.Text
         }
 
         /// <summary>
-        /// Validates the arguments passed to CopyTo against the published contract.
+        /// Validates the arguments passed to <see cref="CopyTo"/> against the published contract.
         /// </summary>
-        /// <param name="sourceIndex"></param>
-        /// <param name="destination"></param>
-        /// <param name="destinationIndex"></param>
-        /// <param name="count"></param>
         /// <returns>True if should bother to proceed with copying.</returns>
         private bool CheckCopyToArguments(int sourceIndex, char[] destination, int destinationIndex, int count)
         {
             if (destination == null)
-                throw new ArgumentNullException("destination");
+                throw new ArgumentNullException(nameof(destination));
 
             if (sourceIndex < 0)
-                throw new ArgumentOutOfRangeException("sourceIndex");
+                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
 
             if (destinationIndex < 0)
-                throw new ArgumentOutOfRangeException("destinationIndex");
+                throw new ArgumentOutOfRangeException(nameof(destinationIndex));
 
             if (count < 0 || count > this.Length - sourceIndex || count > destination.Length - destinationIndex)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             return count > 0;
         }
@@ -150,9 +146,9 @@ namespace Microsoft.CodeAnalysis.Text
             int segOffset;
             GetIndexAndOffset(sourceIndex, out segIndex, out segOffset);
 
-            while (segIndex < this.texts.Length && count > 0)
+            while (segIndex < _texts.Length && count > 0)
             {
-                var segment = this.texts[segIndex];
+                var segment = _texts[segIndex];
                 var copyLength = Math.Min(count, segment.Length - segOffset);
 
                 segment.CopyTo(segOffset, destination, destinationIndex, copyLength);
@@ -173,7 +169,7 @@ namespace Microsoft.CodeAnalysis.Text
             }
             else
             {
-                builder.AddRange(composite.texts);
+                builder.AddRange(composite._texts);
             }
         }
     }

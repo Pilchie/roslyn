@@ -9,7 +9,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 {
     internal sealed class MethodBodySemanticModel : MemberSemanticModel
     {
-        private DiagnosticBag ignoredDiagnostics = new DiagnosticBag();
+        private DiagnosticBag _ignoredDiagnostics = new DiagnosticBag();
 
         private MethodBodySemanticModel(CSharpCompilation compilation, Symbol owner, Binder rootBinder, CSharpSyntaxNode syntax, SyntaxTreeSemanticModel parentSemanticModelOpt = null, int speculatedPosition = 0)
             : base(compilation, syntax, owner, rootBinder, parentSemanticModelOpt, speculatedPosition)
@@ -97,7 +97,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             var methodSymbol = (MethodSymbol)this.MemberSymbol;
             var executablebinder = new ExecutableCodeBinder(body, methodSymbol, this.RootBinder.Next); // Strip off ExecutableCodeBinder (see ctor).
-            var blockBinder = executablebinder.GetBinder(body).WithAdditionalFlags(BinderFlags.SemanticModel);
+            var blockBinder = executablebinder.GetBinder(body).WithAdditionalFlags(GetSemanticModelBinderFlags());
             speculativeModel = CreateSpeculative(parentModel, methodSymbol, body, blockBinder, position);
             return true;
         }

@@ -23,9 +23,9 @@ namespace AsyncPackage
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = AsyncLambdaAnalyzer.AsyncLambdaId1), Shared]
     public class AsyncLambdaVariableCodeFix : CodeFixProvider
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(AsyncLambdaAnalyzer.AsyncLambdaId1);
+            get { return ImmutableArray.Create(AsyncLambdaAnalyzer.AsyncLambdaId1); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -33,7 +33,7 @@ namespace AsyncPackage
             return null;
         }
 
-        public sealed override async Task ComputeFixesAsync(CodeFixContext context)
+        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
@@ -48,7 +48,7 @@ namespace AsyncPackage
                 var variableDeclaration = parent.FirstAncestorOrSelf<VariableDeclarationSyntax>();
 
                 // Register a code action that will invoke the fix.
-                context.RegisterFix(
+                context.RegisterCodeFix(
                     new AsyncLambdaVariableCodeAction("Async lambdas should not be stored in void-returning delegates",
                                                       c => ChangeToFunc(context.Document, variableDeclaration, c)),
                     diagnostic);
@@ -71,20 +71,20 @@ namespace AsyncPackage
 
         private class AsyncLambdaVariableCodeAction : CodeAction
         {
-            private Func<CancellationToken, Task<Document>> generateDocument;
-            private string title;
+            private Func<CancellationToken, Task<Document>> _generateDocument;
+            private string _title;
 
             public AsyncLambdaVariableCodeAction(string title, Func<CancellationToken, Task<Document>> generateDocument)
             {
-                this.title = title;
-                this.generateDocument = generateDocument;
+                _title = title;
+                _generateDocument = generateDocument;
             }
 
-            public override string Title { get { return title; } }
+            public override string Title { get { return _title; } }
 
             protected override Task<Document> GetChangedDocumentAsync(CancellationToken cancellationToken)
             {
-                return this.generateDocument(cancellationToken);
+                return _generateDocument(cancellationToken);
             }
         }
     }

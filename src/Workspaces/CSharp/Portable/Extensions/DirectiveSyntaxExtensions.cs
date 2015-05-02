@@ -13,7 +13,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
 {
     internal static partial class DirectiveSyntaxExtensions
     {
-        private static readonly ConditionalWeakTable<SyntaxNode, DirectiveInfo> rootToDirectiveInfo =
+        private static readonly ConditionalWeakTable<SyntaxNode, DirectiveInfo> s_rootToDirectiveInfo =
             new ConditionalWeakTable<SyntaxNode, DirectiveInfo>();
 
         private static SyntaxNode GetAbsoluteRoot(this SyntaxNode node)
@@ -36,7 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
         private static DirectiveInfo GetDirectiveInfo(SyntaxNode node, CancellationToken cancellationToken)
         {
             var root = node.GetAbsoluteRoot();
-            var info = rootToDirectiveInfo.GetValue(root, r =>
+            var info = s_rootToDirectiveInfo.GetValue(root, r =>
             {
                 var directiveMap = new Dictionary<DirectiveTriviaSyntax, DirectiveTriviaSyntax>(
                     DirectiveSyntaxEqualityComparer.Instance);
@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
         {
             if (directive == null)
             {
-                throw new ArgumentNullException("directive");
+                throw new ArgumentNullException(nameof(directive));
             }
 
             var directiveSyntaxMap = GetDirectiveInfo(directive, cancellationToken).DirectiveMap;
@@ -71,7 +71,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
         {
             if (directive == null)
             {
-                throw new ArgumentNullException("directive");
+                throw new ArgumentNullException(nameof(directive));
             }
 
             var directiveConditionalMap = GetDirectiveInfo(directive, cancellationToken).ConditionalMap;

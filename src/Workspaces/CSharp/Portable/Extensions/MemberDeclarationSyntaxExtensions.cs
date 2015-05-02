@@ -14,13 +14,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
 {
     internal static partial class MemberDeclarationSyntaxExtensions
     {
-        private static readonly ConditionalWeakTable<MemberDeclarationSyntax, Dictionary<string, ImmutableArray<SyntaxToken>>> declarationCache =
+        private static readonly ConditionalWeakTable<MemberDeclarationSyntax, Dictionary<string, ImmutableArray<SyntaxToken>>> s_declarationCache =
             new ConditionalWeakTable<MemberDeclarationSyntax, Dictionary<string, ImmutableArray<SyntaxToken>>>();
-        private static readonly ConditionalWeakTable<MemberDeclarationSyntax, Dictionary<string, ImmutableArray<SyntaxToken>>>.CreateValueCallback createLocalDeclarationMap = CreateLocalDeclarationMap;
+        private static readonly ConditionalWeakTable<MemberDeclarationSyntax, Dictionary<string, ImmutableArray<SyntaxToken>>>.CreateValueCallback s_createLocalDeclarationMap = CreateLocalDeclarationMap;
 
         public static LocalDeclarationMap GetLocalDeclarationMap(this MemberDeclarationSyntax member)
         {
-            var result = declarationCache.GetValue(member, createLocalDeclarationMap);
+            var result = s_declarationCache.GetValue(member, s_createLocalDeclarationMap);
             return new LocalDeclarationMap(result);
         }
 
@@ -314,6 +314,25 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             }
 
             return null;
+        }
+
+        public static ArrowExpressionClauseSyntax GetExpressionBody(this MemberDeclarationSyntax memberDeclaration)
+        {
+            switch (memberDeclaration?.Kind())
+            {
+                case SyntaxKind.PropertyDeclaration:
+                    return ((PropertyDeclarationSyntax)memberDeclaration).ExpressionBody;
+                case SyntaxKind.MethodDeclaration:
+                    return ((MethodDeclarationSyntax)memberDeclaration).ExpressionBody;
+                case SyntaxKind.IndexerDeclaration:
+                    return ((IndexerDeclarationSyntax)memberDeclaration).ExpressionBody;
+                case SyntaxKind.OperatorDeclaration:
+                    return ((OperatorDeclarationSyntax)memberDeclaration).ExpressionBody;
+                case SyntaxKind.ConversionOperatorDeclaration:
+                    return ((ConversionOperatorDeclarationSyntax)memberDeclaration).ExpressionBody;
+                default:
+                    return null;
+            }
         }
 
         public static MemberDeclarationSyntax WithBody(

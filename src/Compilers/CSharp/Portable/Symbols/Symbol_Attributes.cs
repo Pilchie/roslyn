@@ -13,7 +13,7 @@ using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
-    partial class Symbol
+    internal partial class Symbol
     {
         /// <summary>
         /// Gets the attributes for this symbol. Returns an empty <see cref="ImmutableArray&lt;AttributeData&gt;"/> if
@@ -348,7 +348,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             bool lazyAttributesStoredOnThisThread = false;
             if (lazyCustomAttributesBag.SetAttributes(boundAttributes))
             {
-                this.AddSemanticDiagnostics(diagnostics);
+                this.RecordPresenceOfBadAttributes(boundAttributes);
+                this.AddDeclarationDiagnostics(diagnostics);
                 lazyAttributesStoredOnThisThread = true;
                 if (lazyCustomAttributesBag.IsEmpty) lazyCustomAttributesBag = CustomAttributesBag<CSharpAttributeData>.Empty;
             }
@@ -358,6 +359,20 @@ namespace Microsoft.CodeAnalysis.CSharp
             return lazyAttributesStoredOnThisThread;
         }
 
+        private void RecordPresenceOfBadAttributes(ImmutableArray<CSharpAttributeData> boundAttributes)
+        {
+            foreach (var attribute in boundAttributes)
+            {
+                if (attribute.HasErrors)
+                {
+                    CSharpCompilation compilation = this.DeclaringCompilation;
+                    Debug.Assert(compilation != null);
+                    ((SourceModuleSymbol)compilation.SourceModule).RecordPresenceOfBadAttributes();
+                    break;
+                }
+            }
+        }
+        
         /// <summary>
         /// Method to merge attributes from the given attributesSyntaxLists and filter out attributes by attribute target.
         /// This is the first step in attribute binding.

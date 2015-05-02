@@ -9,32 +9,32 @@ namespace Microsoft.CodeAnalysis.Analyzers.MetaAnalyzers
     [DiagnosticAnalyzer(LanguageNames.CSharp, LanguageNames.VisualBasic)]
     public sealed class DiagnosticAnalyzerAttributeAnalyzer : DiagnosticAnalyzerCorrectnessAnalyzer
     {
-        private static LocalizableString localizableTitleMissingAttribute = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.MissingDiagnosticAnalyzerAttributeTitle), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
-        private static LocalizableString localizableMessageMissingAttribute = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.MissingAttributeMessage), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources), DiagnosticAnalyzerAttributeFullName);
-        private static LocalizableString localizableDescriptionMissingAttribute = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.MissingDiagnosticAnalyzerAttributeDescription), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
+        private static LocalizableString s_localizableTitleMissingAttribute = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.MissingDiagnosticAnalyzerAttributeTitle), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
+        private static LocalizableString s_localizableMessageMissingAttribute = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.MissingAttributeMessage), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources), DiagnosticAnalyzerAttributeFullName);
+        private static LocalizableString s_localizableDescriptionMissingAttribute = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.MissingDiagnosticAnalyzerAttributeDescription), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
 
         public static DiagnosticDescriptor MissingDiagnosticAnalyzerAttributeRule = new DiagnosticDescriptor(
             DiagnosticIds.MissingDiagnosticAnalyzerAttributeRuleId,
-            localizableTitleMissingAttribute,
-            localizableMessageMissingAttribute,
+            s_localizableTitleMissingAttribute,
+            s_localizableMessageMissingAttribute,
             DiagnosticCategory.AnalyzerCorrectness,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
-            description: localizableDescriptionMissingAttribute,
+            description: s_localizableDescriptionMissingAttribute,
             customTags: WellKnownDiagnosticTags.Telemetry);
 
-        private static LocalizableString localizableTitleAddLanguageSupportToAnalyzer = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.AddLanguageSupportToAnalyzerTitle), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
-        private static LocalizableString localizableMessageAddLanguageSupportToAnalyzer = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.AddLanguageSupportToAnalyzerMessage), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
-        private static LocalizableString localizableDescriptionAddLanguageSupportToAnalyzer = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.AddLanguageSupportToAnalyzerDescription), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
+        private static LocalizableString s_localizableTitleAddLanguageSupportToAnalyzer = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.AddLanguageSupportToAnalyzerTitle), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
+        private static LocalizableString s_localizableMessageAddLanguageSupportToAnalyzer = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.AddLanguageSupportToAnalyzerMessage), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
+        private static LocalizableString s_localizableDescriptionAddLanguageSupportToAnalyzer = new LocalizableResourceString(nameof(CodeAnalysisDiagnosticsResources.AddLanguageSupportToAnalyzerDescription), CodeAnalysisDiagnosticsResources.ResourceManager, typeof(CodeAnalysisDiagnosticsResources));
 
         public static DiagnosticDescriptor AddLanguageSupportToAnalyzerRule = new DiagnosticDescriptor(
             DiagnosticIds.AddLanguageSupportToAnalyzerRuleId,
-            localizableTitleAddLanguageSupportToAnalyzer,
-            localizableMessageAddLanguageSupportToAnalyzer,
+            s_localizableTitleAddLanguageSupportToAnalyzer,
+            s_localizableMessageAddLanguageSupportToAnalyzer,
             DiagnosticCategory.AnalyzerCorrectness,
             DiagnosticSeverity.Warning,
             isEnabledByDefault: true,
-            description: localizableDescriptionAddLanguageSupportToAnalyzer,
+            description: s_localizableDescriptionAddLanguageSupportToAnalyzer,
             customTags: WellKnownDiagnosticTags.Telemetry);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
@@ -52,8 +52,8 @@ namespace Microsoft.CodeAnalysis.Analyzers.MetaAnalyzers
 
         private sealed class AttributeAnalyzer : CompilationAnalyzer
         {
-            private static readonly string csharpCompilationFullName = @"Microsoft.CodeAnalysis.CSharp.CSharpCompilation";
-            private static readonly string basicCompilationFullName = @"Microsoft.CodeAnalysis.VisualBasic.VisualBasicCompilation";
+            private static readonly string s_csharpCompilationFullName = @"Microsoft.CodeAnalysis.CSharp.CSharpCompilation";
+            private static readonly string s_basicCompilationFullName = @"Microsoft.CodeAnalysis.VisualBasic.VisualBasicCompilation";
 
             public AttributeAnalyzer(INamedTypeSymbol diagnosticAnalyzer, INamedTypeSymbol diagnosticAnalyzerAttribute)
                 : base(diagnosticAnalyzer, diagnosticAnalyzerAttribute)
@@ -72,31 +72,33 @@ namespace Microsoft.CodeAnalysis.Analyzers.MetaAnalyzers
                 // 2) AddLanguageSupportToAnalyzerRule: For analyzer supporting only one of C# or VB languages, detect if it can support the other language.
 
                 var hasAttribute = false;
-                var hasMultipleAttributes = false;
                 SyntaxNode attributeSyntax = null;
-                string supportedLanguage = null;
+                bool supportsCSharp = false;
+                bool supportsVB = false;
 
                 var namedTypeAttributes = AttributeHelpers.GetApplicableAttributes(namedType);
                 foreach (var attribute in namedTypeAttributes)
                 {
                     if (AttributeHelpers.DerivesFrom(attribute.AttributeClass, DiagnosticAnalyzerAttribute))
                     {
-                        hasMultipleAttributes |= hasAttribute;
                         hasAttribute = true;
 
-                        if (!hasMultipleAttributes)
+                        // The attribute constructor's signature is "(string, params string[])",
+                        // so process both string arguments and string[] arguments.
+                        foreach (TypedConstant arg in attribute.ConstructorArguments)
                         {
-                            foreach (var arg in attribute.ConstructorArguments)
+                            CheckLanguage(arg, ref supportsCSharp, ref supportsVB);
+
+                            if (arg.Kind == TypedConstantKind.Array)
                             {
-                                if (arg.Kind == TypedConstantKind.Primitive &&
-                                    arg.Type != null &&
-                                    arg.Type.SpecialType == SpecialType.System_String)
+                                foreach (TypedConstant element in arg.Values)
                                 {
-                                    supportedLanguage = (string)arg.Value;
-                                    attributeSyntax = attribute.ApplicationSyntaxReference.GetSyntax(symbolContext.CancellationToken);
+                                    CheckLanguage(element, ref supportsCSharp, ref supportsVB);
                                 }
                             }
                         }
+
+                        attributeSyntax = attribute.ApplicationSyntaxReference.GetSyntax(symbolContext.CancellationToken);
                     }
                 }
 
@@ -105,26 +107,39 @@ namespace Microsoft.CodeAnalysis.Analyzers.MetaAnalyzers
                     var diagnostic = Diagnostic.Create(MissingDiagnosticAnalyzerAttributeRule, namedType.Locations[0]);
                     symbolContext.ReportDiagnostic(diagnostic);
                 }
-                else if (!hasMultipleAttributes && supportedLanguage != null)
+                else if (supportsCSharp ^ supportsVB)
                 {
                     Debug.Assert(attributeSyntax != null);
 
-                    var supportsCSharp = supportedLanguage == LanguageNames.CSharp;
-                    var supportsVB = supportedLanguage == LanguageNames.VisualBasic;
-                    if (supportsCSharp || supportsVB)
+                    // If the analyzer assembly doesn't reference either C# or VB CodeAnalysis assemblies, 
+                    // then the analyzer is pretty likely a language-agnostic analyzer.
+                    var compilation = symbolContext.Compilation;
+                    var compilationTypeNameToCheck = supportsCSharp ? s_csharpCompilationFullName : s_basicCompilationFullName;
+                    var compilationType = compilation.GetTypeByMetadataName(compilationTypeNameToCheck);
+                    if (compilationType == null)
                     {
-                        // If the analyzer assembly doesn't reference either C# or VB CodeAnalysis assemblies, 
-                        // then the analyzer is pretty likely a language-agnostic analyzer.
-                        var compilation = symbolContext.Compilation;
-                        var compilationTypeNameToCheck = supportsCSharp ? csharpCompilationFullName : basicCompilationFullName;
-                        var compilationType = compilation.GetTypeByMetadataName(compilationTypeNameToCheck);
-                        if (compilationType == null)
-                        {
-                            var missingLanguage = supportsCSharp ? LanguageNames.VisualBasic : LanguageNames.CSharp;
-                            var diagnostic = Diagnostic.Create(AddLanguageSupportToAnalyzerRule, attributeSyntax.GetLocation(), namedType.Name, missingLanguage);
-                            symbolContext.ReportDiagnostic(diagnostic);
-                        }
+                        var missingLanguage = supportsCSharp ? LanguageNames.VisualBasic : LanguageNames.CSharp;
+                        var diagnostic = Diagnostic.Create(AddLanguageSupportToAnalyzerRule, attributeSyntax.GetLocation(), namedType.Name, missingLanguage);
+                        symbolContext.ReportDiagnostic(diagnostic);
                     }
+                }
+            }
+        }
+
+        private static void CheckLanguage(TypedConstant argument, ref bool supportsCSharp, ref bool supportsVB)
+        {
+            if (argument.Kind == TypedConstantKind.Primitive &&
+                argument.Type != null &&
+                argument.Type.SpecialType == SpecialType.System_String)
+            {
+                string supportedLanguage = (string)argument.Value;
+                if (supportedLanguage == LanguageNames.CSharp)
+                {
+                    supportsCSharp = true;
+                }
+                else if (supportedLanguage == LanguageNames.VisualBasic)
+                {
+                    supportsVB = true;
                 }
             }
         }

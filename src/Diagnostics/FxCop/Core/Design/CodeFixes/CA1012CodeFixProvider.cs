@@ -1,14 +1,12 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Roslyn.Utilities;
 
@@ -20,9 +18,9 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
     [ExportCodeFixProvider(LanguageNames.CSharp, LanguageNames.VisualBasic, Name = CA1012DiagnosticAnalyzer.RuleId), Shared]
     public sealed class CA1012CodeFixProvider : CodeFixProviderBase
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(CA1012DiagnosticAnalyzer.RuleId);
+            get { return ImmutableArray.Create(CA1012DiagnosticAnalyzer.RuleId); }
         }
 
         protected sealed override string GetCodeFixDescription(Diagnostic diagnostic)
@@ -37,7 +35,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
 
         internal override Task<Document> GetUpdatedDocumentAsync(Document document, SemanticModel model, SyntaxNode root, SyntaxNode nodeToFix, Diagnostic diagnostic, CancellationToken cancellationToken)
         {
-            var classSymbol = (INamedTypeSymbol)model.GetDeclaredSymbol(nodeToFix);
+            var classSymbol = (INamedTypeSymbol)model.GetDeclaredSymbol(nodeToFix, cancellationToken);
             var instanceConstructors = classSymbol.InstanceConstructors.Where(t => t.DeclaredAccessibility == Accessibility.Public).Select(t => GetDeclaration(t)).Where(d => d != null).ToList();
             var generator = SyntaxGenerator.GetGenerator(document);
             var newRoot = root.ReplaceNodes(instanceConstructors, (original, rewritten) => generator.WithAccessibility(original, Accessibility.Protected));

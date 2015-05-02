@@ -15,7 +15,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     using Utils = CompilationUtils;
 
-    public class GetExtendedSemanticInfoTests : SemanticModelTestBase
+    public class SemanticModelGetSemanticInfoTests : SemanticModelTestBase
     {
         [Fact]
         public void FailedOverloadResolution()
@@ -7331,7 +7331,6 @@ class Program
         [Fact]
         public void ImplicitConversionElementsInArrayInit()
         {
-
             string sourceCode = @"
 class MyClass 
 {
@@ -7360,7 +7359,6 @@ class MyClass
         [Fact]
         public void ImplicitConversionArrayInitializer_01()
         {
-
             string sourceCode = @"
 class MyClass 
 {
@@ -7386,7 +7384,6 @@ class MyClass
         [Fact]
         public void ImplicitConversionArrayInitializer_02()
         {
-
             string sourceCode = @"
 class MyClass 
 {
@@ -7710,7 +7707,7 @@ public class MyAttr: Attribute
         }
 
         [WorkItem(541653, "DevDiv")]
-        [Fact()]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void MemberAccessOnErrorType()
         {
             string sourceCode = @"
@@ -7729,7 +7726,7 @@ public class Test2
         }
 
         [WorkItem(541653, "DevDiv")]
-        [Fact()]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void MemberAccessOnErrorType2()
         {
             string sourceCode = @"
@@ -7979,7 +7976,7 @@ class Program
         }
 
         [WorkItem(541802, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void IncompleteLetClause()
         {
             string sourceCode = @"
@@ -8001,7 +7998,7 @@ public class Test2
         }
 
         [WorkItem(541895, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void QueryErrorBaseKeywordAsSelectExpression()
         {
             string sourceCode = @"
@@ -8095,7 +8092,7 @@ class C
         }
 
         [WorkItem(541911, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void QueryErrorGroupJoinFromClause()
         {
             string sourceCode = @"
@@ -14993,7 +14990,7 @@ public class C
 
             Assert.False(semanticInfo.IsCompileTimeConstant);
         }
-        
+
         [Fact]
         public void ConditionalAccess003()
         {
@@ -15147,6 +15144,39 @@ class Name
             Assert.Equal(0, semanticInfo.MethodGroup.Length);
 
             Assert.False(semanticInfo.IsCompileTimeConstant);
+        }
+
+        [Fact, WorkItem(1084693, "DevDiv")]
+        public void Bug1084693()
+        {
+            const string sourceCode =
+@"
+using System;
+public class C {
+    public Func<Func<C, C>, C> Select;
+    public Func<Func<C, bool>, C> Where => null;
+
+    public void M() {
+        var e =
+            from i in this
+            where true
+            select true?i:i;
+    }
+}";
+            var compilation = CreateCompilationWithMscorlib(sourceCode);
+            compilation.VerifyDiagnostics();
+            var tree = compilation.SyntaxTrees[0];
+            var semanticModel = compilation.GetSemanticModel(tree);
+            string[] expectedNames = { null, "Where", "Select" };
+            int i = 0;
+            foreach (var qc in tree.GetRoot().DescendantNodes().OfType<QueryClauseSyntax>())
+            {
+                var infoSymbol = semanticModel.GetQueryClauseInfo(qc).OperationInfo.Symbol;
+                Assert.Equal(expectedNames[i++], infoSymbol?.Name);
+            }
+            var qe = tree.GetRoot().DescendantNodes().OfType<QueryExpressionSyntax>().Single();
+            var infoSymbol2 = semanticModel.GetSymbolInfo(qe.Body.SelectOrGroup).Symbol;
+            Assert.Equal(expectedNames[i++], infoSymbol2.Name);
         }
     }
 }

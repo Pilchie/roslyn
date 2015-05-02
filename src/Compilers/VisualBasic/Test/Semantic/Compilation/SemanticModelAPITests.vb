@@ -959,7 +959,7 @@ End Class
             Dim root = tree.GetCompilationUnitRoot()
             Dim typeBlock = DirectCast(root.Members(0), TypeBlockSyntax)
             Dim methodBlock = DirectCast(typeBlock.Members(0), MethodBlockSyntax)
-            Dim endStatement = methodBlock.End
+            Dim endStatement = methodBlock.EndBlockStatement
 
             Dim semanticModel = compilation.GetSemanticModel(tree)
             Dim position1 = endStatement.SpanStart
@@ -1076,7 +1076,7 @@ End Class]]>
             Dim model = compilation.GetSemanticModel(tree)
             Dim statement = DirectCast(methodBlock.Statements(0), LocalDeclarationStatementSyntax)
             Dim initializer = statement.Declarators(0).Initializer
-            Dim attribute = methodBlock.Begin.AttributeLists(0).Attributes(0)
+            Dim attribute = methodBlock.BlockStatement.AttributeLists(0).Attributes(0)
 
             Dim speculativeModel As SemanticModel = Nothing
             Assert.Throws(Of ArgumentNullException)(Function() model.TryGetSpeculativeSemanticModel(statement.SpanStart, initializer:=Nothing, speculativeModel:=speculativeModel))
@@ -1119,7 +1119,7 @@ End Class]]>
             Dim model = compilation.GetSemanticModel(tree)
             Dim statement = DirectCast(methodBlock.Statements(0), LocalDeclarationStatementSyntax)
             Dim expression = statement.Declarators(0).Initializer.Value
-            Dim attribute = methodBlock.Begin.AttributeLists(0).Attributes(0)
+            Dim attribute = methodBlock.BlockStatement.AttributeLists(0).Attributes(0)
 
             Dim speculatedStatement = DirectCast(statement.ReplaceNode(expression, SyntaxFactory.ParseExpression("0")), LocalDeclarationStatementSyntax)
 
@@ -1141,7 +1141,7 @@ End Class]]>
 
         ' Helper to parse an attribute.
         Private Function ParseAttributeSyntax(source As String) As AttributeSyntax
-            Return DirectCast(SyntaxFactory.ParseCompilationUnit(source + " Class X" + vbCrLf + "End Class").Members.First(), TypeBlockSyntax).Begin.AttributeLists.First().Attributes.First()
+            Return DirectCast(SyntaxFactory.ParseCompilationUnit(source + " Class X" + vbCrLf + "End Class").Members.First(), TypeBlockSyntax).BlockStatement.AttributeLists.First().Attributes.First()
         End Function
 
         <Fact>
@@ -1802,7 +1802,7 @@ End Class
             Dim typeBlock = DirectCast(root.Members(0), TypeBlockSyntax)
             Dim field = DirectCast(typeBlock.Members(0), FieldDeclarationSyntax)
             Dim methodBlock = DirectCast(typeBlock.Members(1), MethodBlockBaseSyntax)
-            Dim methodDecl = DirectCast(methodBlock.Begin, MethodStatementSyntax)
+            Dim methodDecl = DirectCast(methodBlock.BlockStatement, MethodStatementSyntax)
             Dim model = compilation.GetSemanticModel(tree)
 
             Dim speculatedTypeExpression = SyntaxFactory.ParseName("System.ArgumentException")
@@ -1843,7 +1843,7 @@ End Interface
             Dim root = tree.GetCompilationUnitRoot()
             Dim typeBlock = DirectCast(root.Members(0), TypeBlockSyntax)
             Dim methodBlock = DirectCast(typeBlock.Members(1), MethodBlockBaseSyntax)
-            Dim methodDecl = DirectCast(methodBlock.Begin, MethodStatementSyntax)
+            Dim methodDecl = DirectCast(methodBlock.BlockStatement, MethodStatementSyntax)
             Dim model = compilation.GetSemanticModel(tree)
 
             Dim speculatedMemberName = SyntaxFactory.ParseName("I.Method2")
@@ -2179,7 +2179,6 @@ Module M
             Assert.True(conv3 <> conv2, "Check equality implementation")
             Assert.False(conv3.Equals(conv2), "Check equality implementation")
             Assert.False(conv3.Equals(DirectCast(conv2, Object)), "Check equality implementation")
-            Assert.False(conv3.GetHashCode() = conv2.GetHashCode(), "Check equality implementation")
 
             CompilationUtils.AssertNoErrors(compilation)
         End Sub
@@ -3821,7 +3820,7 @@ BC42306: XML comment tag 'param' is not permitted on a 'variable' language eleme
             Dim tree = comp.SyntaxTrees.Single()
             Dim model = comp.GetSemanticModel(tree)
 
-            Dim position = tree.ToString().IndexOf("X")
+            Dim position = tree.ToString().IndexOf("X"c)
             Dim paramName = DirectCast(SyntaxFactory.ParseExpression("Y"), IdentifierNameSyntax)
 
             Dim speculativeModel As SemanticModel = Nothing
@@ -3949,7 +3948,7 @@ End Class
             Dim tree = comp.SyntaxTrees.Single()
             Dim model = comp.GetSemanticModel(tree)
 
-            Dim position = source.Value.IndexOf("Me")
+            Dim position = source.Value.IndexOf("Me", StringComparison.Ordinal)
             Dim statement = tree.GetRoot().DescendantNodes().OfType(Of LocalDeclarationStatementSyntax).Single()
             Dim newSyntax = SyntaxFactory.ParseExpression("Instance.GetList().OfType(Of D)().Any()")
             Dim newStatement = statement.ReplaceNode(statement.Declarators(0).Initializer.Value, newSyntax)
@@ -3966,7 +3965,7 @@ End Class
         End Sub
 
         <Fact>
-        Sub Test_SemanticLanguage_VB()
+        Public Sub Test_SemanticLanguage_VB()
             Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
 <compilation>
     <file name="a.vb"><![CDATA[
@@ -3984,7 +3983,7 @@ End Class
         End Sub
 
         <Fact>
-        Sub DiagnosticsInStages()
+        Public Sub DiagnosticsInStages()
             Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
 <compilation>
     <file name="a.vb"><![CDATA[
@@ -4012,7 +4011,7 @@ End Class
 
         <WorkItem(859721, "DevDiv")>
         <Fact()>
-        Sub TestMethodBodyDiagnostics()
+        Public Sub TestMethodBodyDiagnostics()
             ' Even with a root namespace, we should still have these diagnostics with or without root namespace specified
             Dim sourceExplicitGlobalNamespace = <compilation>
                                                     <file name="a.vb"><![CDATA[
@@ -4244,7 +4243,7 @@ BC30002: Type 'A' is not defined.
         End Sub
 
         <Fact>
-        Sub PartialMethodImplementationDiagnostics()
+        Public Sub PartialMethodImplementationDiagnostics()
             Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
 <compilation>
     <file name="a.vb"><![CDATA[
@@ -4274,6 +4273,83 @@ End Class
             Assert.Equal(0, treeErrs.Length())
         End Sub
 #End Region
+
+        <Fact, WorkItem(1146124, "DevDiv")>
+        Public Sub GetTypeInfoForXmlStringInCref()
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+<compilation name="GetSemanticInfo">
+    <file name="a.vb"><![CDATA[
+Module Program
+    ''' <summary>
+    ''' <see cref=""/>
+    ''' </summary>
+    Sub Main(args As String())
+
+    End Sub
+End Module
+    ]]></file>
+</compilation>)
+
+            Dim tree As SyntaxTree = (From t In compilation.SyntaxTrees Where t.FilePath = "a.vb").Single()
+            Dim root = tree.GetCompilationUnitRoot
+            Dim xmlString = root.DescendantNodes(descendIntoTrivia:=True).OfType(Of XmlStringSyntax).Single()
+            Dim semanticModel = compilation.GetSemanticModel(tree)
+
+            Dim typelInfo = semanticModel.GetTypeInfo(xmlString)
+            Assert.Null(typelInfo.Type)
+        End Sub
+
+        <WorkItem(1104539, "DevDiv")>
+        <Fact()>
+        Public Sub GetDiagnosticsWithRootNamespace()
+            Dim compilation = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
+<compilation>
+    <file name="a.vb"><![CDATA[
+Imports System.Runtime.CompilerServices
+Imports Microsoft.CodeAnalysis.VisualBasic.SyntaxFacts
+Imports System.Threading
+
+Module TestModule
+    Sub Main()
+        DoesntExist()
+    End Sub
+
+    <Extension>
+    Public Function ToFullWidth(c As Char) As Char
+        Return If(IsHalfWidth(c), MakeFullWidth(c), c)
+    End Function
+End Module
+    ]]></file>
+    <file name="b.vb"><![CDATA[
+Imports Microsoft.VisualBasic.Strings
+
+Namespace Global.Microsoft.CodeAnalysis.VisualBasic
+
+    Partial Public Class SyntaxFacts
+
+        Friend Shared Function MakeFullWidth(c As Char) As Char
+            Return c
+        End Function
+
+        Friend Shared Function IsHalfWidth(c As Char) As Boolean
+            Return c >= ChrW(&H21S) AndAlso c <= ChrW(&H7ES)
+        End Function
+    End Class
+End Namespace
+    ]]></file>
+</compilation>, {SystemCoreRef}, options:=TestOptions.DebugDll.WithRootNamespace("Microsoft.CodeAnalysis.VisualBasic.UnitTests"))
+
+            Dim semanticModel = CompilationUtils.GetSemanticModel(compilation, "a.vb")
+
+            semanticModel.GetDiagnostics().AssertTheseDiagnostics(<errors>
+BC50001: Unused import statement.
+Imports System.Threading
+~~~~~~~~~~~~~~~~~~~~~~~~
+BC30451: 'DoesntExist' is not declared. It may be inaccessible due to its protection level.
+        DoesntExist()
+        ~~~~~~~~~~~
+                                                                  </errors>, suppressInfos:=False)
+        End Sub
 
     End Class
 End Namespace

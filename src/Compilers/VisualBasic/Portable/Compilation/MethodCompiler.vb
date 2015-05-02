@@ -1,4 +1,4 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System
 Imports System.Collections.Concurrent
@@ -8,7 +8,6 @@ Imports System.Threading.Tasks
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Diagnostics
 Imports Microsoft.CodeAnalysis.Emit
-Imports Microsoft.CodeAnalysis.Instrumentation
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.VisualBasic.Emit
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -48,7 +47,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         '
         ' Stack is used so that the wait would observe the most recently added task and have 
         ' more chances to do inlined execution.
-        Private compilerTasks As ConcurrentStack(Of Task)
+        Private _compilerTasks As ConcurrentStack(Of Task)
 
         ' Tracks whether any method body has hasErrors set, and used to avoid
         ' emitting if there are errors without corresponding diagnostics.
@@ -97,11 +96,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If generateDebugInfo Then
                 Me._debugDocumentProvider = Function(path As String, basePath As String) moduleBeingBuiltOpt.GetOrAddDebugDocument(path, basePath, AddressOf CreateDebugDocumentForFile)
-                Me._namespaceScopeBuilder = New NamespaceScopeBuilder()
             End If
 
             If compilation.Options.ConcurrentBuild Then
-                Me.compilerTasks = New ConcurrentStack(Of Task)()
+                Me._compilerTasks = New ConcurrentStack(Of Task)()
             End If
         End Sub
 
@@ -195,22 +193,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                               diagnostics As DiagnosticBag,
                                               Optional cancellationToken As CancellationToken = Nothing)
 
-            Using Logger.LogBlock(FunctionId.VisualBasic_Compiler_CompileMethodBodies, message:=compilation.AssemblyName, cancellationToken:=cancellationToken)
-                If compilation.PreviousSubmission IsNot Nothing Then
-                    ' In case there is a previous submission, we should ensure 
-                    ' it has already created anonymous type/delegates templates
+            If compilation.PreviousSubmission IsNot Nothing Then
+                ' In case there is a previous submission, we should ensure 
+                ' it has already created anonymous type/delegates templates
 
-                    ' NOTE: if there are any errors, we will pick up what was created anyway
-                    compilation.PreviousSubmission.EnsureAnonymousTypeTemplates(cancellationToken)
+                ' NOTE: if there are any errors, we will pick up what was created anyway
+                compilation.PreviousSubmission.EnsureAnonymousTypeTemplates(cancellationToken)
 
-                    ' TODO: revise to use a loop instead of a recursion
-                End If
+                ' TODO: revise to use a loop instead of a recursion
+            End If
 
 #If DEBUG Then
-                compilation.EmbeddedSymbolManager.AssertMarkAllDeferredSymbolsAsReferencedIsCalled()
+            compilation.EmbeddedSymbolManager.AssertMarkAllDeferredSymbolsAsReferencedIsCalled()
 #End If
 
-                Dim compiler = New MethodCompiler(compilation,
+            Dim compiler = New MethodCompiler(compilation,
                                                   moduleBeingBuiltOpt,
                                                   generateDebugInfo,
                                                   doEmitPhase:=True,
@@ -219,43 +216,42 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                   filter:=filter,
                                                   cancellationToken:=cancellationToken)
 
-                compilation.SourceModule.GlobalNamespace.Accept(compiler)
+            compilation.SourceModule.GlobalNamespace.Accept(compiler)
+            compiler.WaitForWorkers()
+
+            If moduleBeingBuiltOpt IsNot Nothing Then
+                Dim additionalTypes = moduleBeingBuiltOpt.GetAdditionalTopLevelTypes()
+                If Not additionalTypes.IsEmpty Then
+                    compiler.CompileSynthesizedMethods(additionalTypes)
+                End If
+
+                compilation.AnonymousTypeManager.AssignTemplatesNamesAndCompile(compiler, moduleBeingBuiltOpt, diagnostics)
                 compiler.WaitForWorkers()
 
-                If moduleBeingBuiltOpt IsNot Nothing Then
-                    Dim additionalTypes = moduleBeingBuiltOpt.GetAdditionalTopLevelTypes()
-                    If Not additionalTypes.IsEmpty Then
-                        compiler.CompileSynthesizedMethods(additionalTypes)
-                    End If
-
-                    compilation.AnonymousTypeManager.AssignTemplatesNamesAndCompile(compiler, moduleBeingBuiltOpt, diagnostics)
-                    compiler.WaitForWorkers()
-
-                    ' Process symbols from embedded code if needed.
-                    If compilation.EmbeddedSymbolManager.Embedded <> EmbeddedSymbolKind.None Then
-                        compiler.ProcessEmbeddedMethods()
-                    End If
-
-                    Dim privateImplClass = moduleBeingBuiltOpt.PrivateImplClass
-                    If privateImplClass IsNot Nothing Then
-                        ' all threads that were adding methods must be finished now, we can freeze the class:
-                        privateImplClass.Freeze()
-
-                        compiler.CompileSynthesizedMethods(privateImplClass)
-                    End If
+                ' Process symbols from embedded code if needed.
+                If compilation.EmbeddedSymbolManager.Embedded <> EmbeddedSymbolKind.None Then
+                    compiler.ProcessEmbeddedMethods()
                 End If
 
-                Dim entryPoint = GetEntryPoint(compilation, moduleBeingBuiltOpt, diagnostics, cancellationToken)
-                If moduleBeingBuiltOpt IsNot Nothing Then
-                    moduleBeingBuiltOpt.SetEntryPoint(entryPoint)
+                Dim privateImplClass = moduleBeingBuiltOpt.PrivateImplClass
+                If privateImplClass IsNot Nothing Then
+                    ' all threads that were adding methods must be finished now, we can freeze the class:
+                    privateImplClass.Freeze()
 
-                    If compiler.GlobalHasErrors AndAlso Not hasDeclarationErrors AndAlso Not diagnostics.HasAnyErrors Then
-                        ' If there were errors but no diagnostics, explicitly add
-                        ' a "Failed to emit module" error to prevent emitting.
-                        diagnostics.Add(ERRID.ERR_ModuleEmitFailure, NoLocation.Singleton, moduleBeingBuiltOpt.SourceModule.Name)
-                    End If
+                    compiler.CompileSynthesizedMethods(privateImplClass)
                 End If
-            End Using
+            End If
+
+            Dim entryPoint = GetEntryPoint(compilation, moduleBeingBuiltOpt, diagnostics, cancellationToken)
+            If moduleBeingBuiltOpt IsNot Nothing Then
+                moduleBeingBuiltOpt.SetEntryPoint(entryPoint)
+
+                If (compiler.GlobalHasErrors OrElse moduleBeingBuiltOpt.SourceModule.HasBadAttributes) AndAlso Not hasDeclarationErrors AndAlso Not diagnostics.HasAnyErrors Then
+                    ' If there were errors but no diagnostics, explicitly add
+                    ' a "Failed to emit module" error to prevent emitting.
+                    diagnostics.Add(ERRID.ERR_ModuleEmitFailure, NoLocation.Singleton, moduleBeingBuiltOpt.SourceModule.Name)
+                End If
+            End If
         End Sub
 
         Friend Shared Function GetEntryPoint(compilation As VisualBasicCompilation,
@@ -301,12 +297,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Dim emittedBody = GenerateMethodBody(moduleBeingBuilt,
                                                      scriptEntryPoint,
-                                                     body,
+                                                     methodOrdinal:=DebugId.UndefinedOrdinal,
+                                                     block:=body,
+                                                     lambdaDebugInfo:=ImmutableArray(Of LambdaDebugInfo).Empty,
+                                                     closureDebugInfo:=ImmutableArray(Of ClosureDebugInfo).Empty,
                                                      stateMachineTypeOpt:=Nothing,
                                                      variableSlotAllocatorOpt:=Nothing,
                                                      debugDocumentProvider:=Nothing,
                                                      diagnostics:=diagnostics,
-                                                     namespaceScopes:=Nothing)
+                                                     generateDebugInfo:=False)
 
                 moduleBeingBuilt.SetMethodBody(scriptEntryPoint, emittedBody)
                 moduleBeingBuilt.AddSynthesizedDefinition(compilation.ScriptClass, scriptEntryPoint)
@@ -316,7 +315,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Private Sub WaitForWorkers()
-            Dim tasks As ConcurrentStack(Of Task) = Me.compilerTasks
+            Dim tasks As ConcurrentStack(Of Task) = Me._compilerTasks
             If tasks Is Nothing Then
                 Return
             End If
@@ -469,7 +468,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If Me._compilation.Options.ConcurrentBuild Then
                 Dim worker As Task = CompileNamespaceAsTask(symbol)
-                compilerTasks.Push(worker)
+                _compilerTasks.Push(worker)
             Else
                 CompileNamespace(symbol)
             End If
@@ -477,13 +476,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function CompileNamespaceAsTask(symbol As NamespaceSymbol) As Task
             Return Task.Run(
-                Sub()
-                    Try
-                        CompileNamespace(symbol)
-                    Catch e As Exception When FatalError.ReportUnlessCanceled(e)
-                        Throw ExceptionUtilities.Unreachable
-                    End Try
-                End Sub,
+                UICultureUtilities.WithCurrentUICulture(
+                    Sub()
+                        Try
+                            CompileNamespace(symbol)
+                        Catch e As Exception When FatalError.ReportUnlessCanceled(e)
+                            Throw ExceptionUtilities.Unreachable
+                        End Try
+                    End Sub),
                 Me._cancellationToken)
         End Function
 
@@ -500,7 +500,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             If PassesFilter(_filterOpt, symbol) Then
                 If Me._compilation.Options.ConcurrentBuild Then
                     Dim worker As Task = CompileNamedTypeAsTask(symbol, _filterOpt)
-                    compilerTasks.Push(worker)
+                    _compilerTasks.Push(worker)
                 Else
                     CompileNamedType(symbol, _filterOpt)
                 End If
@@ -509,13 +509,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Private Function CompileNamedTypeAsTask(symbol As NamedTypeSymbol, filter As Predicate(Of Symbol)) As Task
             Return Task.Run(
-                Sub()
-                    Try
-                        CompileNamedType(symbol, filter)
-                    Catch e As Exception When FatalError.ReportUnlessCanceled(e)
-                        Throw ExceptionUtilities.Unreachable
-                    End Try
-                End Sub,
+                UICultureUtilities.WithCurrentUICulture(
+                    Sub()
+                        Try
+                            CompileNamedType(symbol, filter)
+                        Catch e As Exception When FatalError.ReportUnlessCanceled(e)
+                            Throw ExceptionUtilities.Unreachable
+                        End Try
+                    End Sub),
                 Me._cancellationToken)
         End Function
 
@@ -846,12 +847,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Dim emittedBody = GenerateMethodBody(_moduleBeingBuiltOpt,
                                                      method,
-                                                     boundBody,
+                                                     methodOrdinal:=DebugId.UndefinedOrdinal,
+                                                     block:=boundBody,
+                                                     lambdaDebugInfo:=ImmutableArray(Of LambdaDebugInfo).Empty,
+                                                     closureDebugInfo:=ImmutableArray(Of ClosureDebugInfo).Empty,
                                                      stateMachineTypeOpt:=Nothing,
                                                      variableSlotAllocatorOpt:=Nothing,
                                                      debugDocumentProvider:=Nothing,
                                                      diagnostics:=diagnosticsThisMethod,
-                                                     namespaceScopes:=Nothing)
+                                                     generateDebugInfo:=False)
 
                 _diagnostics.AddRange(diagnosticsThisMethod)
                 diagnosticsThisMethod.Free()
@@ -880,11 +884,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Dim emittedBody As MethodBody = Nothing
 
                     If Not diagnosticsThisMethod.HasAnyErrors Then
-                        Dim variableSlotAllocatorOpt As VariableSlotAllocator = Nothing
+                        Dim lazyVariableSlotAllocator As VariableSlotAllocator = Nothing
                         Dim statemachineTypeOpt As StateMachineTypeSymbol = Nothing
 
-                        Dim lambdaOrdinalDispenser = 0
-                        Dim scopeOrdinalDispenser = 0
+                        Dim lambdaDebugInfoBuilder = ArrayBuilder(Of LambdaDebugInfo).GetInstance()
+                        Dim closureDebugInfoBuilder = ArrayBuilder(Of ClosureDebugInfo).GetInstance()
                         Dim delegateRelaxationIdDispenser = 0
 
                         Dim rewrittenBody = Rewriter.LowerBodyOrInitializer(
@@ -894,24 +898,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                             previousSubmissionFields:=Nothing,
                             compilationState:=compilationState,
                             diagnostics:=diagnosticsThisMethod,
-                            lambdaOrdinalDispenser:=lambdaOrdinalDispenser,
-                            scopeOrdinalDispenser:=scopeOrdinalDispenser,
+                            lazyVariableSlotAllocator:=lazyVariableSlotAllocator,
+                            lambdaDebugInfoBuilder:=lambdaDebugInfoBuilder,
+                            closureDebugInfoBuilder:=closureDebugInfoBuilder,
                             delegateRelaxationIdDispenser:=delegateRelaxationIdDispenser,
                             stateMachineTypeOpt:=statemachineTypeOpt,
-                            variableSlotAllocatorOpt:=variableSlotAllocatorOpt,
                             allowOmissionOfConditionalCalls:=_moduleBeingBuiltOpt.AllowOmissionOfConditionalCalls,
                             isBodySynthesized:=True)
 
                         If Not diagnosticsThisMethod.HasAnyErrors Then
+                            ' Synthesized methods have no ordinal stored in custom debug information
+                            ' (only user-defined methods have ordinals).
                             emittedBody = GenerateMethodBody(_moduleBeingBuiltOpt,
                                                              method,
+                                                             DebugId.UndefinedOrdinal,
                                                              rewrittenBody,
+                                                             lambdaDebugInfoBuilder.ToImmutable(),
+                                                             closureDebugInfoBuilder.ToImmutable(),
                                                              statemachineTypeOpt,
-                                                             variableSlotAllocatorOpt,
+                                                             lazyVariableSlotAllocator,
                                                              debugDocumentProvider:=Nothing,
                                                              diagnostics:=diagnosticsThisMethod,
-                                                             namespaceScopes:=Nothing)
+                                                             generateDebugInfo:=False)
                         End If
+
+                        lambdaDebugInfoBuilder.Free()
+                        closureDebugInfoBuilder.Free()
                     End If
 
                     _diagnostics.AddRange(diagnosticsThisMethod)
@@ -948,12 +960,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     Dim emittedBody = GenerateMethodBody(_moduleBeingBuiltOpt,
                                                          method,
-                                                         methodWithBody.Body,
+                                                         methodOrdinal:=DebugId.UndefinedOrdinal,
+                                                         block:=methodWithBody.Body,
+                                                         lambdaDebugInfo:=ImmutableArray(Of LambdaDebugInfo).Empty,
+                                                         closureDebugInfo:=ImmutableArray(Of ClosureDebugInfo).Empty,
                                                          stateMachineTypeOpt:=Nothing,
                                                          variableSlotAllocatorOpt:=Nothing,
                                                          debugDocumentProvider:=_debugDocumentProvider,
                                                          diagnostics:=diagnosticsThisMethod,
-                                                         namespaceScopes:=GetNamespaceScopes(methodWithBody.Method))
+                                                         generateDebugInfo:=_generateDebugInfo AndAlso method.GenerateDebugInfo)
 
                     _diagnostics.AddRange(diagnosticsThisMethod)
                     diagnosticsThisMethod.Free()
@@ -1177,7 +1192,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             If sourceMethod IsNot Nothing AndAlso sourceMethod.SetDiagnostics(diagsForCurrentMethod.ToReadOnly()) Then
                 Dim compilation = compilationState.Compilation
-                If compilation.EventQueue IsNot Nothing Then
+                If compilation.ShouldAddEvent(method) Then
                     If block Is Nothing Then
                         compilation.SymbolDeclaredEvent(sourceMethod)
                     Else
@@ -1212,7 +1227,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                    processedInitializers,
                                    previousSubmissionFields,
                                    If(injectConstructorCall, referencedConstructor, Nothing),
-                                   GetNamespaceScopes(method),
                                    delegateRelaxationIdDispenser)
 
                 ' if method happen to handle events of a base WithEvents, ensure that we have an overriding WithEvents property
@@ -1232,16 +1246,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             _diagnostics.AddRange(diagsForCurrentMethod)
             diagsForCurrentMethod.Free()
         End Sub
-
-        Private Function GetNamespaceScopes(method As MethodSymbol) As ImmutableArray(Of Cci.NamespaceScope)
-            Debug.Assert(Me._generateDebugInfo = (_namespaceScopeBuilder IsNot Nothing))
-
-            If _generateDebugInfo AndAlso method.GenerateDebugInfo Then
-                Return _namespaceScopeBuilder.GetNamespaceScopes(method)
-            End If
-
-            Return Nothing
-        End Function
 
         ''' <summary> 
         ''' If any of the "Handles" in the list have synthetic WithEvent override
@@ -1287,8 +1291,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 ' setter needs to rewritten as it may require lambda conversions
                 Dim setterBody = setter.GetBoundMethodBody(diagnostics, containingTypeBinder)
 
-                Dim lambdaOrdinalDispenser = 0
-                Dim scopeOrdinalDispenser = 0
+                Dim lambdaDebugInfoBuilder = ArrayBuilder(Of LambdaDebugInfo).GetInstance()
+                Dim closureDebugInfoBuilder = ArrayBuilder(Of ClosureDebugInfo).GetInstance()
 
                 setterBody = Rewriter.LowerBodyOrInitializer(setter,
                                                              withEventPropertyIdDispenser,
@@ -1296,17 +1300,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                              previousSubmissionFields,
                                                              compilationState,
                                                              diagnostics,
-                                                             lambdaOrdinalDispenser:=lambdaOrdinalDispenser,
-                                                             scopeOrdinalDispenser:=scopeOrdinalDispenser,
+                                                             lazyVariableSlotAllocator:=Nothing,
+                                                             lambdaDebugInfoBuilder:=lambdaDebugInfoBuilder,
+                                                             closureDebugInfoBuilder:=closureDebugInfoBuilder,
                                                              delegateRelaxationIdDispenser:=delegateRelaxationIdDispenser,
                                                              stateMachineTypeOpt:=Nothing,
-                                                             variableSlotAllocatorOpt:=Nothing,
                                                              allowOmissionOfConditionalCalls:=True,
                                                              isBodySynthesized:=True)
 
                 ' There shall be no lambdas in the synthesized accessor but delegate relaxation conversions:
-                Debug.Assert(lambdaOrdinalDispenser = 0)
-                Debug.Assert(scopeOrdinalDispenser = 0)
+                Debug.Assert(Not lambdaDebugInfoBuilder.Any())
+                Debug.Assert(Not closureDebugInfoBuilder.Any())
+
+                lambdaDebugInfoBuilder.Free()
+                closureDebugInfoBuilder.Free()
 
                 compilationState.AddMethodWrapper(setter, setter, setterBody)
                 _moduleBeingBuiltOpt.AddSynthesizedDefinition(containingType, setter)
@@ -1347,7 +1354,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             processedInitializers As Binder.ProcessedFieldOrPropertyInitializers,
             previousSubmissionFields As SynthesizedSubmissionFields,
             constructorToInject As MethodSymbol,
-            namespaceScopes As ImmutableArray(Of Cci.NamespaceScope),
             ByRef delegateRelaxationIdDispenser As Integer
         )
             Dim constructorInitializerOpt = If(constructorToInject Is Nothing,
@@ -1382,11 +1388,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 diagnostics = DiagnosticBag.GetInstance()
             End If
 
-            Dim variableSlotAllocatorOpt As VariableSlotAllocator = Nothing
+            Dim lazyVariableSlotAllocator As VariableSlotAllocator = Nothing
             Dim stateMachineTypeOpt As StateMachineTypeSymbol = Nothing
             Dim allowOmissionOfConditionalCalls = _moduleBeingBuiltOpt Is Nothing OrElse _moduleBeingBuiltOpt.AllowOmissionOfConditionalCalls
-            Dim lambdaOrdinalDispenser = 0
-            Dim scopeOrdinalDispenser = 0
+            Dim lambdaDebugInfoBuilder = ArrayBuilder(Of LambdaDebugInfo).GetInstance()
+            Dim closureDebugInfoBuilder = ArrayBuilder(Of ClosureDebugInfo).GetInstance()
 
             body = Rewriter.LowerBodyOrInitializer(method,
                                                    methodOrdinal,
@@ -1394,11 +1400,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                                                    previousSubmissionFields,
                                                    compilationState,
                                                    diagnostics,
-                                                   lambdaOrdinalDispenser,
-                                                   scopeOrdinalDispenser,
+                                                   lazyVariableSlotAllocator,
+                                                   lambdaDebugInfoBuilder,
+                                                   closureDebugInfoBuilder,
                                                    delegateRelaxationIdDispenser,
                                                    stateMachineTypeOpt,
-                                                   variableSlotAllocatorOpt,
                                                    allowOmissionOfConditionalCalls,
                                                    isBodySynthesized:=False)
 
@@ -1437,12 +1443,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' NOTE: additional check for statement.HasErrors is needed to identify parse errors which didn't get into diagsForCurrentMethod
             Dim methodBody As MethodBody = GenerateMethodBody(_moduleBeingBuiltOpt,
                                                               method,
+                                                              methodOrdinal,
                                                               body,
+                                                              lambdaDebugInfoBuilder.ToImmutable(),
+                                                              closureDebugInfoBuilder.ToImmutable(),
                                                               stateMachineTypeOpt,
-                                                              variableSlotAllocatorOpt,
+                                                              lazyVariableSlotAllocator,
                                                               _debugDocumentProvider,
                                                               diagnostics,
-                                                              namespaceScopes)
+                                                              generateDebugInfo:=_generateDebugInfo AndAlso method.GenerateDebugInfo)
 
             If diagnostics IsNot diagsForCurrentMethod Then
                 DirectCast(method.AssociatedSymbol, SynthesizedMyGroupCollectionPropertySymbol).RelocateDiagnostics(diagnostics, diagsForCurrentMethod)
@@ -1450,19 +1459,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             _moduleBeingBuiltOpt.SetMethodBody(If(method.PartialDefinitionPart, method), methodBody)
+
+            lambdaDebugInfoBuilder.Free()
+            closureDebugInfoBuilder.Free()
         End Sub
 
         Friend Shared Function GenerateMethodBody(moduleBuilder As PEModuleBuilder,
                                                   method As MethodSymbol,
+                                                  methodOrdinal As Integer,
                                                   block As BoundStatement,
+                                                  lambdaDebugInfo As ImmutableArray(Of LambdaDebugInfo),
+                                                  closureDebugInfo As ImmutableArray(Of ClosureDebugInfo),
                                                   stateMachineTypeOpt As StateMachineTypeSymbol,
                                                   variableSlotAllocatorOpt As VariableSlotAllocator,
                                                   debugDocumentProvider As DebugDocumentProvider,
                                                   diagnostics As DiagnosticBag,
-                                                  namespaceScopes As ImmutableArray(Of Cci.NamespaceScope)) As MethodBody
+                                                  generateDebugInfo As Boolean) As MethodBody
 
             Dim compilation = moduleBuilder.Compilation
-            Dim localSlotManager = New LocalSlotManager(variableSlotAllocatorOpt)
+            Dim localSlotManager = New localSlotManager(variableSlotAllocatorOpt)
             Dim optimizations = compilation.Options.OptimizationLevel
 
             If method.IsEmbedded Then
@@ -1470,13 +1485,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Dim builder As ILBuilder = New ILBuilder(moduleBuilder, localSlotManager, optimizations)
-            Dim emittingPdbs = Not namespaceScopes.IsDefault
 
             Try
                 Debug.Assert(Not diagnostics.HasAnyErrors)
 
                 Dim asyncDebugInfo As Cci.AsyncMethodBodyDebugInfo = Nothing
-                Dim codeGen = New CodeGen.CodeGenerator(method, block, builder, moduleBuilder, diagnostics, optimizations, emittingPdbs)
+                Dim codeGen = New codeGen.CodeGenerator(method, block, builder, moduleBuilder, diagnostics, optimizations, generateDebugInfo)
 
                 ' We need to save additional debugging information for MoveNext of an async state machine.
                 Dim stateMachineMethod = TryCast(method, SynthesizedStateMachineMethod)
@@ -1494,7 +1508,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                     ' In VB async method may be partial. Debug info needs to be associated with the emitted definition, 
                     ' but the kickoff method is the method implementation (the part with body).
-                    asyncDebugInfo = New Cci.AsyncMethodBodyDebugInfo(If(kickoffMethod.PartialDefinitionPart, kickoffMethod), asyncCatchHandlerOffset, asyncYieldPoints, asyncResumePoints)
+
+                    ' The exception handler IL offset is used by the debugger to treat exceptions caught by the marked catch block as "user unhandled".
+                    ' This is important for async void because async void exceptions generally result in the process being terminated,
+                    ' but without anything useful on the call stack. Async Task methods on the other hand return exceptions as the result of the Task.
+                    ' So it is undesirable to consider these exceptions "user unhandled" since there may well be user code that is awaiting the task.
+                    ' This is a heuristic since it's possible that there is no user code awaiting the task.
+                    asyncDebugInfo = New Cci.AsyncMethodBodyDebugInfo(
+                        If(kickoffMethod.PartialDefinitionPart, kickoffMethod),
+                        If(kickoffMethod.IsSub, asyncCatchHandlerOffset, -1),
+                        asyncYieldPoints,
+                        asyncResumePoints)
                 Else
                     codeGen.Generate()
                 End If
@@ -1514,6 +1538,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     Debug.Assert(method.IsAsync OrElse method.IsIterator)
                     GetStateMachineSlotDebugInfo(moduleBuilder.GetSynthesizedFields(stateMachineTypeOpt), stateMachineHoistedLocalSlots, stateMachineAwaiterSlots)
                 End If
+
+                Dim namespaceScopes = If(generateDebugInfo, moduleBuilder.SourceModule.GetSourceFile(method.Syntax.SyntaxTree), Nothing)
 
                 ' edgeInclusive must be true as that is what VB EE expects.
 
@@ -1536,18 +1562,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 'Error:
                 '    return hr;
                 '}
+                Dim localScopes = builder.GetAllScopes()
 
                 Return New MethodBody(builder.RealizedIL,
                                       builder.MaxStack,
                                       If(method.PartialDefinitionPart, method),
+                                      If(variableSlotAllocatorOpt?.MethodId, New DebugId(methodOrdinal, moduleBuilder.CurrentGenerationOrdinal)),
                                       builder.LocalSlotManager.LocalsInOrder(),
                                       builder.RealizedSequencePoints,
                                       debugDocumentProvider,
                                       builder.RealizedExceptionHandlers,
-                                      builder.GetAllScopes(edgeInclusive:=True),
+                                      localScopes,
                                       hasDynamicLocalVariables:=False,
-                                      namespaceScopes:=namespaceScopes,
-                                      namespaceScopeEncoding:=Cci.NamespaceScopeEncoding.Forwarding,
+                                      importScopeOpt:=namespaceScopes,
+                                      lambdaDebugInfo:=lambdaDebugInfo,
+                                      closureDebugInfo:=closureDebugInfo,
                                       stateMachineTypeNameOpt:=stateMachineTypeOpt?.Name, ' TODO: remove or update AddedOrChangedMethodInfo
                                       stateMachineHoistedLocalScopes:=Nothing,
                                       stateMachineHoistedLocalSlots:=stateMachineHoistedLocalSlots,
@@ -1659,32 +1688,32 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Private Class InitializeComponentCallTreeBuilder
             Inherits BoundTreeWalker
 
-            Private m_CalledMethods As HashSet(Of MethodSymbol)
-            Private ReadOnly m_ContainingType As NamedTypeSymbol
+            Private _calledMethods As HashSet(Of MethodSymbol)
+            Private ReadOnly _containingType As NamedTypeSymbol
 
             Private Sub New(containingType As NamedTypeSymbol)
-                m_ContainingType = containingType
+                _containingType = containingType
             End Sub
 
             Public Shared Sub CollectCallees(compilationState As TypeCompilationState, method As MethodSymbol, block As BoundBlock)
                 Dim visitor As New InitializeComponentCallTreeBuilder(method.ContainingType)
                 visitor.VisitBlock(block)
 
-                If visitor.m_CalledMethods IsNot Nothing Then
-                    compilationState.AddToInitializeComponentCallTree(method, visitor.m_CalledMethods.ToArray().AsImmutableOrNull())
+                If visitor._calledMethods IsNot Nothing Then
+                    compilationState.AddToInitializeComponentCallTree(method, visitor._calledMethods.ToArray().AsImmutableOrNull())
                 End If
             End Sub
 
             Public Overrides Function VisitCall(node As BoundCall) As BoundNode
                 If node.ReceiverOpt IsNot Nothing AndAlso
                    (node.ReceiverOpt.Kind = BoundKind.MeReference OrElse node.ReceiverOpt.Kind = BoundKind.MyClassReference) AndAlso
-                   Not node.Method.IsShared AndAlso node.Method.OriginalDefinition.ContainingType Is m_ContainingType Then
+                   Not node.Method.IsShared AndAlso node.Method.OriginalDefinition.ContainingType Is _containingType Then
 
-                    If m_CalledMethods Is Nothing Then
-                        m_CalledMethods = New HashSet(Of MethodSymbol)(ReferenceEqualityComparer.Instance)
+                    If _calledMethods Is Nothing Then
+                        _calledMethods = New HashSet(Of MethodSymbol)(ReferenceEqualityComparer.Instance)
                     End If
 
-                    m_CalledMethods.Add(node.Method.OriginalDefinition)
+                    _calledMethods.Add(node.Method.OriginalDefinition)
                 End If
 
                 Return MyBase.VisitCall(node)

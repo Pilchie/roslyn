@@ -41,7 +41,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         {
             if (!(occurrence > 0))
             {
-                throw new ArgumentException("Specified value must be greater than zero.", "occurrence");
+                throw new ArgumentException("Specified value must be greater than zero.", nameof(occurrence));
             }
             SyntaxNodeOrToken foundNode = default(SyntaxNodeOrToken);
             if (TryFindNodeOrToken(syntaxTree.GetCompilationUnitRoot(), kind, ref occurrence, ref foundNode))
@@ -180,7 +180,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         private static ImmutableArray<Symbol> GetMembers(NamespaceOrTypeSymbol container, string qualifiedName, out NamespaceOrTypeSymbol lastContainer)
         {
             var parts = SplitMemberName(qualifiedName);
-            
+
             lastContainer = container;
             for (int i = 0; i < parts.Length - 1; i++)
             {

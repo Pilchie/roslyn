@@ -1418,6 +1418,9 @@ If such a class is used as a base class and if the deriving class defines a dest
   <data name="ERR_RecursiveConstructorCall" xml:space="preserve">
     <value>Constructor '{0}' cannot call itself</value>
   </data>
+  <data name="ERR_IndirectRecursiveConstructorCall" xml:space="preserve">
+    <value>Constructor '{0}' cannot call itself through another constructor</value>
+  </data>
   <data name="ERR_ObjectCallingBaseConstructor" xml:space="preserve">
     <value>'{0}' has no base class and cannot call a base constructor</value>
   </data>
@@ -1546,9 +1549,6 @@ If such a class is used as a base class and if the deriving class defines a dest
   </data>
   <data name="ERR_EnumsCantContainDefaultConstructor" xml:space="preserve">
     <value>Enums cannot contain explicit parameterless constructors</value>
-  </data>
-  <data name="ERR_ParameterlessStructCtorsMustBePublic" xml:space="preserve">
-    <value>Parameterless instance constructors in structs must be public</value>
   </data>
   <data name="ERR_CantOverrideBogusMethod" xml:space="preserve">
     <value>'{0}': cannot override '{1}' because it is not supported by the language</value>
@@ -2272,6 +2272,9 @@ If such a class is used as a base class and if the deriving class defines a dest
   </data>
   <data name="ERR_UnexpectedCharacter" xml:space="preserve">
     <value>Unexpected character '{0}'</value>
+  </data>
+  <data name="ERR_UnexpectedToken" xml:space="preserve">
+    <value>Unexpected token '{0}'</value>
   </data>
   <data name="ERR_ProtectedInStatic" xml:space="preserve">
     <value>'{0}': static classes cannot contain protected members</value>
@@ -3222,7 +3225,7 @@ Give the compiler some way to differentiate the methods. For example, you can gi
     <value>No source files specified.</value>
   </data>
   <data name="WRN_NoSources_Title" xml:space="preserve">
-    <value>No source files specified.</value>
+    <value>No source files specified</value>
   </data>
   <data name="ERR_NoScriptsSpecified" xml:space="preserve">
     <value>Expected at least one script (.csx file) but none specified</value>
@@ -3357,7 +3360,7 @@ Give the compiler some way to differentiate the methods. For example, you can gi
     <value>'{0}': base type '{1}' is not CLS-compliant</value>
   </data>
   <data name="WRN_CLS_BadBase_Title" xml:space="preserve">
-    <value>'Base type is not CLS-compliant</value>
+    <value>Base type is not CLS-compliant</value>
   </data>
   <data name="WRN_CLS_BadBase_Description" xml:space="preserve">
     <value>A base type was marked as not having to be compliant with the Common Language Specification (CLS) in an assembly that was marked as being CLS compliant. Either remove the attribute that specifies the assembly is CLS compliant or remove the attribute that indicates the type is not CLS compliant.</value>
@@ -3708,7 +3711,7 @@ You should consider suppressing the warning only if you're sure that you don't w
     <value>The entry point of the program is global script code; ignoring '{0}' entry point.</value>
   </data>
   <data name="WRN_MainIgnored_Title" xml:space="preserve">
-    <value>The entry point of the program is global script code; ignoring entry point.</value>
+    <value>The entry point of the program is global script code; ignoring entry point</value>
   </data>
   <data name="ERR_StaticInAsOrIs" xml:space="preserve">
     <value>The second operand of an 'is' or 'as' operator may not be static type '{0}'</value>
@@ -4107,6 +4110,9 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
   <data name="ERR_EncReferenceToAddedMember" xml:space="preserve">
     <value>Member '{0}' added during the current debug session can only be accessed from within its declaring assembly '{1}'.</value>
   </data>
+  <data name="ERR_MutuallyExclusiveOptions" xml:space="preserve">
+    <value>Compilation options '{0}' and '{1}' can't both be specified at the same time.</value>
+  </data>
   <data name="ERR_LinkedNetmoduleMetadataMustProvideFullPEImage" xml:space="preserve">
     <value>Linked netmodule metadata must provide a full PE image: '{0}'.</value>
   </data>
@@ -4326,8 +4332,11 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
   <data name="ChainingSpeculativeModelIsNotSupported" xml:space="preserve">
     <value>Chaining speculative semantic model is not supported. You should create a speculative model from the non-speculative ParentModel.</value>
   </data>
+  <data name="IDS_ToolName" xml:space="preserve">
+    <value>Microsoft (R) Visual C# Compiler</value>
+  </data>
   <data name="IDS_LogoLine1" xml:space="preserve">
-    <value>Microsoft (R) Visual C# Compiler version {0}</value>
+    <value>{0} version {1}</value>
   </data>
   <data name="IDS_LogoLine2" xml:space="preserve">
     <value>Copyright (C) Microsoft Corporation. All rights reserved.</value>
@@ -4396,7 +4405,9 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
  /nowarn:&lt;warn list&gt;           Disable specific warning messages
  /ruleset:&lt;file&gt;               Specify a ruleset file that disables specific
                                diagnostics.
-
+ /errorlog:&lt;file&gt;              Specify a file to log all compiler and analyzer
+                               diagnostics.
+ 
                         - LANGUAGE -
  /checked[+|-]                 Generate overflow checks
  /unsafe[+|-]                  Allow 'unsafe' code
@@ -4493,6 +4504,9 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
   <data name="ERR_CantReadRulesetFile" xml:space="preserve">
     <value>Error reading ruleset file {0} - {1}</value>
   </data>
+  <data name="ERR_BadPdbData" xml:space="preserve">
+    <value>Error reading debug information for '{0}'</value>
+  </data>
   <data name="IDS_OperationCausedStackOverflow" xml:space="preserve">
     <value>Operation caused a stack overflow.</value>
   </data>
@@ -4538,14 +4552,14 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
   <data name="ERR_DictionaryInitializerInExpressionTree" xml:space="preserve">
     <value>An expression tree lambda may not contain a dictionary initializer.</value>
   </data>
+  <data name="ERR_ExtensionCollectionElementInitializerInExpressionTree" xml:space="preserve">
+    <value>An extension Add method is not supported for a collection initializer in an expression lambda.</value>
+  </data>
   <data name="IDS_FeatureNameof" xml:space="preserve">
     <value>nameof operator</value>
   </data>
   <data name="IDS_FeatureDictionaryInitializer" xml:space="preserve">
     <value>dictionary initializer</value>
-  </data>
-  <data name="IDS_FeatureStructParameterlessConstructors" xml:space="preserve">
-    <value>struct instance parameterless constructors</value>
   </data>
   <data name="ERR_UnclosedExpressionHole" xml:space="preserve">
     <value>Missing close delimiter '}' for interpolated expression started with '{'.</value>
@@ -4605,16 +4619,16 @@ To remove the warning, you can use /reference instead (set the Embed Interop Typ
     <value>Alignment value {0} has a magnitude greater than {1} and may result in a large formatted string.</value>
   </data>
   <data name="HDN_UnusedExternAlias_Title" xml:space="preserve">
-    <value>Unused extern alias.</value>
+    <value>Unused extern alias</value>
   </data>
   <data name="HDN_UnusedUsingDirective_Title" xml:space="preserve">
-    <value>Unnecessary using directive.</value>
+    <value>Unnecessary using directive</value>
   </data>
   <data name="INF_UnableToLoadSomeTypesInAnalyzer_Title" xml:space="preserve">
-    <value>Skip loading types in analyzer assembly that fail due to a ReflectionTypeLoadException.</value>
+    <value>Skip loading types in analyzer assembly that fail due to a ReflectionTypeLoadException</value>
   </data>
   <data name="WRN_AlignmentMagnitude_Title" xml:space="preserve">
-    <value>Alignment value has a magnitude that may result in a large formatted string.</value>
+    <value>Alignment value has a magnitude that may result in a large formatted string</value>
   </data>
   <data name="ERR_ContantStringTooLong" xml:space="preserve">
     <value>Length of String constant exceeds current memory limit.  Try splitting the string into multiple constants.</value>

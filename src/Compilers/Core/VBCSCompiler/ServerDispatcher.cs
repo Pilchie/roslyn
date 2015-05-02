@@ -11,16 +11,14 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
-using Roslyn.Utilities;
 using System.Globalization;
-using System.Reflection;
 
 namespace Microsoft.CodeAnalysis.CompilerServer
 {
     /// <summary>
     /// The interface used by <see cref="ServerDispatcher"/> to dispatch requests.
     /// </summary>
-    interface IRequestHandler
+    internal interface IRequestHandler
     {
         BuildResponse HandleRequest(BuildRequest req, CancellationToken cancellationToken);
     }
@@ -34,7 +32,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
     /// <remarks>
     /// One instance of this is created per process.
     /// </remarks>
-    partial class ServerDispatcher
+    internal partial class ServerDispatcher
     {
         private class ConnectionData
         {
@@ -51,13 +49,13 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// <summary>
         /// Default time the server will stay alive after the last request disconnects.
         /// </summary>
-        private static readonly TimeSpan DefaultServerKeepAlive = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan s_defaultServerKeepAlive = TimeSpan.FromMinutes(10);
 
         /// <summary>
         /// Time to delay after the last connection before initiating a garbage collection
         /// in the server. 
         /// </summary>
-        private static readonly TimeSpan GCTimeout = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan s_GCTimeout = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// Main entry point for the process. Initialize the server dispatcher
@@ -69,6 +67,23 @@ namespace Microsoft.CodeAnalysis.CompilerServer
             CompilerServerLogger.Log("Process started");
 
             TimeSpan? keepAliveTimeout = null;
+
+            // VBCSCompiler is installed in the same directory as csc.exe and vbc.exe which is also the 
+            // location of the response files.
+            var compilerExeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Pipename should be passed as the first and only argument to the server process
+            // and it must have the form "-pipename:name". Otherwise, exit with a non-zero
+            // exit code
+            const string pipeArgPrefix = "-pipename:";
+            if (args.Length != 1 ||
+                args[0].Length <= pipeArgPrefix.Length ||
+                !args[0].StartsWith(pipeArgPrefix))
+            {
+                return CommonCompiler.Failed;
+            }
+
+            var pipeName = args[0].Substring(pipeArgPrefix.Length);
 
             try
             {
@@ -89,36 +104,32 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 }
                 else
                 {
-                    keepAliveTimeout = DefaultServerKeepAlive;
+                    keepAliveTimeout = s_defaultServerKeepAlive;
                 }
             }
             catch (ConfigurationErrorsException e)
             {
-                keepAliveTimeout = DefaultServerKeepAlive;
+                keepAliveTimeout = s_defaultServerKeepAlive;
                 CompilerServerLogger.LogException(e, "Could not read AppSettings");
             }
 
             CompilerServerLogger.Log("Keep alive timeout is: {0} milliseconds.", keepAliveTimeout?.TotalMilliseconds ?? 0);
             FatalError.Handler = FailFast.OnFatalException;
 
-            // VBCSCompiler is installed in the same directory as csc.exe and vbc.exe which is also the 
-            // location of the response files.
-            var responseFileDirectory = CommonCompiler.GetResponseFileDirectory();
-            var dispatcher = new ServerDispatcher(new CompilerRequestHandler(responseFileDirectory), new EmptyDiagnosticListener());
+            var dispatcher = new ServerDispatcher(new CompilerRequestHandler(compilerExeDirectory), new EmptyDiagnosticListener());
 
-            // Add the process ID onto the pipe name so each process gets a semi-unique and predictable pipe 
-            // name.  The client must use this algorithm too to connect.
-            string pipeName = BuildProtocolConstants.PipeName + Process.GetCurrentProcess().Id.ToString();
-
-            dispatcher.ListenAndDispatchConnections(pipeName, keepAliveTimeout, watchAnalyzerFiles: true);
-            return 0;
+            dispatcher.ListenAndDispatchConnections(
+                pipeName,
+                keepAliveTimeout,
+                watchAnalyzerFiles: true);
+            return CommonCompiler.Succeeded;
         }
 
         // Size of the buffers to use
         private const int PipeBufferSize = 0x10000;  // 64K
 
-        private readonly IRequestHandler handler;
-        private readonly IDiagnosticListener diagnosticListener;
+        private readonly IRequestHandler _handler;
+        private readonly IDiagnosticListener _diagnosticListener;
 
         /// <summary>
         /// Create a new server that listens on the given base pipe name.
@@ -127,8 +138,8 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// </summary>
         public ServerDispatcher(IRequestHandler handler, IDiagnosticListener diagnosticListener)
         {
-            this.handler = handler;
-            this.diagnosticListener = diagnosticListener;
+            _handler = handler;
+            _diagnosticListener = diagnosticListener;
         }
 
         /// <summary>
@@ -144,6 +155,9 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// test framework.  The code hooks <see cref="AppDomain.AssemblyResolve"/> in a way
         /// that prevents xUnit from running correctly and hence must be disabled. 
         /// </remarks>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", 
+            MessageId = "System.GC.Collect", 
+            Justification ="We intentionally call GC.Collect when anticipate long period on inactivity.")]
         public void ListenAndDispatchConnections(string pipeName, TimeSpan? keepAlive, bool watchAnalyzerFiles, CancellationToken cancellationToken = default(CancellationToken))
         {
             Debug.Assert(SynchronizationContext.Current == null);
@@ -157,7 +171,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
             // If we aren't being asked to watch analyzer files then simple create a Task which never 
             // completes.  This is the behavior of AnalyzerWatcher when files don't change on disk.
-            Task analyzerTask = watchAnalyzerFiles ? AnalyzerWatcher.CreateWatchFilesTask() : new TaskCompletionSource<bool>().Task;
+            Task analyzerTask = watchAnalyzerFiles ? CompilerServerFileWatcher.CreateWatchFilesTask() : new TaskCompletionSource<bool>().Task;
 
             do
             {
@@ -219,9 +233,8 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
                 if (connectionList.Count == 0 && gcTask == null)
                 {
-                    gcTask = Task.Delay(GCTimeout);
+                    gcTask = Task.Delay(s_GCTimeout);
                 }
-
             } while (true);
 
             try
@@ -289,7 +302,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
             int processedCount = connectionList.RemoveAll(x => x.ConnectionTask.IsCompleted);
             if (processedCount > 0)
             {
-                this.diagnosticListener.ConnectionProcessed(processedCount);
+                _diagnosticListener.ConnectionProcessed(processedCount);
             }
 
             return allFine;
@@ -310,7 +323,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 {
                     keepAlive = value;
                     isKeepAliveDefault = false;
-                    this.diagnosticListener.UpdateKeepAlive(value.Value);
+                    _diagnosticListener.UpdateKeepAlive(value.Value);
                 }
             }
         }
@@ -405,7 +418,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         {
             var pipeStream = await pipeStreamTask.ConfigureAwait(false);
             var clientConnection = new NamedPipeClientConnection(pipeStream);
-            var connection = new Connection(clientConnection, this.handler);
+            var connection = new Connection(clientConnection, _handler);
             return await connection.ServeConnection(changeKeepAliveSource, cancellationToken).ConfigureAwait(false);
         }
 

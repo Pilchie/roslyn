@@ -30,7 +30,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// the main module. If there is no existing assembly that can be used as a source for the primitive types, 
         /// the value is a Compilation.MissingCorLibrary. 
         /// </summary>
-        private AssemblySymbol corLibrary;
+        private AssemblySymbol _corLibrary;
 
         /// <summary>
         /// The system assembly, which provides primitive types like Object, String, etc., e.g. mscorlib.dll. 
@@ -42,7 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                return corLibrary;
+                return _corLibrary;
             }
         }
 
@@ -52,8 +52,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// </summary>
         internal void SetCorLibrary(AssemblySymbol corLibrary)
         {
-            Debug.Assert((object)this.corLibrary == null);
-            this.corLibrary = corLibrary;
+            Debug.Assert((object)_corLibrary == null);
+            _corLibrary = corLibrary;
         }
 
         /// <summary>
@@ -331,7 +331,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             if (fullyQualifiedMetadataName == null)
             {
-                throw new ArgumentNullException("fullyQualifiedMetadataName");
+                throw new ArgumentNullException(nameof(fullyQualifiedMetadataName));
             }
 
             var emittedName = MetadataTypeName.FromFullName(fullyQualifiedMetadataName);
@@ -505,7 +505,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             if (fullyQualifiedMetadataName == null)
             {
-                throw new ArgumentNullException("fullyQualifiedMetadataName");
+                throw new ArgumentNullException(nameof(fullyQualifiedMetadataName));
             }
 
             return this.GetTypeByMetadataName(fullyQualifiedMetadataName, includeReferences: false, isWellKnownType: false);
@@ -542,7 +542,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             if (metadataName.IndexOf('+') >= 0)
             {
-                var parts = metadataName.Split(_nestedTypeNameSeparators);
+                var parts = metadataName.Split(s_nestedTypeNameSeparators);
                 if (parts.Length > 0)
                 {
                     mdName = MetadataTypeName.FromFullName(parts[0], useCLSCompliantNameArityEncoding);
@@ -564,7 +564,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             return ((object)type == null || type.IsErrorType()) ? null : type;
         }
 
-        private static readonly char[] _nestedTypeNameSeparators = new char[] { '+' };
+        private static readonly char[] s_nestedTypeNameSeparators = new char[] { '+' };
 
         /// <summary>
         /// Resolves <see cref="System.Type"/> to a <see cref="TypeSymbol"/> available in this assembly
@@ -579,7 +579,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             Debug.Assert(!typeInfo.IsByRef);
 
-            // not supported rigth now (we don't accept open types as submission results nor host types):
+            // not supported (we don't accept open types as submission results nor host types):
             Debug.Assert(!typeInfo.ContainsGenericParameters);
 
             if (typeInfo.IsArray)

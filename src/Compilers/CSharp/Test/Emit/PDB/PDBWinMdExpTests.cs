@@ -21,12 +21,12 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.PDB
 </token-map>";
 
             var compilation = CreateCompilationWithMscorlib45(
-                text, 
+                text,
                 options: TestOptions.ReleaseWinMD,
-                sourceFileName:"source.cs").VerifyDiagnostics();
+                sourceFileName: "source.cs").VerifyDiagnostics();
 
             string actual = GetTokenToLocationMap(compilation, true);
-            AssertXmlEqual(expected, actual);
+            AssertXml.Equal(expected, actual);
         }
 
         [Fact]
@@ -98,7 +98,7 @@ namespace X
                 sourceFileName: "source.cs").VerifyDiagnostics();
 
             string actual = GetTokenToLocationMap(compilation, true);
-            AssertXmlEqual(expected, actual);
+            AssertXml.Equal(expected, actual);
         }
 
         [WorkItem(693206, "DevDiv")]
@@ -145,7 +145,7 @@ namespace X
                 sourceFileName: "source.cs").VerifyDiagnostics();
 
             string actual = GetTokenToLocationMap(compilation, true);
-            AssertXmlEqual(expected, actual);
+            AssertXml.Equal(expected, actual);
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace X
                     Diagnostic(ErrorCode.WRN_UnreferencedEvent, "E2").WithArguments("X.TestCase.E2"));
 
             string actual = GetTokenToLocationMap(compilation, true);
-            AssertXmlEqual(expected, actual);
+            AssertXml.Equal(expected, actual);
         }
 
         [Fact]
@@ -260,7 +260,7 @@ namespace X
                 sourceFileName: "source.cs").VerifyDiagnostics();
 
             string actual = GetTokenToLocationMap(compilation, true);
-            AssertXmlEqual(expected, actual);
+            AssertXml.Equal(expected, actual);
         }
     }
 }

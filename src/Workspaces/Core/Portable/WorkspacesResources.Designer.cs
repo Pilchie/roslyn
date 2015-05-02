@@ -413,7 +413,7 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An error occured while reading the specified configuration file: {0}.
+        ///   Looks up a localized string similar to An error occurred while reading the specified configuration file: {0}.
         /// </summary>
         internal static string ErrorWhileReadingSpecifiedConfigFile {
             get {
@@ -467,7 +467,7 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Destination type must be a {0}..
+        ///   Looks up a localized string similar to Destination type must be a {0}, but given one is {1}..
         /// </summary>
         internal static string InvalidDestinationNode {
             get {
@@ -476,7 +476,7 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Destination type must be a {0} or a {1}..
+        ///   Looks up a localized string similar to Destination type must be a {0} or a {1}, but given one is {2}..
         /// </summary>
         internal static string InvalidDestinationNode2 {
             get {
@@ -485,7 +485,7 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Destination type must be a {0}, {1} or {2}..
+        ///   Looks up a localized string similar to Destination type must be a {0}, {1} or {2}, but given one is {3}..
         /// </summary>
         internal static string InvalidDestinationNode3 {
             get {
@@ -755,6 +755,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to This workspace does not support opening and closing documents..
+        /// </summary>
+        internal static string OpenDocumentNotSupported {
+            get {
+                return ResourceManager.GetString("OpenDocumentNotSupported", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Specified path must be absolute..
         /// </summary>
         internal static string PathMustBeAbsolute {
@@ -863,15 +872,6 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Remove Unnecessary Imports/Usings..
-        /// </summary>
-        internal static string RemoveUnnecessaryImportsOrUsings {
-            get {
-                return ResourceManager.GetString("RemoveUnnecessaryImportsOrUsings", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Removing additional documents is not supported..
         /// </summary>
         internal static string RemovingAdditionalDocumentsIsNotSupported {
@@ -971,6 +971,15 @@ namespace Microsoft.CodeAnalysis {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The node is not part of the tree..
+        /// </summary>
+        internal static string TheNodeIsNotPartOfTheTree {
+            get {
+                return ResourceManager.GetString("TheNodeIsNotPartOfTheTree", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The position is not within the symbol&apos;s declaration.
         /// </summary>
         internal static string ThePositionIsNotWithinTheSymbolsDeclaration {
@@ -1021,6 +1030,15 @@ namespace Microsoft.CodeAnalysis {
         internal static string UnsupportedLanguage {
             get {
                 return ResourceManager.GetString("UnsupportedLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Usage:.
+        /// </summary>
+        internal static string Usage {
+            get {
+                return ResourceManager.GetString("Usage", resourceCulture);
             }
         }
         

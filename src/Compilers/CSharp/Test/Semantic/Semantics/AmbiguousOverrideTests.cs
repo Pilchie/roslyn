@@ -62,7 +62,6 @@ class EntryPoint
 
 ";
             CompileAndVerify(source, expectedOutput: "121314");
-
         }
 
         [WorkItem(544936, "DevDiv")]
@@ -321,7 +320,7 @@ public class Test
 ";
             var asm = TestReferences.SymbolsTests.CustomModifiers.ModoptTests;
 
-            CreateCompilationWithMscorlib(text, new[] { asm}).VerifyDiagnostics(
+            CreateCompilationWithMscorlib(text, new[] { asm }).VerifyDiagnostics(
                 Diagnostic(ErrorCode.ERR_AmbigMember, "P").WithArguments("Metadata.ModoptPropAmbiguous.P", "Metadata.ModoptPropAmbiguous.P")
             );
         }
@@ -430,7 +429,7 @@ class Test
                 Diagnostic(ErrorCode.ERR_OverrideNotExpected, "M").WithArguments("Test.D.M(uint)"));
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideMethod_FewestCustomModifiers_BothCorrect()
         {
             var il = @"
@@ -482,7 +481,7 @@ public class Derived : Base
             Assert.NotEqual(baseMethod2, derivedMethod.OverriddenMethod);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideMethod_FewestCustomModifiers_OneCorrect()
         {
             var il = @"
@@ -537,7 +536,7 @@ public class Derived : Base
             Assert.NotEqual(baseMethod2, derivedMethod.OverriddenMethod);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideProperty_FewestCustomModifiers_BothCorrect()
         {
             var il = @"
@@ -602,7 +601,7 @@ public class Derived : Base
             Assert.NotEqual(baseProperty2, derivedProperty.OverriddenProperty);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideProperty_FewestCustomModifiers_OneCorrect()
         {
             var il = @"
@@ -670,7 +669,7 @@ public class Derived : Base
             Assert.NotEqual(baseProperty2, derivedProperty.OverriddenProperty);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideIndexer_FewestCustomModifiers_BothCorrect()
         {
             var il = @"
@@ -741,7 +740,7 @@ public class Derived : Base
             Assert.NotEqual(baseProperty2, derivedProperty.OverriddenProperty);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideIndexer_FewestCustomModifiers_OneCorrect()
         {
             var il = @"
@@ -815,7 +814,7 @@ public class Derived : Base
             Assert.NotEqual(baseProperty2, derivedProperty.OverriddenProperty);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideEvent_FewestCustomModifiers_BothCorrect()
         {
             var il = @"
@@ -894,7 +893,7 @@ public class Derived : Base
             Assert.NotEqual(baseEvent2, derivedEvent.OverriddenEvent);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void TestOverrideEvent_FewestCustomModifiers_OneCorrect()
         {
             var il = @"
@@ -977,9 +976,9 @@ public class Derived : Base
             Assert.NotEqual(baseEvent2, derivedEvent.OverriddenEvent);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void ModOptTestWithErrors()
-        {           
+        {
             // NOTE: removed Microsoft.VisualC attributes
             var il = @"
 .class public sequential ansi sealed beforefieldinit ModA
@@ -1156,9 +1155,9 @@ class M
                 Diagnostic(ErrorCode.ERR_AmbigCall, "F").WithArguments("CG<T>.F(T)", "CG<T>.F(T)"));
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void ModOptTest()
-        {            
+        {
             // NOTE: removed Microsoft.VisualC attributes
             var il = @"
 .class public sequential ansi sealed beforefieldinit ModA
@@ -1306,7 +1305,7 @@ class M
     }
 }
 ";
-            
+
             var reference = CompileIL(il, appendDefaultHeader: true);
 
             var verifier = CompileAndVerify(csharp, new[] { reference }, options: TestOptions.ReleaseExe, expectedOutput: @"

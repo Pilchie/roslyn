@@ -378,11 +378,11 @@ namespace Microsoft.Cci
         {
         }
 
-        public virtual void VisitNestedTypes(IEnumerable<INamedTypeDefinition> nestedTypes)
+        public void VisitNestedTypes(IEnumerable<INamedTypeDefinition> nestedTypes)
         {
             foreach (ITypeDefinitionMember nestedType in nestedTypes)
             {
-                this.Visit((ITypeDefinitionMember)nestedType);
+                this.Visit(nestedType);
             }
         }
 
@@ -462,7 +462,6 @@ namespace Microsoft.Cci
 
         public virtual void Visit(IPlatformInvokeInformation platformInvokeInformation)
         {
-
         }
 
         public virtual void Visit(IPointerTypeReference pointerTypeReference)

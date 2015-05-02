@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using Microsoft.CodeAnalysis.VisualBasic;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -12,23 +10,30 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 {
     internal sealed class VisualBasicCompilerServer : VisualBasicCompiler
     {
-        internal VisualBasicCompilerServer(string responseFile, string[] args, string baseDirectory, string libDirectory)
-            : base(VisualBasicCommandLineParser.Default, responseFile, args, baseDirectory, libDirectory)
+        internal VisualBasicCompilerServer(string[] args, string clientDirectory, string baseDirectory, string sdkDirectory, string libDirectory, IAnalyzerAssemblyLoader analyzerLoader)
+            : base(VisualBasicCommandLineParser.Default, clientDirectory != null ? Path.Combine(clientDirectory, ResponseFileName) : null, args, clientDirectory, baseDirectory, sdkDirectory, libDirectory, analyzerLoader)
         {
         }
 
         public static int RunCompiler(
-            string responseFileDirectory,
+            string clientDirectory,
             string[] args,
             string baseDirectory,
+            string sdkDirectory,
             string libDirectory,
+            IAnalyzerAssemblyLoader analyzerLoader,
             TextWriter output,
             CancellationToken cancellationToken,
             out bool utf8output)
         {
-            var responseFile = Path.Combine(responseFileDirectory, VisualBasicCompiler.ResponseFileName);
-            var compiler = new VisualBasicCompilerServer(responseFile, args, baseDirectory, libDirectory);
+            var compiler = new VisualBasicCompilerServer(args, clientDirectory, baseDirectory, sdkDirectory, libDirectory, analyzerLoader);
             utf8output = compiler.Arguments.Utf8Output;
+
+            foreach (var analyzer in compiler.Arguments.AnalyzerReferences)
+            {
+                CompilerServerFileWatcher.AddPath(analyzer.FilePath);
+            }
+
             return compiler.Run(output, cancellationToken);
         }
 

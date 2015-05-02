@@ -4,6 +4,7 @@ Imports System.Collections.Concurrent
 Imports System.Collections.Immutable
 Imports System.Reflection.PortableExecutable
 Imports System.Runtime.InteropServices
+Imports System.Threading
 Imports Microsoft.CodeAnalysis.CodeGen
 Imports Microsoft.CodeAnalysis.Emit
 Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
@@ -11,21 +12,23 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
 
     Partial Friend MustInherit Class PEModuleBuilder
-        Inherits PEModuleBuilder(Of VisualBasicCompilation, Symbol, SourceModuleSymbol, ModuleSymbol, AssemblySymbol, NamespaceSymbol, TypeSymbol, NamedTypeSymbol, MethodSymbol, VisualBasicSyntaxNode, NoPia.EmbeddedTypesManager, ModuleCompilationState)
+        Inherits PEModuleBuilder(Of VisualBasicCompilation, SourceModuleSymbol, AssemblySymbol, TypeSymbol, NamedTypeSymbol, MethodSymbol, VisualBasicSyntaxNode, NoPia.EmbeddedTypesManager, ModuleCompilationState)
 
         ' Not many methods should end up here.
-        Private ReadOnly m_DisableJITOptimization As ConcurrentDictionary(Of MethodSymbol, Boolean) = New ConcurrentDictionary(Of MethodSymbol, Boolean)(ReferenceEqualityComparer.Instance)
+        Private ReadOnly _disableJITOptimization As ConcurrentDictionary(Of MethodSymbol, Boolean) = New ConcurrentDictionary(Of MethodSymbol, Boolean)(ReferenceEqualityComparer.Instance)
 
         ' Gives the name of this module (may not reflect the name of the underlying symbol).
         ' See Assembly.MetadataName.
-        Private ReadOnly m_MetadataName As String
+        Private ReadOnly _metadataName As String
 
-        Private m_LazyExportedTypes As ImmutableArray(Of TypeExport(Of NamedTypeSymbol))
+        Private _lazyExportedTypes As ImmutableArray(Of TypeExport(Of NamedTypeSymbol))
+        Private _lazyImports As ImmutableArray(Of Cci.UsedNamespaceOrType)
+        Private _lazyDefaultNamespace As String
 
         ' These fields will only be set when running tests.  They allow realized IL for a given method to be looked up by method display name.
-        Private m_TestData As ConcurrentDictionary(Of String, CompilationTestData.MethodData)
-        Private m_TestDataKeyFormat As SymbolDisplayFormat
-        Private m_TestDataOperatorKeyFormat As SymbolDisplayFormat
+        Private _testData As ConcurrentDictionary(Of String, CompilationTestData.MethodData)
+        Private _testDataKeyFormat As SymbolDisplayFormat
+        Private _testDataOperatorKeyFormat As SymbolDisplayFormat
 
         Friend Sub New(sourceModule As SourceModuleSymbol,
                        emitOptions As EmitOptions,
@@ -45,14 +48,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
 
             Dim specifiedName = sourceModule.MetadataName
 
-            m_MetadataName = If(specifiedName <> Microsoft.CodeAnalysis.Compilation.UnspecifiedModuleAssemblyName,
+            _metadataName = If(specifiedName <> Microsoft.CodeAnalysis.Compilation.UnspecifiedModuleAssemblyName,
                                 specifiedName,
                                 If(emitOptions.OutputNameOverride, specifiedName))
 
             m_AssemblyOrModuleSymbolToModuleRefMap.Add(sourceModule, Me)
 
             If sourceModule.AnyReferencedAssembliesAreLinked Then
-                m_EmbeddedTypesManagerOpt = New NoPia.EmbeddedTypesManager(Me)
+                _embeddedTypesManagerOpt = New NoPia.EmbeddedTypesManager(Me)
             End If
         End Sub
 
@@ -66,19 +69,59 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
 
         Friend Overrides ReadOnly Property Name As String
             Get
-                Return m_MetadataName
+                Return _metadataName
             End Get
         End Property
 
         Friend NotOverridable Overrides ReadOnly Property ModuleName As String
             Get
-                Return m_MetadataName
+                Return _metadataName
             End Get
         End Property
 
         Friend NotOverridable Overrides ReadOnly Property CorLibrary As AssemblySymbol
             Get
                 Return SourceModule.ContainingSourceAssembly.CorLibrary
+            End Get
+        End Property
+
+        Protected Overrides ReadOnly Property GenerateVisualBasicStylePdb As Boolean
+            Get
+                Return True
+            End Get
+        End Property
+
+        Protected Overrides ReadOnly Property LinkedAssembliesDebugInfo As IEnumerable(Of String)
+            Get
+                ' NOTE: Dev12 does not seem to emit anything but the name (i.e. no version, token, etc).
+                ' See Builder::WriteNoPiaPdbList
+                Return SourceModule.ReferencedAssemblySymbols.Where(Function(a) a.IsLinked).Select(Function(a) a.Name)
+            End Get
+        End Property
+
+        Protected NotOverridable Overrides Function GetImports(context As EmitContext) As ImmutableArray(Of Cci.UsedNamespaceOrType)
+            If _lazyImports.IsDefault Then
+                ImmutableInterlocked.InterlockedInitialize(
+                    _lazyImports,
+                    NamespaceScopeBuilder.BuildNamespaceScope(context, SourceModule.XmlNamespaces, SourceModule.AliasImports, SourceModule.MemberImports))
+            End If
+
+            Return _lazyImports
+        End Function
+
+        Protected NotOverridable Overrides ReadOnly Property DefaultNamespace As String
+            Get
+                If _lazyDefaultNamespace IsNot Nothing Then
+                    Return _lazyDefaultNamespace
+                End If
+
+                Dim rootNamespace = SourceModule.RootNamespace
+                If rootNamespace Is Nothing OrElse rootNamespace.IsGlobalNamespace Then
+                    Return Nothing
+                End If
+
+                _lazyDefaultNamespace = rootNamespace.ToDisplayString(SymbolDisplayFormat.QualifiedNameOnlyFormat)
+                Return _lazyDefaultNamespace
             End Get
         End Property
 
@@ -120,15 +163,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                Not (refMachine = Machine.I386 AndAlso Not assembly.Bit32Required) Then
                 Dim machine = SourceModule.Machine
 
-                If Not (machine = Machine.I386 AndAlso Not SourceModule.Bit32Required) AndAlso
+                If Not (machine = machine.I386 AndAlso Not SourceModule.Bit32Required) AndAlso
                     machine <> refMachine Then
                     ' Different machine types, and neither is agnostic
                     diagnostics.Add(ErrorFactory.ErrorInfo(ERRID.WRN_ConflictingMachineAssembly, assembly), NoLocation.Singleton)
                 End If
             End If
 
-            If m_EmbeddedTypesManagerOpt IsNot Nothing AndAlso m_EmbeddedTypesManagerOpt.IsFrozen Then
-                m_EmbeddedTypesManagerOpt.ReportIndirectReferencesToLinkedAssemblies(assembly, diagnostics)
+            If _embeddedTypesManagerOpt IsNot Nothing AndAlso _embeddedTypesManagerOpt.IsFrozen Then
+                _embeddedTypesManagerOpt.ReportIndirectReferencesToLinkedAssemblies(assembly, diagnostics)
             End If
         End Sub
 
@@ -257,6 +300,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             Return result
         End Function
 
+        ''' <summary>
+        ''' Ignore accessibility when resolving well-known type
+        ''' members, in particular for generic type arguments
+        ''' (e.g.: binding to internal types in the EE).
+        ''' </summary>
+        Friend Overridable ReadOnly Property IgnoreAccessibility As Boolean
+            Get
+                Return False
+            End Get
+        End Property
+
         Friend Overridable Function TryCreateVariableSlotAllocator(method As MethodSymbol) As VariableSlotAllocator
             Return Nothing
         End Function
@@ -328,7 +382,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         Public Overrides Function GetExportedTypes(context As EmitContext) As IEnumerable(Of Cci.ITypeExport)
             Debug.Assert(HaveDeterminedTopLevelTypes)
 
-            If m_LazyExportedTypes.IsDefault Then
+            If _lazyExportedTypes.IsDefault Then
                 Dim builder = ArrayBuilder(Of TypeExport(Of NamedTypeSymbol)).GetInstance()
                 Dim sourceAssembly As SourceAssemblySymbol = SourceModule.ContainingSourceAssembly
 
@@ -347,15 +401,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                     GetForwardedTypes(seenTopLevelForwardedTypes, sourceAssembly.GetNetModuleDecodedWellKnownAttributeData(), builder)
                 End If
 
-                Debug.Assert(m_LazyExportedTypes.IsDefault)
+                Debug.Assert(_lazyExportedTypes.IsDefault)
 
-                m_LazyExportedTypes = builder.ToImmutableAndFree()
+                _lazyExportedTypes = builder.ToImmutableAndFree()
 
-                If m_LazyExportedTypes.Length > 0 Then
+                If _lazyExportedTypes.Length > 0 Then
                     ' Report name collisions.
                     Dim exportedNamesMap = New Dictionary(Of String, NamedTypeSymbol)()
 
-                    For Each [alias] In m_LazyExportedTypes
+                    For Each [alias] In _lazyExportedTypes
                         Dim aliasedType As NamedTypeSymbol = [alias].AliasedType
                         Debug.Assert(aliasedType.IsDefinition)
 
@@ -414,7 +468,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
                 End If
             End If
 
-            Return m_LazyExportedTypes
+            Return _lazyExportedTypes
         End Function
 
         Private Overloads Sub GetExportedTypes(sym As NamespaceOrTypeSymbol, builder As ArrayBuilder(Of TypeExport(Of NamedTypeSymbol)))
@@ -571,37 +625,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
         Public Sub SetDisableJITOptimization(methodSymbol As MethodSymbol)
             Debug.Assert(methodSymbol.ContainingModule Is Me.SourceModule AndAlso methodSymbol Is methodSymbol.OriginalDefinition)
 
-            m_DisableJITOptimization.TryAdd(methodSymbol, True)
+            _disableJITOptimization.TryAdd(methodSymbol, True)
         End Sub
 
         Public Function JITOptimizationIsDisabled(methodSymbol As MethodSymbol) As Boolean
             Debug.Assert(methodSymbol.ContainingModule Is Me.SourceModule AndAlso methodSymbol Is methodSymbol.OriginalDefinition)
-            Return m_DisableJITOptimization.ContainsKey(methodSymbol)
+            Return _disableJITOptimization.ContainsKey(methodSymbol)
         End Function
 
 #Region "Test Hooks"
 
         Friend ReadOnly Property SaveTestData() As Boolean
             Get
-                Return m_TestData IsNot Nothing
+                Return _testData IsNot Nothing
             End Get
         End Property
 
         Friend Sub SetMethodTestData(methodSymbol As MethodSymbol, builder As ILBuilder)
-            If m_TestData Is Nothing Then
+            If _testData Is Nothing Then
                 Throw New InvalidOperationException("Must call SetILBuilderMap before calling SetILBuilder")
             End If
 
             ' If this ever throws "ArgumentException: An item with the same key has already been added.", then
             ' the ilBuilderMapKeyFormat will need to be updated to provide a unique key (see SetILBuilderMap).
-            m_TestData.Add(
-                methodSymbol.ToDisplayString(If(methodSymbol.IsUserDefinedOperator(), m_TestDataOperatorKeyFormat, m_TestDataKeyFormat)),
+            _testData.Add(
+                methodSymbol.ToDisplayString(If(methodSymbol.IsUserDefinedOperator(), _testDataOperatorKeyFormat, _testDataKeyFormat)),
                 New CompilationTestData.MethodData(builder, methodSymbol))
         End Sub
 
         Friend Sub SetMethodTestData(methods As ConcurrentDictionary(Of String, CompilationTestData.MethodData))
-            Me.m_TestData = methods
-            Me.m_TestDataKeyFormat = New SymbolDisplayFormat(
+            Me._testData = methods
+            Me._testDataKeyFormat = New SymbolDisplayFormat(
                 compilerInternalOptions:=SymbolDisplayCompilerInternalOptions.UseMetadataMethodNames Or SymbolDisplayCompilerInternalOptions.IncludeCustomModifiers,
                 globalNamespaceStyle:=SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
                 typeQualificationStyle:=SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
@@ -624,19 +678,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Emit
             '   Operator op_Implicit(Type) As Integer
             '   Operator op_Implicit(Type) As Single
             '   ... etc ...
-            Me.m_TestDataOperatorKeyFormat = New SymbolDisplayFormat(
-                m_TestDataKeyFormat.CompilerInternalOptions,
-                m_TestDataKeyFormat.GlobalNamespaceStyle,
-                m_TestDataKeyFormat.TypeQualificationStyle,
-                m_TestDataKeyFormat.GenericsOptions,
-                m_TestDataKeyFormat.MemberOptions Or SymbolDisplayMemberOptions.IncludeType,
-                m_TestDataKeyFormat.ParameterOptions,
-                m_TestDataKeyFormat.DelegateStyle,
-                m_TestDataKeyFormat.ExtensionMethodStyle,
-                m_TestDataKeyFormat.PropertyStyle,
-                m_TestDataKeyFormat.LocalOptions,
-                m_TestDataKeyFormat.KindOptions,
-                m_TestDataKeyFormat.MiscellaneousOptions)
+            Me._testDataOperatorKeyFormat = New SymbolDisplayFormat(
+                _testDataKeyFormat.CompilerInternalOptions,
+                _testDataKeyFormat.GlobalNamespaceStyle,
+                _testDataKeyFormat.TypeQualificationStyle,
+                _testDataKeyFormat.GenericsOptions,
+                _testDataKeyFormat.MemberOptions Or SymbolDisplayMemberOptions.IncludeType,
+                _testDataKeyFormat.ParameterOptions,
+                _testDataKeyFormat.DelegateStyle,
+                _testDataKeyFormat.ExtensionMethodStyle,
+                _testDataKeyFormat.PropertyStyle,
+                _testDataKeyFormat.LocalOptions,
+                _testDataKeyFormat.KindOptions,
+                _testDataKeyFormat.MiscellaneousOptions)
         End Sub
 
 #End Region

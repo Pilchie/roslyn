@@ -556,7 +556,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     // CONSIDER:    Native compiler reports error CS1980 for each syntax node which binds to dynamic type, we do the same by reporting a diagnostic here.
                     //              However, this means we generate multiple duplicate diagnostics, when a single one would suffice.
-                    //              We may want to consider adding an "Unreported" flag to the DynamicTypeSymbol to supress duplicate CS1980.
+                    //              We may want to consider adding an "Unreported" flag to the DynamicTypeSymbol to suppress duplicate CS1980.
 
                     // CS1980: Cannot define a class or member that utilizes 'dynamic' because the compiler required type '{0}' cannot be found. Are you missing a reference?
                     var info = new CSDiagnosticInfo(ErrorCode.ERR_DynamicAttributeMissing, AttributeDescription.DynamicAttribute.FullName);
@@ -840,11 +840,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             var arg = typeArgument.Kind() == SyntaxKind.OmittedTypeArgument
                 ? UnboundArgumentErrorTypeSymbol.Instance
                 : binder.BindType(typeArgument, diagnostics, basesBeingResolved);
-            if (arg.IsStatic)
-            {
-                // '{0}': static types cannot be used as type arguments
-                diagnostics.Add(ErrorCode.ERR_GenericArgIsStaticClass, typeArgument.Location, arg);
-            }
 
             return arg;
         }
@@ -907,7 +902,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         typeArguments,
                         receiver,
                         plainName,
-                        members.SelectAsArray(ToMethodSymbolFunc),
+                        members.SelectAsArray(s_toMethodSymbolFunc),
                         lookupResult,
                         methodGroupFlags,
                         hasErrors);
@@ -915,7 +910,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case SymbolKind.Property:
                     return new BoundPropertyGroup(
                         syntax,
-                        members.SelectAsArray(ToPropertySymbolFunc),
+                        members.SelectAsArray(s_toPropertySymbolFunc),
                         receiver,
                         lookupResult.Kind,
                         hasErrors);
@@ -925,8 +920,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             }
         }
 
-        private static Func<Symbol, MethodSymbol> ToMethodSymbolFunc = s => (MethodSymbol)s;
-        private static Func<Symbol, PropertySymbol> ToPropertySymbolFunc = s => (PropertySymbol)s;
+        private static Func<Symbol, MethodSymbol> s_toMethodSymbolFunc = s => (MethodSymbol)s;
+        private static Func<Symbol, PropertySymbol> s_toPropertySymbolFunc = s => (PropertySymbol)s;
 
         private NamedTypeSymbol ConstructNamedType(
             NamedTypeSymbol type,
@@ -1012,22 +1007,30 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// </summary>
         internal Symbol GetSpecialTypeMember(SpecialMember member, DiagnosticBag diagnostics, CSharpSyntaxNode syntax)
         {
-            var memberSymbol = Compilation.GetSpecialTypeMember(member);
-            if ((object)memberSymbol != null)
+            Symbol memberSymbol;
+            return TryGetSpecialTypeMember(this.Compilation, member, syntax, diagnostics, out memberSymbol)
+                ? memberSymbol
+                : null;
+        }
+
+        internal static bool TryGetSpecialTypeMember<TSymbol>(CSharpCompilation compilation, SpecialMember specialMember, CSharpSyntaxNode syntax, DiagnosticBag diagnostics, out TSymbol symbol) 
+            where TSymbol : Symbol
+        {
+            symbol = (TSymbol)compilation.GetSpecialTypeMember(specialMember);
+            if ((object)symbol == null)
             {
-                var useSiteDiagnostic = memberSymbol.GetUseSiteDiagnosticForSymbolOrContainingType();
-                if (useSiteDiagnostic != null)
-                {
-                    Symbol.ReportUseSiteDiagnostic(useSiteDiagnostic, diagnostics, syntax.Location);
-                }
-            }
-            else
-            {
-                MemberDescriptor memberDescriptor = SpecialMembers.GetDescriptor(member);
-                diagnostics.Add(new CSDiagnosticInfo(ErrorCode.ERR_MissingPredefinedMember, memberDescriptor.DeclaringTypeMetadataName, memberDescriptor.Name), syntax.Location);
+                MemberDescriptor descriptor = SpecialMembers.GetDescriptor(specialMember);
+                diagnostics.Add(ErrorCode.ERR_MissingPredefinedMember, syntax.Location, descriptor.DeclaringTypeMetadataName, descriptor.Name);
+                return false;
             }
 
-            return memberSymbol;
+            var useSiteDiagnostic = symbol.GetUseSiteDiagnosticForSymbolOrContainingType();
+            if (useSiteDiagnostic != null)
+            {
+                Symbol.ReportUseSiteDiagnostic(useSiteDiagnostic, diagnostics, new SourceLocation(syntax));
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -1423,7 +1426,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                                         where,
                                         new FormattedSymbol(first, SymbolDisplayFormat.CSharpErrorMessageFormat),
                                         new FormattedSymbol(second, SymbolDisplayFormat.CSharpErrorMessageFormat) });
-
                             }
                         }
                         else
@@ -1577,7 +1579,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 FromReferencedAssembly = 0x40000000,
             }
 
-            private readonly BestSymbolFlags flags;
+            private readonly BestSymbolFlags _flags;
 
             /// <summary>
             /// Returns -1 if None.
@@ -1591,7 +1593,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         return -1;
                     }
 
-                    return (int)(flags & BestSymbolFlags.IndexMask);
+                    return (int)(_flags & BestSymbolFlags.IndexMask);
                 }
             }
 
@@ -1599,7 +1601,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 get
                 {
-                    return (flags & BestSymbolFlags.FromSourceModule) != 0;
+                    return (_flags & BestSymbolFlags.FromSourceModule) != 0;
                 }
             }
 
@@ -1607,7 +1609,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 get
                 {
-                    return (flags & BestSymbolFlags.FromAddedModule) != 0;
+                    return (_flags & BestSymbolFlags.FromAddedModule) != 0;
                 }
             }
 
@@ -1615,7 +1617,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 get
                 {
-                    return (flags & (BestSymbolFlags.FromSourceModule | BestSymbolFlags.FromAddedModule)) != 0;
+                    return (_flags & (BestSymbolFlags.FromSourceModule | BestSymbolFlags.FromAddedModule)) != 0;
                 }
             }
 
@@ -1623,7 +1625,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 get
                 {
-                    return (flags & BestSymbolFlags.LocationMask) == 0;
+                    return (_flags & BestSymbolFlags.LocationMask) == 0;
                 }
             }
 
@@ -1631,13 +1633,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 get
                 {
-                    return (flags & BestSymbolFlags.FromReferencedAssembly) != 0;
+                    return (_flags & BestSymbolFlags.FromReferencedAssembly) != 0;
                 }
             }
 
             private BestSymbolInfo(BestSymbolFlags flags)
             {
-                this.flags = flags;
+                _flags = flags;
             }
 
             public static BestSymbolInfo FromSourceModule(int index)
@@ -1665,7 +1667,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             public static bool Sort(ref BestSymbolInfo first, ref BestSymbolInfo second)
             {
                 if (!second.IsNone &&
-                    (first.IsNone || (first.flags & BestSymbolFlags.LocationMask) > (second.flags & BestSymbolFlags.LocationMask)))
+                    (first.IsNone || (first._flags & BestSymbolFlags.LocationMask) > (second._flags & BestSymbolFlags.LocationMask)))
                 {
                     BestSymbolInfo temp = first;
                     first = second;
@@ -1856,7 +1858,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// </remarks>
         private AssemblySymbol GetForwardedToAssembly(string fullName, int arity, out bool encounteredCycle)
         {
-            Debug.Assert(arity == 0 || fullName.EndsWith("`" + arity));
+            Debug.Assert(arity == 0 || fullName.EndsWith("`" + arity, StringComparison.Ordinal));
 
             encounteredCycle = false;
 

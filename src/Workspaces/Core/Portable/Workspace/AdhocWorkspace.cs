@@ -32,6 +32,15 @@ namespace Microsoft.CodeAnalysis
             return true;
         }
 
+        public override bool CanOpenDocuments
+        {
+            get
+            {
+                // enables simulation of having documents open.
+                return true;
+            }
+        }
+
         /// <summary>
         /// Clears all projects and documents from the workspace.
         /// </summary>
@@ -47,7 +56,7 @@ namespace Microsoft.CodeAnalysis
         {
             if (solutionInfo == null)
             {
-                throw new ArgumentNullException("solutionInfo");
+                throw new ArgumentNullException(nameof(solutionInfo));
             }
 
             this.OnSolutionAdded(solutionInfo);
@@ -71,7 +80,7 @@ namespace Microsoft.CodeAnalysis
         {
             if (projectInfo == null)
             {
-                throw new ArgumentNullException("projectInfo");
+                throw new ArgumentNullException(nameof(projectInfo));
             }
 
             this.OnProjectAdded(projectInfo);
@@ -87,7 +96,7 @@ namespace Microsoft.CodeAnalysis
         {
             if (projectInfos == null)
             {
-                throw new ArgumentNullException("projectInfos");
+                throw new ArgumentNullException(nameof(projectInfos));
             }
 
             foreach (var info in projectInfos)
@@ -103,17 +112,17 @@ namespace Microsoft.CodeAnalysis
         {
             if (projectId == null)
             {
-                throw new ArgumentNullException("projectId");
+                throw new ArgumentNullException(nameof(projectId));
             }
 
             if (name == null)
             {
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             }
 
             if (text == null)
             {
-                throw new ArgumentNullException("text");
+                throw new ArgumentNullException(nameof(text));
             }
 
             var id = DocumentId.CreateNewId(projectId);
@@ -129,12 +138,68 @@ namespace Microsoft.CodeAnalysis
         {
             if (documentInfo == null)
             {
-                throw new ArgumentNullException("documentInfo");
+                throw new ArgumentNullException(nameof(documentInfo));
             }
 
             this.OnDocumentAdded(documentInfo);
 
             return this.CurrentSolution.GetDocument(documentInfo.Id);
+        }
+
+        /// <summary>
+        /// Puts the specified document into the open state.
+        /// </summary>
+        public override void OpenDocument(DocumentId documentId, bool activate = true)
+        {
+            var doc = this.CurrentSolution.GetDocument(documentId);
+            if (doc != null)
+            {
+                var text = doc.GetTextAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                this.OnDocumentOpened(documentId, text.Container, activate);
+            }
+        }
+
+        /// <summary>
+        /// Puts the specified document into the closed state.
+        /// </summary>
+        public override void CloseDocument(DocumentId documentId)
+        {
+            var doc = this.CurrentSolution.GetDocument(documentId);
+            if (doc != null)
+            {
+                var text = doc.GetTextAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                var version = doc.GetTextVersionAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                var loader = TextLoader.From(TextAndVersion.Create(text, version, doc.FilePath));
+                this.OnDocumentClosed(documentId, loader);
+            }
+        }
+
+        /// <summary>
+        /// Puts the specified additional document into the open state.
+        /// </summary>
+        public override void OpenAdditionalDocument(DocumentId documentId, bool activate = true)
+        {
+            var doc = this.CurrentSolution.GetAdditionalDocument(documentId);
+            if (doc != null)
+            {
+                var text = doc.GetTextAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                this.OnAdditionalDocumentOpened(documentId, text.Container, activate);
+            }
+        }
+
+        /// <summary>
+        /// Puts the specified additional document into the closed state
+        /// </summary>
+        public override void CloseAdditionalDocument(DocumentId documentId)
+        {
+            var doc = this.CurrentSolution.GetAdditionalDocument(documentId);
+            if (doc != null)
+            {
+                var text = doc.GetTextAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                var version = doc.GetTextVersionAsync(CancellationToken.None).WaitAndGetResult(CancellationToken.None);
+                var loader = TextLoader.From(TextAndVersion.Create(text, version, doc.FilePath));
+                this.OnAdditionalDocumentClosed(documentId, loader);
+            }
         }
     }
 }

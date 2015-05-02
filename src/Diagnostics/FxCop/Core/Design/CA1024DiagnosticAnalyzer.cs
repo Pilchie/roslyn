@@ -2,9 +2,7 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Threading;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.FxCopAnalyzers.Shared.Extensions;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 
 namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
@@ -18,18 +16,18 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
     public abstract class CA1024DiagnosticAnalyzer<TLanguageKindEnum> : DiagnosticAnalyzer where TLanguageKindEnum : struct
     {
         internal const string RuleId = "CA1024";
-        private static LocalizableString localizableTitle = new LocalizableResourceString(nameof(FxCopRulesResources.UsePropertiesWhereAppropriate), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
-        private static LocalizableString localizableMessage = new LocalizableResourceString(nameof(FxCopRulesResources.ChangeToAPropertyIfAppropriate), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
-        private static LocalizableString localizableDescription = new LocalizableResourceString(nameof(FxCopRulesResources.UsePropertiesWhereAppropriateDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableTitle = new LocalizableResourceString(nameof(FxCopRulesResources.UsePropertiesWhereAppropriate), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableMessage = new LocalizableResourceString(nameof(FxCopRulesResources.ChangeToAPropertyIfAppropriate), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
+        private static LocalizableString s_localizableDescription = new LocalizableResourceString(nameof(FxCopRulesResources.UsePropertiesWhereAppropriateDescription), FxCopRulesResources.ResourceManager, typeof(FxCopRulesResources));
 
         internal static DiagnosticDescriptor Rule = new DiagnosticDescriptor(RuleId,
-                                                                         localizableTitle,
-                                                                         localizableMessage,
+                                                                         s_localizableTitle,
+                                                                         s_localizableMessage,
                                                                          FxCopDiagnosticCategory.Design,
                                                                          DiagnosticSeverity.Warning,
                                                                          isEnabledByDefault: false,
-                                                                         description: localizableDescription,
-                                                                         helpLink: "http://msdn.microsoft.com/library/ms182181.aspx",
+                                                                         description: s_localizableDescription,
+                                                                         helpLinkUri: "http://msdn.microsoft.com/library/ms182181.aspx",
                                                                          customTags: DiagnosticCustomTags.Microsoft);
         private const string GetHashCodeName = "GetHashCode";
         private const string GetEnumeratorName = "GetEnumerator";
@@ -95,7 +93,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
                 suppress = true;
             }
 
-            public void AnalyzeCodeBlock(CodeBlockEndAnalysisContext context)
+            public void AnalyzeCodeBlock(CodeBlockAnalysisContext context)
             {
                 if (!suppress)
                 {

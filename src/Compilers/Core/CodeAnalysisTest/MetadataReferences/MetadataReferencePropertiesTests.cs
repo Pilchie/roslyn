@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         public void Constructor()
         {
             var m = new MetadataReferenceProperties();
-            Assert.True(m.Aliases.IsDefault);
+            Assert.True(m.Aliases.IsEmpty);
             Assert.False(m.EmbedInteropTypes);
             Assert.Equal(MetadataImageKind.Assembly, m.Kind);
 
@@ -24,7 +24,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             Assert.Equal(MetadataImageKind.Assembly, m.Kind);
 
             m = new MetadataReferenceProperties(MetadataImageKind.Module);
-            Assert.True(m.Aliases.IsDefault);
+            Assert.True(m.Aliases.IsEmpty);
             Assert.False(m.EmbedInteropTypes);
             Assert.Equal(MetadataImageKind.Module, m.Kind);
 
@@ -34,7 +34,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
 
         [Fact]
         public void Constructor_Errors()
-        { 
+        {
             Assert.Throws<ArgumentOutOfRangeException>(() => new MetadataReferenceProperties((MetadataImageKind)byte.MaxValue));
             Assert.Throws<ArgumentException>(() => new MetadataReferenceProperties(MetadataImageKind.Module, ImmutableArray.Create("blah")));
             Assert.Throws<ArgumentException>(() => new MetadataReferenceProperties(MetadataImageKind.Module, embedInteropTypes: true));
@@ -45,7 +45,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             Assert.Throws<ArgumentException>(() => MetadataReferenceProperties.Module.WithAliases(new[] { "blah" }));
             Assert.Throws<ArgumentException>(() => MetadataReferenceProperties.Module.WithEmbedInteropTypes(true));
         }
-        
+
         [Fact]
         public void WithXxx()
         {

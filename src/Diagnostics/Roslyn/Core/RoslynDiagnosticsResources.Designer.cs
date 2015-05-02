@@ -187,6 +187,33 @@ namespace Roslyn.Diagnostics.Analyzers {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Do not create tasks unless you are using one of the overloads that takes a TaskScheduler. The default is to schedule on TaskScheduler.Current, which would lead to deadlocks. Either use TaskScheduler.Default to schedule on the thread pool, or explicitly pass TaskScheduler.Current to make your intentions clear..
+        /// </summary>
+        internal static string DoNotCreateTasksWithoutTaskSchedulerDescription {
+            get {
+                return ResourceManager.GetString("DoNotCreateTasksWithoutTaskSchedulerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Do not call {0} without passing a TaskScheduler.
+        /// </summary>
+        internal static string DoNotCreateTasksWithoutTaskSchedulerMessage {
+            get {
+                return ResourceManager.GetString("DoNotCreateTasksWithoutTaskSchedulerMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Do not create tasks without passing a TaskScheduler.
+        /// </summary>
+        internal static string DoNotCreateTasksWithoutTaskSchedulerTitle {
+            get {
+                return ResourceManager.GetString("DoNotCreateTasksWithoutTaskSchedulerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to This collection is directly indexable.  Going through LINQ here causes unnecessary allocations and CPU work..
         /// </summary>
         internal static string DoNotUseLinqOnIndexableCollectionDescription {
@@ -318,6 +345,60 @@ namespace Roslyn.Diagnostics.Analyzers {
         internal static string RemoveDeletedApiTitle {
             get {
                 return ResourceManager.GetString("RemoveDeletedApiTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Compilation event queue is required to generate symbol declared events for all declared source symbols. Hence, every source symbol type or one of it&apos;s base types must generate a symbol declared event..
+        /// </summary>
+        internal static string SymbolDeclaredEventRuleDescription {
+            get {
+                return ResourceManager.GetString("SymbolDeclaredEventRuleDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Symbol &apos;{0}&apos; seems to be a source symbol, but neither the symbol nor any of it&apos;s base types invoke method &apos;{1}.{2}&apos; to register a symbol declared event..
+        /// </summary>
+        internal static string SymbolDeclaredEventRuleMessage {
+            get {
+                return ResourceManager.GetString("SymbolDeclaredEventRuleMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SymbolDeclaredEvent must be generated for source symbols.
+        /// </summary>
+        internal static string SymbolDeclaredEventRuleTitle {
+            get {
+                return ResourceManager.GetString("SymbolDeclaredEventRuleTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove unused code.
+        /// </summary>
+        internal static string UnusedDeclarationsCodeFixTitle {
+            get {
+                return ResourceManager.GetString("UnusedDeclarationsCodeFixTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; is not used in solution..
+        /// </summary>
+        internal static string UnusedDeclarationsMessage {
+            get {
+                return ResourceManager.GetString("UnusedDeclarationsMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to unused code.
+        /// </summary>
+        internal static string UnusedDeclarationsTitle {
+            get {
+                return ResourceManager.GetString("UnusedDeclarationsTitle", resourceCulture);
             }
         }
         

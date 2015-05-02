@@ -35,11 +35,11 @@ public class A
     }
 }
 ";
-            var c = CreateCompilationWithMscorlib(source, 
+            var c = CreateCompilationWithMscorlib(source,
                 new[] { TestReferences.SymbolsTests.CustomModifiers.Modifiers.dll },
                 options: TestOptions.UnsafeReleaseExe);
 
-            CompileAndVerify(c, expectedOutput: 
+            CompileAndVerify(c, expectedOutput:
 @"F1
 F2
 F3
@@ -48,7 +48,7 @@ F8
 F9
 F10
 M4
-", emitOptions: TestEmitters.RefEmitBug);
+", emitters: TestEmitters.RefEmitBug);
         }
 
         /// <summary>
@@ -505,8 +505,8 @@ Derived2.Method(Int64[], Int16[], Single[])
             CompileAndVerify(
                 source: text,
                 additionalRefs: new MetadataReference[] { ilAssemblyReference },
-                expectedOutput: expectedOutput, 
-                emitOptions: TestEmitters.RefEmitUnsupported_646023);
+                expectedOutput: expectedOutput,
+                emitters: TestEmitters.RefEmitUnsupported_646023);
         }
 
         /// <summary>
@@ -549,8 +549,8 @@ System.Int32[]
             CompileAndVerify(
                 source: text,
                 additionalRefs: new MetadataReference[] { ilAssemblyReference },
-                expectedOutput: expectedOutput, 
-                emitOptions: TestEmitters.RefEmitUnsupported_646023);
+                expectedOutput: expectedOutput,
+                emitters: TestEmitters.RefEmitUnsupported_646023);
         }
 
         [Fact]
@@ -604,7 +604,7 @@ class Test
             Assert.False(parameter.CustomModifiers.IsEmpty);
             Assert.True(parameter.HasByRefBeforeCustomModifiers);
 
-            CompileAndVerify(comp, emitOptions: TestEmitters.RefEmitBug, expectedOutput: "2");
+            CompileAndVerify(comp, emitters: TestEmitters.RefEmitBug, expectedOutput: "2");
         }
 
         [Fact]
@@ -668,7 +668,7 @@ class Test
             Assert.False(derivedParameter.CustomModifiers.IsEmpty);
             Assert.True(derivedParameter.HasByRefBeforeCustomModifiers);
 
-            CompileAndVerify(comp, emitOptions: TestEmitters.RefEmitBug, expectedOutput: "2");
+            CompileAndVerify(comp, emitters: TestEmitters.RefEmitBug, expectedOutput: "2");
         }
     }
 }

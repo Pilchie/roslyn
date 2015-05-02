@@ -10,7 +10,7 @@ Imports InternalSyntaxFactory = Microsoft.CodeAnalysis.VisualBasic.Syntax.Intern
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
-    Partial Class Parser
+    Friend Partial Class Parser
 
         Private Function ParseInterpolatedStringExpression() As InterpolatedStringExpressionSyntax
             Debug.Assert(CurrentToken.Kind = SyntaxKind.DollarSignDoubleQuoteToken, "ParseInterpolatedStringExpression called on the wrong token.")
@@ -112,7 +112,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
                 expression = ReportSyntaxError(InternalSyntaxFactory.MissingExpression(), ERRID.ERR_ExpectedExpression)
 
             Else
-                expression = ParseExpression()
+                expression = ParseExpressionCore()
 
                 ' Scanned this as a terminator. Fix it.
                 If CurrentToken.Kind = SyntaxKind.ColonToken Then
@@ -156,12 +156,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
                     If CurrentToken.Kind = SyntaxKind.ColonToken Then
                         widthToken = DirectCast(RemoveTrailingColonTriviaAndConvertToColonToken(widthToken, colonToken, excessText), IntegerLiteralTokenSyntax)
-                    End If
-
-                    If Not widthToken.ContainsDiagnostics AndAlso
-                       (widthToken.Base <> LiteralBase.Decimal OrElse widthToken.TypeSuffix <> TypeCharacter.None) _
-                    Then
-                        widthToken = ReportSyntaxError(widthToken, ERRID.ERR_Syntax)
                     End If
                 Else
                     widthToken = ReportSyntaxError(InternalSyntaxFactory.MissingIntegerLiteralToken(), ERRID.ERR_ExpectedIntLiteral)

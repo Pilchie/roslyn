@@ -278,7 +278,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         '    2) Additional flags may be set in order to provide specific reason.
         '
         ' Bits from the following values are never set at the same time :
-        ' Identity, Numeric, Nullable, Reference, Array, TypeParameter, Value, [String], WideningNothingLiteral
+        ' Identity, Numeric, Nullable, Reference, Array, TypeParameter, Value, [String], WideningNothingLiteral, InterpolatedString
 
         FailedDueToNumericOverflow = 1 << 31 ' Failure flag
         FailedDueToIntegerOverflow = FailedDueToNumericOverflow Or (1 << 30) ' Failure flag
@@ -380,6 +380,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ' This flag is combined with Narrowing to indicate the fact.
         NarrowingDueToContraVarianceInDelegate = 1 << 24
 
+        ' Interpolated string conversions
+        InterpolatedString = [Widening] Or (1 << 25)
+
         ' Bits 28 - 31 are reserved for failure flags.
     End Enum
 
@@ -442,7 +445,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
             ' PERF: Use Integer instead of ConversionKind so the compiler can use array literal initialization.
             '       The most natural type choice, Enum arrays, are not blittable due to a CLR limitation.
-            Private Shared convkind As Integer(,)
+            Private Shared s_convkind As Integer(,)
 
             Shared Sub New()
                 Const NOC As Integer = Nothing 'ConversionKind.NoConversion
@@ -459,7 +462,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 '    TO TYPE
                 '    Obj  Str  Bool Char SByt Shrt Int  Long Byte UShr UInt ULng Sngl Dbl  Dec  Date
-                convkind = New Integer(,) {                                                           ' FROM TYPE
+                s_convkind = New Integer(,) {                                                           ' FROM TYPE
                     {IDN, NRF, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV, NAV}, ' Obj   
                     {IRF, IDN, NST, NST, NST, NST, NST, NST, NST, NST, NST, NST, NST, NST, NST, NST}, ' Str   
                     {WIV, NST, IDN, NOC, NBO, NBO, NBO, NBO, NBO, NBO, NBO, NBO, NBO, NBO, NBO, NOC}, ' Bool  
@@ -536,7 +539,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                     End If
                 End If
 
-                Dim conv As ConversionKind = CType(convkind(sourceIndex.Value, targetIndex.Value), ConversionKind)
+                Dim conv As ConversionKind = CType(s_convkind(sourceIndex.Value, targetIndex.Value), ConversionKind)
 
                 If Conversions.NoConversion(conv) Then
                     Return conv
@@ -1028,6 +1031,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 Case BoundKind.ArrayLiteral
                     Return ClassifyArrayLiteralConversion(DirectCast(source, BoundArrayLiteral), destination, binder, useSiteDiagnostics)
+
+                Case BoundKind.InterpolatedStringExpression
+                    Return ClassifyInterpolatedStringConversion(DirectCast(source, BoundInterpolatedStringExpression), destination, binder)
+
             End Select
 
             Return Nothing 'ConversionKind.NoConversion
@@ -1177,6 +1184,19 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
 
             Return ClassifyArrayInitialization(source.Initializer, targetElementType, binder, useSiteDiagnostics)
+        End Function
+
+        Public Shared Function ClassifyInterpolatedStringConversion(source As BoundInterpolatedStringExpression, destination As TypeSymbol, binder As Binder) As ConversionKind
+
+            ' A special conversion exist from an interpolated string expression to System.IFormattable or System.FormattableString.
+            If destination.Equals(binder.Compilation.GetWellKnownType(WellKnownType.System_FormattableString)) OrElse
+               destination.Equals(binder.Compilation.GetWellKnownType(WellKnownType.System_IFormattable)) _
+            Then
+                Return ConversionKind.InterpolatedString
+            End If
+
+            Return Nothing
+
         End Function
 
         Private Shared Function ClassifyArrayInitialization(source As BoundArrayInitialization, targetElementType As TypeSymbol, binder As Binder, <[In], Out> ByRef useSiteDiagnostics As HashSet(Of DiagnosticInfo)) As ConversionKind
@@ -2423,30 +2443,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         ''' in accumulating fashion.
         ''' </summary>
         Private Structure ToInterfaceConversionClassificator
-            Private m_Conv As ConversionKind
-            Private m_Match As NamedTypeSymbol
+            Private _conv As ConversionKind
+            Private _match As NamedTypeSymbol
 
             Public ReadOnly Property Result As ConversionKind
                 Get
-                    If IsIdentityConversion(m_Conv) Then
+                    If IsIdentityConversion(_conv) Then
                         Return ConversionKind.Widening
                     End If
 
-                    Debug.Assert(m_Conv = Nothing OrElse
-                                 (m_Match.HasVariance() AndAlso
-                                  (m_Conv = ConversionKind.Widening OrElse
-                                   m_Conv = ConversionKind.Narrowing OrElse
-                                   m_Conv = (ConversionKind.Widening Or ConversionKind.InvolvesEnumTypeConversions) OrElse
-                                   m_Conv = (ConversionKind.Narrowing Or ConversionKind.InvolvesEnumTypeConversions) OrElse
-                                   m_Conv = (ConversionKind.Narrowing Or ConversionKind.VarianceConversionAmbiguity))))
+                    Debug.Assert(_conv = Nothing OrElse
+                                 (_match.HasVariance() AndAlso
+                                  (_conv = ConversionKind.Widening OrElse
+                                   _conv = ConversionKind.Narrowing OrElse
+                                   _conv = (ConversionKind.Widening Or ConversionKind.InvolvesEnumTypeConversions) OrElse
+                                   _conv = (ConversionKind.Narrowing Or ConversionKind.InvolvesEnumTypeConversions) OrElse
+                                   _conv = (ConversionKind.Narrowing Or ConversionKind.VarianceConversionAmbiguity))))
 
-                    Return m_Conv
+                    Return _conv
                 End Get
             End Property
 
             <Conditional("DEBUG")>
             Public Sub AssertFoundIdentity()
-                Debug.Assert(IsIdentityConversion(m_Conv))
+                Debug.Assert(IsIdentityConversion(_conv))
             End Sub
 
             Public Shared Function ClassifyConversionToVariantCompatibleInterface(
@@ -2474,15 +2494,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 Debug.Assert(source IsNot Nothing AndAlso
                              (Conversions.IsInterfaceType(source) OrElse Conversions.IsClassType(source) OrElse Conversions.IsValueType(source)))
                 Debug.Assert(destination IsNot Nothing AndAlso Conversions.IsInterfaceType(destination))
-                Debug.Assert(Not IsIdentityConversion(m_Conv))
+                Debug.Assert(Not IsIdentityConversion(_conv))
 
-                If IsIdentityConversion(m_Conv) Then
+                If IsIdentityConversion(_conv) Then
                     Return True
                 End If
 
                 If Conversions.IsInterfaceType(source) Then
                     ClassifyInterfaceImmediateVarianceCompatibility(source, destination, varianceCompatibilityClassificationDepth, useSiteDiagnostics)
-                    Debug.Assert(Not IsIdentityConversion(m_Conv))
+                    Debug.Assert(Not IsIdentityConversion(_conv))
                 End If
 
                 For Each [interface] In source.AllInterfacesWithDefinitionUseSiteDiagnostics(useSiteDiagnostics)
@@ -2508,7 +2528,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                 <[In], Out> ByRef useSiteDiagnostics As HashSet(Of DiagnosticInfo)
             ) As Boolean
                 Debug.Assert(Conversions.IsInterfaceType(source) AndAlso Conversions.IsInterfaceType(destination))
-                Debug.Assert(Not IsIdentityConversion(m_Conv))
+                Debug.Assert(Not IsIdentityConversion(_conv))
 
                 Dim addConv As ConversionKind = ClassifyImmediateVarianceCompatibility(source, destination, varianceCompatibilityClassificationDepth, useSiteDiagnostics)
 
@@ -2527,25 +2547,25 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
                 If ConversionExists(addConv) Then
                     If IsIdentityConversion(addConv) Then
-                        m_Conv = ConversionKind.Identity
+                        _conv = ConversionKind.Identity
                         Return True
                     End If
 
-                    If m_Match IsNot Nothing Then
-                        Debug.Assert(ConversionExists(m_Conv))
+                    If _match IsNot Nothing Then
+                        Debug.Assert(ConversionExists(_conv))
 
-                        If (m_Conv And ConversionKind.VarianceConversionAmbiguity) <> 0 Then
-                            Debug.Assert(IsNarrowingConversion(m_Conv))
+                        If (_conv And ConversionKind.VarianceConversionAmbiguity) <> 0 Then
+                            Debug.Assert(IsNarrowingConversion(_conv))
 
-                        ElseIf Not m_Match.IsSameTypeIgnoringCustomModifiers(source) Then
+                        ElseIf Not _match.IsSameTypeIgnoringCustomModifiers(source) Then
                             ' ambiguity
-                            m_Conv = ConversionKind.Narrowing Or ConversionKind.VarianceConversionAmbiguity
+                            _conv = ConversionKind.Narrowing Or ConversionKind.VarianceConversionAmbiguity
                         Else
-                            Debug.Assert(m_Conv = (addConv And validNonidentityBits))
+                            Debug.Assert(_conv = (addConv And validNonidentityBits))
                         End If
                     Else
-                        m_Match = source
-                        m_Conv = (addConv And validNonidentityBits)
+                        _match = source
+                        _conv = (addConv And validNonidentityBits)
                     End If
                 End If
 

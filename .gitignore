@@ -7,7 +7,7 @@
 *.sln.docstates
 
 # Build results
-
+[Bb]inaries/
 [Dd]ebug/
 [Rr]elease/
 x64/
@@ -38,6 +38,7 @@ UnitTestResults.html
 *.tmp
 *.tmp_proj
 *.log
+*.wrn
 *.vspscc
 *.vssscc
 .builds

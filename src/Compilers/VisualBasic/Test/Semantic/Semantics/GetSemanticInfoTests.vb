@@ -2371,7 +2371,7 @@ End Class
 #End Region
 
         <Fact(), WorkItem(544083, "DevDiv")>
-        Sub PropertySpeculativeBinding()
+        Public Sub PropertySpeculativeBinding()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
             <compilation>
                 <file name="a.vb">
@@ -2384,7 +2384,7 @@ End Module
     </file>
             </compilation>)
             Dim semanticModel = GetSemanticModel(compilation, "a.vb")
-            Dim position = compilation.SyntaxTrees.Single().ToString().IndexOf("'BINDHERE")
+            Dim position = compilation.SyntaxTrees.Single().ToString().IndexOf("'BINDHERE", StringComparison.Ordinal)
 
             Dim expr = SyntaxFactory.ParseExpression("Property1")
             Dim speculativeTypeInfo = semanticModel.GetSpeculativeTypeInfo(position, expr, SpeculativeBindingOption.BindAsExpression)
@@ -2400,7 +2400,7 @@ End Module
         End Sub
 
         <Fact(), WorkItem(544083, "DevDiv")>
-        Sub WriteOnlyPropertySpeculativeBinding()
+        Public Sub WriteOnlyPropertySpeculativeBinding()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
             <compilation>
                 <file name="a.vb">
@@ -2417,7 +2417,7 @@ End Module
     </file>
             </compilation>)
             Dim semanticModel = GetSemanticModel(compilation, "a.vb")
-            Dim position = compilation.SyntaxTrees.Single().ToString().IndexOf("'BINDHERE")
+            Dim position = compilation.SyntaxTrees.Single().ToString().IndexOf("'BINDHERE", StringComparison.Ordinal)
 
             Dim expr = SyntaxFactory.ParseExpression("Property1")
             Dim speculativeTypeInfo = semanticModel.GetSpeculativeTypeInfo(position, expr, SpeculativeBindingOption.BindAsExpression)
@@ -3635,7 +3635,7 @@ End Module
         End Sub
 
         <Fact(), WorkItem(545976, "DevDiv")>
-        Sub ArrayLiteralSpeculativeBinding()
+        Public Sub ArrayLiteralSpeculativeBinding()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
             <compilation>
                 <file name="a.vb">
@@ -3647,7 +3647,7 @@ End Module
     </file>
             </compilation>)
             Dim semanticModel = GetSemanticModel(compilation, "a.vb")
-            Dim position = compilation.SyntaxTrees.Single().ToString().IndexOf("'BINDHERE")
+            Dim position = compilation.SyntaxTrees.Single().ToString().IndexOf("'BINDHERE", StringComparison.Ordinal)
 
             Dim expr = SyntaxFactory.ParseExpression("{1, 2, 3}")
             Dim speculativeTypeInfo = semanticModel.GetSpeculativeTypeInfo(position, expr, SpeculativeBindingOption.BindAsExpression)
@@ -3660,7 +3660,7 @@ End Module
 
         <WorkItem(545346, "DevDiv")>
         <Fact()>
-        Sub Bug13693()
+        Public Sub Bug13693()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
             <compilation>
                 <file name="a.vb">
@@ -3738,7 +3738,7 @@ BC30526: Property 'P' is 'ReadOnly'.
         End Sub
 
         <Fact()>
-        Sub SpeculativeConstantValueForGroupAggregationSyntax()
+        Public Sub SpeculativeConstantValueForGroupAggregationSyntax()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
             <compilation>
                 <file name="a.vb">
@@ -3755,7 +3755,7 @@ End Module
             </compilation>)
             Dim semanticModel = GetSemanticModel(compilation, "a.vb")
             Dim source = compilation.SyntaxTrees.Single().GetCompilationUnitRoot().ToFullString()
-            Dim position = source.IndexOf("fielda = Group")
+            Dim position = source.IndexOf("fielda = Group", StringComparison.Ordinal)
             Dim syntaxNode = compilation.SyntaxTrees().Single().GetCompilationUnitRoot().FindToken(position).Parent.Parent.Parent.DescendantNodesAndSelf.OfType(Of GroupAggregationSyntax).Single()
 
             Dim speculativeConstantValue = semanticModel.GetSpeculativeConstantValue(syntaxNode.SpanStart, syntaxNode)
@@ -3764,7 +3764,7 @@ End Module
 
         <WorkItem(546270, "DevDiv")>
         <Fact()>
-        Sub SpeculativeConstantValueForLabelSyntax()
+        Public Sub SpeculativeConstantValueForLabelSyntax()
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
             <compilation>
                 <file name="a.vb">
@@ -3778,7 +3778,7 @@ End Module
             </compilation>)
             Dim semanticModel = GetSemanticModel(compilation, "a.vb")
             Dim source = compilation.SyntaxTrees.Single().GetCompilationUnitRoot().ToFullString()
-            Dim position = source.IndexOf("GoTo Label1")
+            Dim position = source.IndexOf("GoTo Label1", StringComparison.Ordinal)
             Dim syntaxNode = compilation.SyntaxTrees().Single().GetCompilationUnitRoot().FindToken(position).Parent.DescendantNodesAndSelf.OfType(Of LabelSyntax).Single()
 
             Dim speculativeTypeInfo = semanticModel.GetSpeculativeConstantValue(syntaxNode.SpanStart, syntaxNode)
@@ -4433,7 +4433,7 @@ End Module
             Dim model = comp.GetSemanticModel(tree)
 
             Dim originalSyntax = tree.GetCompilationUnitRoot().DescendantNodes.OfType(Of InvocationExpressionSyntax).Last()
-            Assert.True(originalSyntax.ToString().StartsWith("fields"))
+            Assert.True(originalSyntax.ToString().StartsWith("fields", StringComparison.Ordinal))
 
             Dim info1 = model.GetSymbolInfo(originalSyntax)
             Dim method1 = TryCast(info1.Symbol, MethodSymbol)
@@ -4495,7 +4495,7 @@ End Module
             Dim model = comp.GetSemanticModel(tree)
 
             Dim originalSyntax = tree.GetCompilationUnitRoot().DescendantNodes.OfType(Of MemberAccessExpressionSyntax).Single()
-            Assert.True(originalSyntax.ToString().EndsWith(".ToList"))
+            Assert.True(originalSyntax.ToString().EndsWith(".ToList", StringComparison.Ordinal))
 
             Dim info1 = model.GetSymbolInfo(originalSyntax)
             Dim method1 = TryCast(info1.Symbol, MethodSymbol)
@@ -5940,6 +5940,63 @@ End Module
 
             Assert.Null(symbolInfo.Symbol)
             Assert.Equal(CandidateReason.NotReferencable, symbolInfo.CandidateReason)
+        End Sub
+
+        <WorkItem(1108036, "DevDiv")>
+        <Fact()>
+        Public Sub Bug1108036()
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlibAndVBRuntime(
+<compilation>
+    <file name="a.vb">
+Class Color
+    Public Shared Sub Cat()
+    End Sub
+End Class
+
+Class Program
+    Shared Sub Main()
+        Color.Cat()
+    End Sub
+ 
+    ReadOnly Property Color(Optional x As Integer = 0) As Integer
+        Get
+            Return 0
+        End Get
+    End Property
+ 
+    ReadOnly Property Color(Optional x As String = "") As Color
+        Get
+            Return Nothing
+        End Get
+    End Property
+End Class
+    </file>
+</compilation>)
+
+            AssertTheseDiagnostics(compilation,
+<expected>
+BC30521: Overload resolution failed because no accessible 'Color' is most specific for these arguments:
+    'Public ReadOnly Property Color([x As Integer = 0]) As Integer': Not most specific.
+    'Public ReadOnly Property Color([x As String = ""]) As Color': Not most specific.
+        Color.Cat()
+        ~~~~~
+</expected>)
+
+            Dim tree = compilation.SyntaxTrees(0)
+            Dim model = compilation.GetSemanticModel(tree)
+            Dim node = tree.GetRoot().DescendantNodes.OfType(Of MemberAccessExpressionSyntax)().Single().Expression
+            Assert.Equal(node.ToString(), "Color")
+
+            Dim symbolInfo = model.GetSymbolInfo(node)
+
+            Assert.Null(symbolInfo.Symbol)
+            Assert.Equal(CandidateReason.OverloadResolutionFailure, symbolInfo.CandidateReason)
+
+            Dim sortedCandidates = symbolInfo.CandidateSymbols.AsEnumerable().OrderBy(Function(s) s.ToTestDisplayString()).ToArray()
+            Assert.Equal("ReadOnly Property Program.Color([x As System.Int32 = 0]) As System.Int32", sortedCandidates(0).ToTestDisplayString())
+            Assert.Equal(SymbolKind.Property, sortedCandidates(0).Kind)
+            Assert.Equal("ReadOnly Property Program.Color([x As System.String = """"]) As Color", sortedCandidates(1).ToTestDisplayString())
+            Assert.Equal(SymbolKind.Property, sortedCandidates(1).Kind)
         End Sub
     End Class
 End Namespace

@@ -7,42 +7,80 @@
     AssemblyFile="packages\xunit.runners.2.0.0-alpha-build2576\tools\xunit.runner.msbuild.dll"
     TaskName="Xunit.Runner.MSBuild.xunit" />
 
+  <!-- At the moment Jenkins runs on a machine without any build of Visual Studio 2015.  Hence we must
+       use a 2013 compatible solution. -->
+  <PropertyGroup>
+    <RoslynSolution>$(MSBuildThisFileDirectory)\Src\Roslyn.sln</RoslynSolution>
+    <RoslynSolution Condition="'$(PublicBuild)' == 'true'">$(MSBuildThisFileDirectory)\Src\RoslynLight.sln</RoslynSolution>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <RunTestArgs></RunTestArgs>
+    <RunTestArgs Condition="'$(Test64)' == 'true'">-test64</RunTestArgs>
+
+    <!-- Emit XML in a CIBuild in order to get structured test results -->
+    <RunTestArgs Condition="'$(CIBuild)' == 'true'">$(RunTestArgs) -xml</RunTestArgs>
+  </PropertyGroup>
+
   <Target Name="RestorePackages">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)\Src\.nuget\Nuget.exe&quot; restore &quot;$(MSBuildThisFileDirectory)\Src\Roslyn.sln&quot;" />
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)\Src\.nuget\Nuget.exe&quot; install xunit.runners -pre -version 2.0.0-alpha-build2576 -outputdirectory packages"/>
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)\Src\.nuget\Nuget.exe&quot; restore &quot;$(RoslynSolution)&quot;" />
   </Target>
 
-  <Target Name="Build"
-          DependsOnTargets="RestorePackages">
+  <Target Name="Build" DependsOnTargets="RestorePackages">
     <MSBuild BuildInParallel="true"
-             Projects="$(MSBuildThisFileDirectory)\Src\Roslyn.sln"
-             Properties="RestorePackages=false"
+             Projects="$(RoslynSolution)"
+             Properties="RestorePackages=false;TreatWarningsAsErrors=true"
              Targets="Build"/>
   </Target>
 
   <Target Name="Clean">
     <MSBuild BuildInParallel="true"
-             Projects="$(MSBuildThisFileDirectory)\Src\Roslyn.sln"
+             Projects="$(RoslynSolution)"
              Properties="RestorePackages=false"
              Targets="Clean"/>
   </Target>
 
   <Target Name="Rebuild">
     <MSBuild BuildInParallel="true"
-             Projects="$(MSBuildThisFileDirectory)\Src\Roslyn.sln"
-             Properties="RestorePackages=false"
+             Projects="$(RoslynSolution)"
+             Properties="RestorePackages=false;TreatWarningsAsErrors=true"
              Targets="Rebuild"/>
   </Target>
 
   <Target Name="Test">
-    <ItemGroup>
-      <TestAssemblies Include="Binaries\$(Configuration)\**\*.UnitTests*.dll" />
+
+    <ItemGroup Condition="'$(PublicBuild)' == '' AND '$(CIBuild)' == ''">
+      <TestAssemblies 
+        Include="Binaries\$(Configuration)\**\*.UnitTests*.dll" 
+        Exclude="Binaries\$(Configuration)\Roslyn.Compilers.NativeClient.UnitTests.dll" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(PublicBuild)' == '' AND '$(CIBuild)' == 'true'">
+      <TestAssemblies 
+        Include="Binaries\$(Configuration)\**\*.UnitTests*.dll" 
+        Exclude="
+        Binaries\$(Configuration)\Roslyn.Compilers.NativeClient.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.Compilers.CSharp.Emit.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.Compilers.VisualBasic.Emit.UnitTests.dll;
+        Binaries\$(Configuration)\Microsoft.CodeAnalysis.Scripting.UnitTests.dll;" />
+    </ItemGroup>
 
-    <xunit
-      Assemblies="@(TestAssemblies)"
-      Html="UnitTestResults.html"
-      ShadowCopy="false" />
+    <!-- The Microsoft.CodeAnalysis.Scripting.UnitTests.dll is disabled due to https://github.com/dotnet/roslyn/issues/860 -->
+    <ItemGroup Condition="'$(PublicBuild)' == 'true' AND '$(CIBuild)' == ''">
+      <TestAssemblies 
+        Include="Binaries\$(Configuration)\**\*.UnitTests*.dll" 
+        Exclude="
+        Binaries\$(Configuration)\Roslyn.Compilers.NativeClient.UnitTests.dll;
+        Binaries\$(Configuration)\Microsoft.CodeAnalysis.Scripting.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.Services.Editor.UnitTests2.dll;
+        Binaries\$(Configuration)\Roslyn.Services.Editor.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.ExpressionEvaluator.CSharp.ResultProvider.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.ExpressionEvaluator.VisualBasic.ResultProvider.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.Services.Editor.VisualBasic.UnitTests.dll;
+        Binaries\$(Configuration)\Roslyn.Services.Editor.CSharp.UnitTests.dll;" />
+    </ItemGroup>
+
+    <Exec Command="Binaries\$(Configuration)\RunTests.exe packages\xunit.runners.2.0.0-alpha-build2576\tools $(RunTestArgs) @(TestAssemblies, ' ')" />
+
   </Target>
 
   <Target Name="BuildAndTest"

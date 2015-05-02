@@ -12,16 +12,13 @@ namespace Microsoft.CodeAnalysis.CSharp
 {
     internal class NameofBinder : Binder
     {
-        private readonly SyntaxNode nameofArgument;
+        private readonly SyntaxNode _nameofArgument;
 
         public NameofBinder(SyntaxNode nameofArgument, Binder next) : base(next)
         {
-            this.nameofArgument = nameofArgument;
+            _nameofArgument = nameofArgument;
         }
 
-        protected override bool IsNameofArgument(SyntaxNode possibleNameofArgument)
-        {
-            return possibleNameofArgument == this.nameofArgument;
-        }
+        protected override SyntaxNode EnclosingNameofArgument => _nameofArgument;
     }
 }

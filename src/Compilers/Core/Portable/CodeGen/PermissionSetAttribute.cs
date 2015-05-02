@@ -26,8 +26,8 @@ namespace Microsoft.CodeAnalysis.CodeGen
     /// </remarks>
     internal class PermissionSetAttributeWithFileReference : Cci.ICustomAttribute
     {
-        private readonly Cci.ICustomAttribute sourceAttribute;
-        private string resolvedPermissionSetFilePath;
+        private readonly Cci.ICustomAttribute _sourceAttribute;
+        private readonly string _resolvedPermissionSetFilePath;
         internal static readonly string FilePropertyName = "File";
         internal static readonly string HexPropertyName = "Hex";
 
@@ -35,8 +35,8 @@ namespace Microsoft.CodeAnalysis.CodeGen
         {
             Debug.Assert(resolvedPermissionSetFilePath != null);
 
-            this.sourceAttribute = sourceAttribute;
-            this.resolvedPermissionSetFilePath = resolvedPermissionSetFilePath;
+            _sourceAttribute = sourceAttribute;
+            _resolvedPermissionSetFilePath = resolvedPermissionSetFilePath;
         }
 
         /// <summary>
@@ -44,16 +44,14 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// </summary>
         public ImmutableArray<Cci.IMetadataExpression> GetArguments(EmitContext context)
         {
-            return this.sourceAttribute.GetArguments(context);
+            return _sourceAttribute.GetArguments(context);
         }
 
         /// <summary>
         /// A reference to the constructor that will be used to instantiate this custom attribute during execution (if the attribute is inspected via Reflection).
         /// </summary>
         public Cci.IMethodReference Constructor(EmitContext context)
-        {
-            return this.sourceAttribute.Constructor(context);
-        }
+            => _sourceAttribute.Constructor(context);
 
         /// <summary>
         /// Zero or more named arguments that specify values for fields and properties of the attribute.
@@ -65,7 +63,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
 #if DEBUG
             // Must have exactly 1 named argument.
-            var namedArgs = this.sourceAttribute.GetNamedArguments(context);
+            var namedArgs = _sourceAttribute.GetNamedArguments(context);
             Debug.Assert(namedArgs.Count() == 1);
 
             // Named argument must be 'File' property of string type
@@ -79,7 +77,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             Debug.Assert(!String.IsNullOrEmpty(fileName));
 
             // PermissionSetAttribute type must have a writable public string type property member 'Hex'
-            Debug.Assert(((INamedTypeSymbol)this.sourceAttribute.GetType(context)).GetMembers(HexPropertyName).Any(
+            Debug.Assert(((INamedTypeSymbol)_sourceAttribute.GetType(context)).GetMembers(HexPropertyName).Any(
                 member => member.Kind == SymbolKind.Property && ((IPropertySymbol)member).Type.SpecialType == SpecialType.System_String));
 #endif
 
@@ -94,7 +92,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
 
             try
             {
-                using (Stream stream = resolver.OpenReadChecked(resolvedPermissionSetFilePath))
+                using (Stream stream = resolver.OpenReadChecked(_resolvedPermissionSetFilePath))
                 {
                     // Convert the byte array contents into a string in hexa-decimal format.
                     hexFileContent = ConvertToHex(stream);
@@ -102,7 +100,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
             }
             catch (IOException e)
             {
-                throw new PermissionSetFileReadException(e.Message, resolvedPermissionSetFilePath);
+                throw new PermissionSetFileReadException(e.Message, _resolvedPermissionSetFilePath);
             }
 
             // Synthesize a named attribute argument "Hex = hexFileContent".
@@ -136,13 +134,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// The number of positional arguments.
         /// </summary>
-        public int ArgumentCount
-        {
-            get
-            {
-                return this.sourceAttribute.ArgumentCount;
-            }
-        }
+        public int ArgumentCount => _sourceAttribute.ArgumentCount;
 
         /// <summary>
         /// The number of named arguments.
@@ -151,7 +143,7 @@ namespace Microsoft.CodeAnalysis.CodeGen
         {
             get
             {
-                Debug.Assert(this.sourceAttribute.NamedArgumentCount == 1);
+                Debug.Assert(_sourceAttribute.NamedArgumentCount == 1);
                 return 1;
             }
         }
@@ -159,32 +151,26 @@ namespace Microsoft.CodeAnalysis.CodeGen
         /// <summary>
         /// The type of the attribute. For example System.AttributeUsageAttribute.
         /// </summary>
-        public Cci.ITypeReference GetType(EmitContext context)
-        {
-            return this.sourceAttribute.GetType(context);
-        }
+        public Cci.ITypeReference GetType(EmitContext context) => _sourceAttribute.GetType(context);
 
-        public bool AllowMultiple
-        {
-            get { return this.sourceAttribute.AllowMultiple; }
-        }
+        public bool AllowMultiple => _sourceAttribute.AllowMultiple;
 
         private struct HexPropertyMetadataNamedArgument : Cci.IMetadataNamedArgument
         {
-            private readonly Cci.ITypeReference type;
-            private readonly Cci.IMetadataExpression value;
+            private readonly Cci.ITypeReference _type;
+            private readonly Cci.IMetadataExpression _value;
 
             public HexPropertyMetadataNamedArgument(Cci.ITypeReference type, Cci.IMetadataExpression value)
             {
-                this.type = type;
-                this.value = value;
+                _type = type;
+                _value = value;
             }
 
             public string ArgumentName { get { return HexPropertyName; } }
-            public Cci.IMetadataExpression ArgumentValue { get { return this.value; } }
+            public Cci.IMetadataExpression ArgumentValue { get { return _value; } }
             public bool IsField { get { return false; } }
-            
-            Cci.ITypeReference Cci.IMetadataExpression.Type { get { return this.type; } }
+
+            Cci.ITypeReference Cci.IMetadataExpression.Type { get { return _type; } }
 
             void Cci.IMetadataExpression.Dispatch(Cci.MetadataVisitor visitor)
             {
@@ -198,22 +184,16 @@ namespace Microsoft.CodeAnalysis.CodeGen
     /// </summary>
     internal class PermissionSetFileReadException : Exception
     {
-        private readonly string file;
+        private readonly string _file;
 
         public PermissionSetFileReadException(string message, string file)
             : base(message)
         {
-            this.file = file;
+            _file = file;
         }
 
-        public string FileName
-        {
-            get { return file; }
-        }
+        public string FileName => _file;
 
-        public string PropertyName
-        {
-            get { return PermissionSetAttributeWithFileReference.FilePropertyName; }
-        }
+        public string PropertyName => PermissionSetAttributeWithFileReference.FilePropertyName;
     }
 }

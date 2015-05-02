@@ -808,7 +808,7 @@ class Program
   IL_004e:  ret
 }
 ");
-}
+        }
 
         [Fact]
         public void CatchVarLifted2a()
@@ -843,7 +843,7 @@ class Program
 
             var verifier = CompileAndVerify(source, expectedOutput: "pass");
         }
-        
+
         [Fact]
         public void CatchVarLifted3()
         {
@@ -2059,7 +2059,7 @@ static class M1
         (new D<C>()).Test();
     }
 }";
-            CompileAndVerify(source, expectedOutput: "B1::F;D::F;", emitOptions: TestEmitters.RefEmitUnsupported_646042);
+            CompileAndVerify(source, expectedOutput: "B1::F;D::F;", emitters: TestEmitters.RefEmitUnsupported_646042);
         }
 
         [Fact]
@@ -3350,7 +3350,6 @@ class Foo<T>
         [Fact]
         public void ParentFrame01()
         {
-
             //IMPORTANT: the parent frame field in Program.c1.<>c__DisplayClass1 should be named CS$<>8__locals, not <>4__this.
 
             string source = @"
@@ -3398,7 +3397,7 @@ class Program
   IL_0013:  ldftn      ""int Program.c1.<>c__DisplayClass1_1.<Test>b__3(int)""
   IL_0019:  newobj     ""System.Func<int, int>..ctor(object, System.IntPtr)""
   IL_001e:  ret
-}"); 
+}");
         }
 
         [Fact]
@@ -3872,7 +3871,7 @@ public class C
                     "C.<>c__3<TG1, TG2>"
                 }, c.GetMembers().Where(member => member.Kind == SymbolKind.NamedType).Select(member => member.ToString()));
 
-                var c0 = c.GetMember<NamedTypeSymbol>("<>c__0"); 
+                var c0 = c.GetMember<NamedTypeSymbol>("<>c__0");
                 AssertEx.SetEqual(new[]
                 {
                     "C.<>c__0<TF>.<>9",
@@ -3987,7 +3986,7 @@ public class C
                     "C.<F>b__0_0<TF>()",
                     "C.<G>b__1_0<TG>()",
                     "C.<F>b__2_0<TF1, TF2>(TF1)",
-                    "C.<G>b__3_0<TG1, TG2>(TG1)",  
+                    "C.<G>b__3_0<TG1, TG2>(TG1)",
                 }, c.GetMembers().Select(member => member.ToString()));
             });
         }
@@ -4172,9 +4171,9 @@ class Program
 ";
             // ref emit would just have different metadata tokens
             // we are not interested in testing that
-            CompileAndVerify(source, 
-                additionalRefs: new[] { LinqAssemblyRef }, 
-                emitOptions: TestEmitters.RefEmitBug,   
+            CompileAndVerify(source,
+                additionalRefs: new[] { LinqAssemblyRef },
+                emitters: TestEmitters.RefEmitBug,
                 expectedOutput: @"
 Void .ctor(System.Object, IntPtr)
 Int32 Invoke()
@@ -4345,7 +4344,7 @@ class Program
     }
 }
 ";
-            var compilation = CompileAndVerify(source, options: TestOptions.DebugExe ,expectedOutput: @"True
+            var compilation = CompileAndVerify(source, options: TestOptions.DebugExe, expectedOutput: @"True
 False");
         }
 
@@ -4396,9 +4395,9 @@ class Test
     }
 }";
             // Dev11 emits "public", we emit "internal" visibility for <Foo>b__1:
-            CompileAndVerify(source, expectedSignatures: new[] 
+            CompileAndVerify(source, expectedSignatures: new[]
             {
-                Signature("Test+<>c__DisplayClass2_0", "<Foo>b__0", 
+                Signature("Test+<>c__DisplayClass2_0", "<Foo>b__0",
                           ".method assembly hidebysig instance System.String <Foo>b__0(System.String a) cil managed"),
             });
         }
@@ -4574,7 +4573,7 @@ class Test
     }
 }
 ";
-            var compilation = CompileAndVerify(source, expectedOutput:"0");
+            var compilation = CompileAndVerify(source, expectedOutput: "0");
         }
 
         [WorkItem(545430, "DevDiv")]
@@ -5133,6 +5132,8 @@ namespace ConsoleApplication16
             CompileAndVerify(source);
         }
 
+        #endregion
+
         [Fact]
         public void LambdaInQuery_Let()
         {
@@ -5150,7 +5151,7 @@ class C
     }
 }";
 
-            CompileAndVerify(source, new[] { SystemCoreRef } );
+            CompileAndVerify(source, new[] { SystemCoreRef });
         }
 
         [Fact]
@@ -5173,6 +5174,37 @@ class C
             CompileAndVerify(source, new[] { SystemCoreRef });
         }
 
-        #endregion
+        [Fact]
+        public void EmbeddedStatementClosures1()
+        {
+            var source = @"
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+class C
+{
+    public void G<T>(Func<T> f) {}
+
+    public void F()
+    {
+        for (int x = 1, y = 2; x < 10; x++) G(() => x + y);
+        for (int x = 1, y = 2; x < 10; x++) { G(() => x + y); }
+        foreach (var x in new[] { 1, 2, 3 }) G(() => x);
+        foreach (var x in new[] { 1, 2, 3 }) { G(() => x); }
+        foreach (var x in new[,] { {1}, {2}, {3} }) G(() => x);
+        foreach (var x in new[,] { {1}, {2}, {3} }) { G(() => x); }
+        foreach (var x in ""123"") G(() => x);
+        foreach (var x in ""123"") { G(() => x); }
+        foreach (var x in new List<string>()) G(() => x);
+        foreach (var x in new List<string>()) { G(() => x); }
+        using (var x = new MemoryStream()) G(() => x);
+        using (var x = new MemoryStream()) G(() => x);
+    }
+}";
+
+            CompileAndVerify(source, new[] { SystemCoreRef });
+        }
     }
 }

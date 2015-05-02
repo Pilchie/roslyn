@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace Microsoft.CodeAnalysis.CompilerServer
@@ -17,6 +18,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
     {
         // Caches are used by C# and VB compilers, and shared here.
         public static readonly ReferenceProvider AssemblyReferenceProvider = new ReferenceProvider();
+        public static readonly IAnalyzerAssemblyLoader AnalyzerLoader = new ShadowCopyAnalyzerAssemblyLoader(Path.Combine(Path.GetTempPath(), "VBCSCompiler", "AnalyzerAssemblyLoader"));
 
         private static void LogAbnormalExit(string msg)
         {
@@ -33,11 +35,11 @@ namespace Microsoft.CodeAnalysis.CompilerServer
             }
         }
 
-        private readonly string responseFileDirectory;
+        private readonly string _responseFileDirectory;
 
         internal CompilerRequestHandler(string responseFileDirectory)
         {
-            this.responseFileDirectory = responseFileDirectory;
+            _responseFileDirectory = responseFileDirectory;
         }
 
         /// <summary>
@@ -67,7 +69,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                     return new CompletedBuildResponse(-1,
                         utf8output: false,
                         output: "",
-                        errorOutput:  "");
+                        errorOutput: "");
             }
         }
 
@@ -89,10 +91,10 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 }
                 else if (arg.ArgumentId == BuildProtocolConstants.ArgumentId.CommandLineArgument)
                 {
-                    uint argIndex = arg.ArgumentIndex;
+                    int argIndex = arg.ArgumentIndex;
                     while (argIndex >= commandLineArguments.Count)
                         commandLineArguments.Add("");
-                    commandLineArguments[(int)argIndex] = arg.Value;
+                    commandLineArguments[argIndex] = arg.Value;
                 }
             }
 
@@ -125,7 +127,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
             int returnCode = CSharpCompile(
                 currentDirectory,
                 libDirectory,
-                this.responseFileDirectory,
+                _responseFileDirectory,
                 commandLineArguments,
                 output,
                 cancellationToken,
@@ -158,7 +160,9 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 responseFileDirectory,
                 commandLineArguments,
                 currentDirectory,
+                RuntimeEnvironment.GetRuntimeDirectory(),
                 libDirectory,
+                AnalyzerLoader,
                 output,
                 cancellationToken,
                 out utf8output);
@@ -179,13 +183,13 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 // If we don't have a current directory, compilation can't proceed. This shouldn't ever happen,
                 // because our clients always send the current directory.
                 Debug.Assert(false, "Client did not send current directory; this is required.");
-                return new CompletedBuildResponse(-1, utf8output: false, output:  "", errorOutput: "");
+                return new CompletedBuildResponse(-1, utf8output: false, output: "", errorOutput: "");
             }
 
             TextWriter output = new StringWriter(CultureInfo.InvariantCulture);
             bool utf8output;
             int returnCode = BasicCompile(
-                this.responseFileDirectory,
+                _responseFileDirectory,
                 currentDirectory,
                 libDirectory,
                 commandLineArguments,
@@ -218,10 +222,12 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
             return VisualBasicCompilerServer.RunCompiler(
                 responseFileDirectory,
-                commandLineArguments, 
-                currentDirectory, 
-                libDirectory, 
-                output, 
+                commandLineArguments,
+                currentDirectory,
+                RuntimeEnvironment.GetRuntimeDirectory(),
+                libDirectory,
+                AnalyzerLoader,
+                output,
                 cancellationToken,
                 out utf8output);
         }

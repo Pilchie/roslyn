@@ -7,7 +7,7 @@ Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Symbols
 
-    Partial Class SourceNamedTypeSymbol
+    Friend Partial Class SourceNamedTypeSymbol
 
         Protected Overrides Sub AddGroupClassMembersIfNeeded(membersBuilder As MembersAndInitializersBuilder, diagnostics As DiagnosticBag)
             ' For reference, see Bindable::IsMyGroupCollection and Bindable::CrackAttributesOnAllSymbolsInContainer in native code.
@@ -323,7 +323,7 @@ DoneWithBindingAttributes:
 
                     Select Case memberSyntax.Kind
                         Case SyntaxKind.ConstructorBlock
-                            constructorSyntax = DirectCast(memberSyntax, ConstructorBlockSyntax).Begin
+                            constructorSyntax = DirectCast(memberSyntax, ConstructorBlockSyntax).SubNewStatement
                         Case SyntaxKind.SubNewStatement
                             constructorSyntax = DirectCast(memberSyntax, SubNewStatementSyntax)
                         Case Else

@@ -19,35 +19,18 @@ namespace Microsoft.CodeAnalysis.CSharp
     {
         internal const string ResponseFileName = "csc.rsp";
 
-        private readonly string responseFile;
-        private CommandLineDiagnosticFormatter diagnosticFormatter;
+        private CommandLineDiagnosticFormatter _diagnosticFormatter;
 
-        protected CSharpCompiler(CSharpCommandLineParser parser, string responseFile, string[] args, string baseDirectory, string additionalReferencePaths)
-            : base(parser, responseFile, args, baseDirectory, additionalReferencePaths)
+        protected CSharpCompiler(CSharpCommandLineParser parser, string responseFile, string[] args, string clientDirectory, string baseDirectory, string sdkDirectory, string additionalReferenceDirectories, IAnalyzerAssemblyLoader analyzerLoader)
+            : base(parser, responseFile, args, clientDirectory, baseDirectory, sdkDirectory, additionalReferenceDirectories, analyzerLoader)
         {
-            Debug.Assert(responseFile == null || Path.IsPathRooted(responseFile));
-            this.responseFile = responseFile;
-            this.diagnosticFormatter = new CommandLineDiagnosticFormatter(baseDirectory, Arguments.PrintFullPaths, Arguments.ShouldIncludeErrorEndLocation);
+            _diagnosticFormatter = new CommandLineDiagnosticFormatter(baseDirectory, Arguments.PrintFullPaths, Arguments.ShouldIncludeErrorEndLocation);
         }
 
-        public override DiagnosticFormatter DiagnosticFormatter { get { return this.diagnosticFormatter; } }
+        public override DiagnosticFormatter DiagnosticFormatter { get { return _diagnosticFormatter; } }
         protected internal new CSharpCommandLineArguments Arguments { get { return (CSharpCommandLineArguments)base.Arguments; } }
 
-        public override int Run(TextWriter consoleOutput, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            try
-            {
-                return base.Run(consoleOutput, cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                DiagnosticInfo diag = new DiagnosticInfo(MessageProvider, (int)ErrorCode.ERR_CompileCancelled);
-                PrintErrors(new[] { diag }, consoleOutput);
-                return 1;
-            }
-        }
-
-        protected override Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger)
+        public override Compilation CreateCompilation(TextWriter consoleOutput, TouchedFileLogger touchedFilesLogger, ErrorLogger errorLogger)
         {
             var parseOptions = Arguments.ParseOptions;
             var scriptParseOptions = parseOptions.WithKind(SourceCodeKind.Script);
@@ -60,45 +43,18 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (Arguments.CompilationOptions.ConcurrentBuild)
             {
-                int threadId = Thread.CurrentThread.ManagedThreadId;
-                System.Globalization.CultureInfo uiCulture = Thread.CurrentThread.CurrentUICulture;
-
-                Parallel.For(0, sourceFiles.Length, i =>
+                Parallel.For(0, sourceFiles.Length, UICultureUtilities.WithCurrentUICulture<int>(i =>
                 {
-                    var currentThread = Thread.CurrentThread;
-                    var currentThreadId = currentThread.ManagedThreadId;
-                    System.Globalization.CultureInfo saveUICulture = null;
-                    if (currentThreadId != threadId)
-                    {
-                        // New threads created by Parallel.For do not inherit CurrentUICulture by default.
-                        saveUICulture = currentThread.CurrentUICulture;
-                        currentThread.CurrentUICulture = uiCulture;
-                    }
-
-                    try
-                    {
-                        var file = sourceFiles[i];
-
-                        //NOTE: order of trees is important!!
-                        trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, file, out normalizedFilePaths[i]);
-                    }
-                    finally
-                    {
-                        if (currentThreadId != threadId)
-                        {
-                            currentThread.CurrentUICulture = saveUICulture;
-                        }
-                    }
-                });
+                    //NOTE: order of trees is important!!
+                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], errorLogger, out normalizedFilePaths[i]);
+                }));
             }
             else
             {
                 for (int i = 0; i < sourceFiles.Length; i++)
                 {
-                    var file = sourceFiles[i];
-
                     //NOTE: order of trees is important!!
-                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, file, out normalizedFilePaths[i]);
+                    trees[i] = ParseFile(consoleOutput, parseOptions, scriptParseOptions, ref hadErrors, sourceFiles[i], errorLogger, out normalizedFilePaths[i]);
                 }
             }
 
@@ -121,7 +77,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     // warning CS2002: Source file '{0}' specified multiple times
                     diagnostics.Add(new DiagnosticInfo(MessageProvider, (int)ErrorCode.WRN_FileAlreadyIncluded,
-                        Arguments.PrintFullPaths ? normalizedFilePath : this.diagnosticFormatter.RelativizeNormalizedPath(normalizedFilePath)));
+                        Arguments.PrintFullPaths ? normalizedFilePath : _diagnosticFormatter.RelativizeNormalizedPath(normalizedFilePath)));
 
                     trees[i] = null;
                 }
@@ -164,7 +120,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             var externalReferenceResolver = GetExternalMetadataResolver(touchedFilesLogger);
             MetadataFileReferenceResolver referenceDirectiveResolver;
             var resolvedReferences = ResolveMetadataReferences(externalReferenceResolver, metadataProvider, diagnostics, assemblyIdentityComparer, touchedFilesLogger, out referenceDirectiveResolver);
-            if (PrintErrors(diagnostics, consoleOutput))    
+            if (ReportErrors(diagnostics, consoleOutput, errorLogger))
             {
                 return null;
             }
@@ -191,6 +147,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             CSharpParseOptions scriptParseOptions,
             ref bool hadErrors,
             CommandLineSourceFile file,
+            ErrorLogger errorLogger,
             out string normalizedFilePath)
         {
             var fileReadDiagnostics = new List<DiagnosticInfo>();
@@ -198,7 +155,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (content == null)
             {
-                PrintErrors(fileReadDiagnostics, consoleOutput);
+                ReportErrors(fileReadDiagnostics, consoleOutput, errorLogger);
                 fileReadDiagnostics.Clear();
                 hadErrors = true;
                 return null;
@@ -210,7 +167,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         private static SyntaxTree ParseFile(
-            CSharpParseOptions parseOptions, 
+            CSharpParseOptions parseOptions,
             CSharpParseOptions scriptParseOptions,
             SourceText content,
             CommandLineSourceFile file)
@@ -288,19 +245,23 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// Print compiler logo
         /// </summary>
         /// <param name="consoleOutput"></param>
-        protected override void PrintLogo(TextWriter consoleOutput)
+        public override void PrintLogo(TextWriter consoleOutput)
         {
-            Assembly thisAssembly = GetType().Assembly;
-            consoleOutput.WriteLine(ErrorFacts.GetMessage(MessageID.IDS_LogoLine1, Culture), FileVersionInfo.GetVersionInfo(thisAssembly.Location).FileVersion);
+            consoleOutput.WriteLine(ErrorFacts.GetMessage(MessageID.IDS_LogoLine1, Culture), GetToolName(), GetAssemblyFileVersion());
             consoleOutput.WriteLine(ErrorFacts.GetMessage(MessageID.IDS_LogoLine2, Culture));
             consoleOutput.WriteLine();
+        }
+
+        internal override string GetToolName()
+        {
+            return ErrorFacts.GetMessage(MessageID.IDS_ToolName, Culture);
         }
 
         /// <summary>
         /// Print Commandline help message (up to 80 English characters per line)
         /// </summary>
         /// <param name="consoleOutput"></param>
-        protected override void PrintHelp(TextWriter consoleOutput)
+        public override void PrintHelp(TextWriter consoleOutput)
         {
             consoleOutput.WriteLine(ErrorFacts.GetMessage(MessageID.IDS_CSCHelp, Culture));
         }
@@ -312,7 +273,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         protected override ImmutableArray<DiagnosticAnalyzer> ResolveAnalyzersFromArguments(List<DiagnosticInfo> diagnostics, CommonMessageProvider messageProvider, TouchedFileLogger touchedFiles)
         {
-            return Arguments.ResolveAnalyzersFromArguments(LanguageNames.CSharp, diagnostics, messageProvider, touchedFiles);
+            return Arguments.ResolveAnalyzersFromArguments(LanguageNames.CSharp, diagnostics, messageProvider, touchedFiles, AnalyzerLoader);
         }
     }
 }

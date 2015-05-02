@@ -445,7 +445,7 @@ class Program
 }
 ";
             var metadataStream = new MemoryStream();
-            var emitResult = vbProject.Emit(metadataStream, options:new EmitOptions(metadataOnly:true));
+            var emitResult = vbProject.Emit(metadataStream, options: new EmitOptions(metadataOnly: true));
             Assert.True(emitResult.Success);
 
             var csProject = CreateCompilationWithMscorlib(
@@ -972,7 +972,7 @@ class TestDataPointBase
 
 ";
             var compilation = CreateCompilationWithMscorlibAndSystemCore(source);
-            
+
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
             var oReference =
@@ -982,7 +982,7 @@ class TestDataPointBase
                 .OfType<ExpressionSyntax>()
                 .OrderByDescending(s => s.SpanStart);
 
-            foreach(var name in oReference)
+            foreach (var name in oReference)
             {
                 CSharpExtensions.GetSymbolInfo(model, name);
             }
@@ -1094,6 +1094,70 @@ class C
             Assert.Equal("void System.Collections.Generic.ICollection<C>.Add(C item)", symbolInfo.Symbol.ToTestDisplayString());
             Assert.Equal(0, symbolInfo.CandidateSymbols.Length);
             Assert.Equal(CandidateReason.None, symbolInfo.CandidateReason);
+        }
+
+        [WorkItem(1112875, "DevDiv")]
+        [Fact]
+        public void Bug1112875_1()
+        {
+            var comp = CreateCompilationWithMscorlib(@"
+using System;
+ 
+class Program
+{
+    static void Main()
+    {
+        ICloneable c = """";
+        Foo(() => (c.Clone()), null);
+    }
+ 
+    static void Foo(Action x, string y) { }
+    static void Foo(Func<object> x, object y) { Console.WriteLine(42); }
+}", options: TestOptions.ReleaseExe);
+            comp.VerifyDiagnostics();
+
+            CompileAndVerify(comp, expectedOutput: "42");
+        }
+
+        [WorkItem(1112875, "DevDiv")]
+        [Fact]
+        public void Bug1112875_2()
+        {
+            var comp = CreateCompilationWithMscorlib(@"
+class Program
+{
+    void M()
+    {
+        var d = new System.Action(() => (new object()));
+    }
+}
+");
+            comp.VerifyDiagnostics(
+                // (6,41): error CS0201: Only assignment, call, increment, decrement, and new object expressions can be used as a statement
+                //         var d = new System.Action(() => (new object()));
+                Diagnostic(ErrorCode.ERR_IllegalStatement, "(new object())").WithLocation(6, 41));
+        }
+
+        [WorkItem(1830, "https://github.com/dotnet/roslyn/issues/1830")]
+        [Fact]
+        public void FuncOfVoid()
+        {
+            var comp = CreateCompilationWithMscorlib(@"
+using System;
+class Program
+{
+    void M1<T>(Func<T> f) {}
+    void Main(string[] args)
+    {
+        M1(() => { return System.Console.Beep(); });
+    }
+}
+");
+            comp.VerifyDiagnostics(
+                // (8,27): error CS4029: Cannot return an expression of type 'void'
+                //         M1(() => { return System.Console.Beep(); });
+                Diagnostic(ErrorCode.ERR_CantReturnVoid, "System.Console.Beep()").WithLocation(8, 27)
+                );
         }
     }
 }

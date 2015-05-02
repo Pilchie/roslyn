@@ -3,10 +3,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 using Microsoft.CodeAnalysis.Shared.Extensions;
 using Roslyn.Utilities;
 
@@ -17,9 +19,9 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
     /// </summary>
     public abstract class CA1008CodeFixProviderBase : CodeFixProviderBase
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(CA1008DiagnosticAnalyzer.RuleId);
+            get { return ImmutableArray.Create(CA1008DiagnosticAnalyzer.RuleId); }
         }
 
         protected sealed override string GetCodeFixDescription(Diagnostic diagnostic)
@@ -39,7 +41,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
                 }
             }
 
-            throw ExceptionUtilities.Unreachable;
+            throw new InvalidOperationException("This program location is thought to be unreachable.");
         }
 
         private static SyntaxNode GetDeclaration(ISymbol symbol)
@@ -60,7 +62,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
 
         private async Task<Document> GetUpdatedDocumentForRuleNameRenameAsync(Document document, IFieldSymbol field, CancellationToken cancellationToken)
         {
-            var newSolution = await Rename.Renamer.RenameSymbolAsync(document.Project.Solution, field, "None", null).ConfigureAwait(false);
+            var newSolution = await Rename.Renamer.RenameSymbolAsync(document.Project.Solution, field, "None", null, cancellationToken).ConfigureAwait(false);
             return newSolution.GetDocument(document.Id);
         }
 
@@ -93,7 +95,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
                 }
                 else
                 {
-                    await editor.EditOneDeclarationAsync(field, (e, d) => e.RemoveNode(d)); // removes the field declaration
+                    await editor.EditOneDeclarationAsync(field, (e, d) => e.RemoveNode(d), cancellationToken); // removes the field declaration
                     makeNextFieldExplicit = true;
                 }
             }
@@ -111,7 +113,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
             {
                 if (CA1008DiagnosticAnalyzer.IsMemberNamedNone(field))
                 {
-                    await editor.EditOneDeclarationAsync(field, (e, d) => e.RemoveNode(d)); 
+                    await editor.EditOneDeclarationAsync(field, (e, d) => e.RemoveNode(d), cancellationToken);
                 }
             }
 
@@ -136,7 +138,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Design
         internal sealed override async Task<Document> GetUpdatedDocumentAsync(Document document, SemanticModel model, SyntaxNode root, SyntaxNode nodeToFix, Diagnostic diagnostic, CancellationToken cancellationToken)
         {
             ISymbol declaredSymbol = model.GetDeclaredSymbol(nodeToFix, cancellationToken);
-            Contract.ThrowIfNull(declaredSymbol);
+            Debug.Assert(declaredSymbol != null);
 
             var editor = SymbolEditor.Create(document);
 

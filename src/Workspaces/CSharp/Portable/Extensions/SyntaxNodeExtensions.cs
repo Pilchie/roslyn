@@ -106,10 +106,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             {
                 case SyntaxKind.MethodDeclaration:
                 case SyntaxKind.ConstructorDeclaration:
-                case SyntaxKind.PropertyDeclaration:
                 case SyntaxKind.EventDeclaration:
                 case SyntaxKind.IndexerDeclaration:
                     return memberDeclaration.GetModifiers().Any(SyntaxKind.StaticKeyword);
+
+                case SyntaxKind.PropertyDeclaration:
+                    return node.IsFoundUnder((PropertyDeclarationSyntax p) => p.Initializer);
 
                 case SyntaxKind.FieldDeclaration:
                     // Inside a field one can only access static members of a type.
@@ -155,12 +157,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
         // Matches the following:
         //
         // (whitespace* newline)+ 
-        private static readonly Matcher<SyntaxTrivia> OneOrMoreBlankLines;
+        private static readonly Matcher<SyntaxTrivia> s_oneOrMoreBlankLines;
 
         // Matches the following:
         // 
         // (whitespace* (single-comment|multi-comment) whitespace* newline)+ OneOrMoreBlankLines
-        private static readonly Matcher<SyntaxTrivia> BannerMatcher;
+        private static readonly Matcher<SyntaxTrivia> s_bannerMatcher;
 
         static SyntaxNodeExtensions()
         {
@@ -174,11 +176,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
 
             var commentLine = Matcher.Sequence(whitespace, anyCommentMatcher, whitespace, endOfLine);
 
-            OneOrMoreBlankLines = Matcher.OneOrMore(singleBlankLine);
-            BannerMatcher =
+            s_oneOrMoreBlankLines = Matcher.OneOrMore(singleBlankLine);
+            s_bannerMatcher =
                 Matcher.Sequence(
                     Matcher.OneOrMore(commentLine),
-                    OneOrMoreBlankLines);
+                    s_oneOrMoreBlankLines);
         }
 
         private static Matcher<SyntaxTrivia> Match(SyntaxKind kind, string description)
@@ -603,7 +605,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             var leadingTriviaToKeep = new List<SyntaxTrivia>(node.GetLeadingTrivia());
 
             var index = 0;
-            OneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, ref index);
+            s_oneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, ref index);
 
             strippedTrivia = new List<SyntaxTrivia>(leadingTriviaToKeep.Take(index));
 
@@ -669,8 +671,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             // Now, consume as many banners as we can.
             var index = 0;
             while (
-                OneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, ref index) ||
-                BannerMatcher.TryMatch(leadingTriviaToKeep, ref index))
+                s_oneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, ref index) ||
+                s_bannerMatcher.TryMatch(leadingTriviaToKeep, ref index))
             {
             }
 
@@ -753,13 +755,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
         /// <summary>
         /// Look inside a trivia list for a skipped token that contains the given position.
         /// </summary>
-        private static readonly Func<SyntaxTriviaList, int, SyntaxToken> FindSkippedTokenForward =
+        private static readonly Func<SyntaxTriviaList, int, SyntaxToken> s_findSkippedTokenForward =
             (l, p) => FindTokenHelper.FindSkippedTokenForward(GetSkippedTokens(l), p);
 
         /// <summary>
         /// Look inside a trivia list for a skipped token that contains the given position.
         /// </summary>
-        private static readonly Func<SyntaxTriviaList, int, SyntaxToken> FindSkippedTokenBackward =
+        private static readonly Func<SyntaxTriviaList, int, SyntaxToken> s_findSkippedTokenBackward =
             (l, p) => FindTokenHelper.FindSkippedTokenBackward(GetSkippedTokens(l), p);
 
         /// <summary>
@@ -781,7 +783,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             bool includeDirectives = false,
             bool includeDocumentationComments = false)
         {
-            var skippedTokenFinder = includeSkipped ? FindSkippedTokenForward : (Func<SyntaxTriviaList, int, SyntaxToken>)null;
+            var skippedTokenFinder = includeSkipped ? s_findSkippedTokenForward : (Func<SyntaxTriviaList, int, SyntaxToken>)null;
 
             return FindTokenHelper.FindTokenOnRightOfPosition<CompilationUnitSyntax>(
                 root, position, skippedTokenFinder, includeSkipped, includeDirectives, includeDocumentationComments);
@@ -797,7 +799,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             bool includeDirectives = false,
             bool includeDocumentationComments = false)
         {
-            var skippedTokenFinder = includeSkipped ? FindSkippedTokenBackward : (Func<SyntaxTriviaList, int, SyntaxToken>)null;
+            var skippedTokenFinder = includeSkipped ? s_findSkippedTokenBackward : (Func<SyntaxTriviaList, int, SyntaxToken>)null;
 
             return FindTokenHelper.FindTokenOnLeftOfPosition<CompilationUnitSyntax>(
                 root, position, skippedTokenFinder, includeSkipped, includeDirectives, includeDocumentationComments);
@@ -840,7 +842,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             // we could check up front that index is within FullSpan,
             // but we wan to optimize for the common case where position is valid.
             Debug.Assert(!self.FullSpan.Contains(position), "Position is valid. How could we not find a child?");
-            throw new ArgumentOutOfRangeException("position");
+            throw new ArgumentOutOfRangeException(nameof(position));
         }
 
         public static SyntaxNode GetParent(this SyntaxNode node)
@@ -1057,6 +1059,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                 return block.ContainsInBlockBody(span);
             }
 
+            var expressionBodiedMember = node as ArrowExpressionClauseSyntax;
+            if (expressionBodiedMember != null)
+            {
+                return expressionBodiedMember.ContainsInExpressionBodiedMemberBody(span);
+            }
+
             var field = node as FieldDeclarationSyntax;
             if (field != null)
             {
@@ -1103,6 +1111,17 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
 
             var blockSpan = TextSpan.FromBounds(block.OpenBraceToken.Span.End, block.CloseBraceToken.SpanStart);
             return blockSpan.Contains(textSpan);
+        }
+
+        public static bool ContainsInExpressionBodiedMemberBody(this ArrowExpressionClauseSyntax expressionBodiedMember, TextSpan textSpan)
+        {
+            if (expressionBodiedMember == null)
+            {
+                return false;
+            }
+
+            var expressionBodiedMemberBody = TextSpan.FromBounds(expressionBodiedMember.Expression.SpanStart, expressionBodiedMember.Expression.Span.End);
+            return expressionBodiedMemberBody.Contains(textSpan);
         }
 
         public static IEnumerable<MemberDeclarationSyntax> GetMembers(this SyntaxNode node)
@@ -1156,7 +1175,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             }
 
             var property = node as BasePropertyDeclarationSyntax;
-            if (property != null)
+            if (property != null && property.AccessorList != null)
             {
                 return property.AccessorList.Accessors.Select(a => a.Body).WhereNotNull();
             }
@@ -1177,6 +1196,43 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             }
 
             return SpecializedCollections.EmptyEnumerable<SyntaxNode>();
+        }
+
+        public static ConditionalAccessExpressionSyntax GetParentConditionalAccessExpression(this SyntaxNode node)
+        {
+            var parent = node.Parent;
+            while (parent != null)
+            {
+                // Because the syntax for conditional access is right associate, we cannot
+                // simply take the first ancestor ConditionalAccessExpression. Instead, we 
+                // must walk upward until we find the ConditionalAccessExpression whose
+                // OperatorToken appears left of the MemberBinding.
+                if (parent.IsKind(SyntaxKind.ConditionalAccessExpression) &&
+                    ((ConditionalAccessExpressionSyntax)parent).OperatorToken.Span.End <= node.SpanStart)
+                {
+                    return (ConditionalAccessExpressionSyntax)parent;
+                }
+
+                parent = parent.Parent;
+            }
+
+            return null;
+        }
+
+        public static ConditionalAccessExpressionSyntax GetInnerMostConditionalAccessExpression(this SyntaxNode node)
+        {
+            if (!(node is ConditionalAccessExpressionSyntax))
+            {
+                return null;
+            }
+
+            var result = (ConditionalAccessExpressionSyntax)node;
+            while (result.WhenNotNull is ConditionalAccessExpressionSyntax)
+            {
+                result = (ConditionalAccessExpressionSyntax)result.WhenNotNull;
+            }
+
+            return result;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// </summary>
     internal static class CSharpDiagnosticFilter
     {
-        private static readonly ErrorCode[] AlinkWarnings = { ErrorCode.WRN_ConflictingMachineAssembly,
+        private static readonly ErrorCode[] s_alinkWarnings = { ErrorCode.WRN_ConflictingMachineAssembly,
                                                               ErrorCode.WRN_RefCultureMismatch,
                                                               ErrorCode.WRN_InvalidVersionFormat };
 
@@ -28,10 +28,22 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns>A diagnostic updated to reflect the options, or null if it has been filtered out</returns>
         public static Diagnostic Filter(Diagnostic d, int warningLevelOption, ReportDiagnostic generalDiagnosticOption, IDictionary<string, ReportDiagnostic> specificDiagnosticOptions)
         {
-            // If diagnostic is not configurable, keep it as it is.
-            if (d == null || d.IsNotConfigurable())
+            if (d == null)
             {
                 return d;
+            }
+            else if (d.IsNotConfigurable())
+            {
+                if (d.IsEnabledByDefault)
+                {
+                    // Enabled NotConfigurable should always be reported as it is.
+                    return d;
+                }
+                else
+                {
+                    // Disabled NotConfigurable should never be reported.
+                    return null;
+                }
             }
             else if (d.Severity == InternalDiagnosticSeverity.Void)
             {
@@ -47,7 +59,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             //specifying warnaserror:1607 and getting a message saying "warning as error CS8012..."
             //We don't permit configuring 1607 and independently configuring the new warnings.
             ReportDiagnostic reportAction;
-            if (AlinkWarnings.Contains((ErrorCode)d.Code) &&
+            if (s_alinkWarnings.Contains((ErrorCode)d.Code) &&
                 specificDiagnosticOptions.Keys.Contains(CSharp.MessageProvider.Instance.GetIdForErrorCode((int)ErrorCode.WRN_ALinkWarn)))
             {
                 reportAction = GetDiagnosticReport(ErrorFacts.GetSeverity(ErrorCode.WRN_ALinkWarn),
@@ -69,7 +81,8 @@ namespace Microsoft.CodeAnalysis.CSharp
         }
 
         // Take a warning and return the final deposition of the given warning,
-        // based on both command line options and pragmas
+        // based on both command line options and pragmas.
+        // If you update this method, also update DiagnosticItemSource.GetEffectiveSeverity. 
         internal static ReportDiagnostic GetDiagnosticReport(DiagnosticSeverity severity, bool isEnabledByDefault, string id, int diagnosticWarningLevel, Location location, string category, int warningLevelOption, ReportDiagnostic generalDiagnosticOption, IDictionary<string, ReportDiagnostic> specificDiagnosticOptions)
         {
             // Read options (e.g., /nowarn or /warnaserror)

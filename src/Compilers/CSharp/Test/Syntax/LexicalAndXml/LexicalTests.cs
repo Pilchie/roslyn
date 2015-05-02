@@ -16,11 +16,11 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     public class LexicalTests
     {
-        private readonly CSharpParseOptions options;
+        private readonly CSharpParseOptions _options;
 
         public LexicalTests()
         {
-            this.options = new CSharpParseOptions(languageVersion: LanguageVersion.CSharp3);
+            _options = new CSharpParseOptions(languageVersion: LanguageVersion.CSharp3);
         }
 
         private SyntaxToken Lex(string text)
@@ -35,7 +35,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         private SyntaxToken DebuggerLex(string text)
         {
-            using (var lexer = new InternalSyntax.Lexer(SourceText.From(text), options))
+            using (var lexer = new InternalSyntax.Lexer(SourceText.From(text), _options))
             {
                 return new SyntaxToken(lexer.Lex(InternalSyntax.LexerMode.DebuggerSyntax));
             }
@@ -48,7 +48,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         private IEnumerable<InternalSyntax.BlendedNode> Blend(string text)
         {
-            using (var lexer = new InternalSyntax.Lexer(SourceText.From(text), options))
+            using (var lexer = new InternalSyntax.Lexer(SourceText.From(text), _options))
             {
                 var blender = new InternalSyntax.Blender(lexer, null, null);
                 InternalSyntax.BlendedNode result;
@@ -59,7 +59,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                     yield return result;
                 }
                 while (result.Token.Kind != SyntaxKind.EndOfFileToken);
-            }           
+            }
         }
 
         [Fact]
@@ -2283,79 +2283,6 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         }
 
         [Fact]
-        public void TestDebuggerCompilerGeneratedIdentifiers()
-        {
-            string text = "<>";
-            var token = DebuggerLexToken(text);
-
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
-            var errors = token.Errors();
-            Assert.Equal(0, errors.Length);
-            Assert.Equal(text, token.Text);
-            Assert.Equal(text, token.Value);
-
-            text = "<>f__AnonymousType0";
-            token = DebuggerLexToken(text);
-            errors = token.Errors();
-            
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
-            Assert.Equal(0, errors.Length);
-            Assert.Equal(text, token.Text);
-            Assert.Equal(text, token.Value);
-
-            text = "<>f__AnonymousType0>";
-            token = DebuggerLexToken(text);
-            errors = token.Errors();
-            
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
-            Assert.Equal(0, errors.Length);
-            Assert.Equal(text.Substring(0, text.Length - 1), token.Text);
-            Assert.Equal(text.Substring(0, text.Length - 1), token.Value);
-
-            text = "<>f__AnonymousType0<";
-            token = DebuggerLexToken(text);
-            errors = token.Errors();
-            
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
-            Assert.Equal(0, errors.Length);
-            Assert.Equal(text.Substring(0, text.Length - 1), token.Text);
-            Assert.Equal(text.Substring(0, text.Length - 1), token.Value);
-
-            text = "<>f__\\u0041nonymousType1";
-            token = DebuggerLexToken(text);
-            errors = token.Errors();
-            
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
-            Assert.Equal(0, errors.Length);
-            Assert.Equal(text, token.Text);
-            Assert.NotEqual(text, token.Value);
-            Assert.Equal("<>f__AnonymousType1", token.Value);
-
-            text = "<<>";
-            token = DebuggerLexToken(text);
-            errors = token.Errors();
-            
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.LessThanToken, token.Kind());
-            Assert.Equal(0, errors.Length);
-            Assert.Equal("<", token.Text);
-
-            text = "<<X";
-            token = DebuggerLexToken(text);
-            errors = token.Errors();
-            
-            Assert.NotNull(token);
-            Assert.Equal(SyntaxKind.LessThanLessThanToken, token.Kind());
-            Assert.Equal(0, errors.Length);
-            Assert.Equal("<<", token.Text);
-        }
-
-        [Fact]
         public void TestDebuggerDollarIdentifiers()
         {
             string text = "$";
@@ -2371,7 +2298,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             text = "$x";
             token = DebuggerLexToken(text);
             errors = token.Errors();
-            
+
             Assert.NotNull(token);
             Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
             Assert.Equal(0, errors.Length);
@@ -2381,7 +2308,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             text = "x$";
             token = DebuggerLexToken(text);
             errors = token.Errors();
-            
+
             Assert.NotNull(token);
             Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
             Assert.Equal(0, errors.Length);
@@ -2475,7 +2402,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             text = "0123#";
             token = DebuggerLexToken(text);
             errors = token.Errors();
-            
+
             Assert.NotNull(token);
             Assert.Equal(SyntaxKind.IdentifierToken, token.Kind());
             Assert.Equal(1, errors.Length);
@@ -2485,7 +2412,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             text = "0x123#";
             token = DebuggerLexToken(text);
             errors = token.Errors();
-            
+
             Assert.NotNull(token);
             Assert.Equal(SyntaxKind.NumericLiteralToken, token.Kind());
             Assert.Equal(1, errors.Length);
@@ -2495,7 +2422,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             text = "123L#";
             token = DebuggerLexToken(text);
             errors = token.Errors();
-            
+
             Assert.NotNull(token);
             Assert.Equal(SyntaxKind.NumericLiteralToken, token.Kind());
             Assert.Equal(1, errors.Length);

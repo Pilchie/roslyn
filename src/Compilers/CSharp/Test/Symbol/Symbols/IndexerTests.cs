@@ -61,7 +61,7 @@ struct S
 
             CompileAndVerify(
                 source: source,
-                emitOptions: TestEmitters.CCI,
+                emitters: TestEmitters.CCI,
                 sourceSymbolValidator: validator,
                 symbolValidator: validator,
                 options: TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.Internal));
@@ -194,7 +194,7 @@ class C : IB, IC
             {
                 Assert.NotNull(setter);
                 Assert.True(setter.ReturnsVoid);
-                CheckParameters(setter.Parameters, expectedParameterTypes.Concat(new [] { expectedType }).ToArray());
+                CheckParameters(setter.Parameters, expectedParameterTypes.Concat(new[] { expectedType }).ToArray());
             }
             else
             {
@@ -203,7 +203,6 @@ class C : IB, IC
 
             Assert.Equal(property.GetMethod != null, hasGet);
             Assert.Equal(property.SetMethod != null, hasSet);
-
         }
 
         private static void CheckParameters(ImmutableArray<ParameterSymbol> parameters, SpecialType[] expectedTypes)
@@ -349,7 +348,7 @@ class C : I1, I2
             Assert.True(interface2Getter == interface1GetterImpl ^ interface2Getter == interface2GetterImpl);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void ImplicitlyImplementingIndexersWithDifferentNames_DifferentInterfaces_Metadata()
         {
             var il = @"
@@ -437,7 +436,7 @@ class C : I1, I2
         /// Metadata type has two indexers with the same signature but different names.
         /// Both are implicitly implemented by a single source indexer.
         /// </summary>
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void ImplicitlyImplementingIndexersWithDifferentNames_SameInterface()
         {
             var il = @"
@@ -499,7 +498,7 @@ class C : I1
         /// Both are explicitly implemented by a single source indexer, resulting in an
         /// ambiguity error.
         /// </summary>
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void AmbiguousExplicitIndexerImplementation()
         {
             // NOTE: could be done in C# using IndexerNameAttribute
@@ -554,7 +553,7 @@ class C : I1
             Assert.True(indexer0Impl == null ^ indexer1Impl == null);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void HidingIndexerWithDifferentName()
         {
             // NOTE: could be done in C# using IndexerNameAttribute
@@ -615,7 +614,7 @@ class Derived : Base
             Assert.Equal(baseIndexer, derivedIndexer.OverriddenOrHiddenMembers.HiddenMembers.Single());
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void OverridingIndexerWithDifferentName()
         {
             // NOTE: could be done in C# using IndexerNameAttribute
@@ -674,7 +673,7 @@ class Derived : Base
             emitOptions: TestEmitters.RefEmitBug);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void HidingMultipleIndexers()
         {
             // NOTE: could be done in C# using IndexerNameAttribute
@@ -719,7 +718,7 @@ class Derived : Base
 ";
 
             var compilation = CreateCompilationWithCustomILSource(csharp, il);
-                
+
             // As in dev10, we report only the first hidden member.
             compilation.VerifyDiagnostics(
                 // (4,16): warning CS0108: 'Derived.this[int]' hides inherited member 'Base.this[int]'. Use the new keyword if hiding was intended.
@@ -748,7 +747,7 @@ class Derived : Base
             Assert.Contains(baseIndexers[1], hiddenMembers);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void OverridingMultipleIndexers()
         {
             // NOTE: could be done in C# using IndexerNameAttribute
@@ -1167,7 +1166,7 @@ class C : I
                 Assert.False(classIndexer.CanBeReferencedByName);
             };
 
-            CompileAndVerify(source, emitOptions: TestEmitters.RefEmitBug, sourceSymbolValidator: validator(true), symbolValidator: validator(false));
+            CompileAndVerify(source, emitters: TestEmitters.RefEmitBug, sourceSymbolValidator: validator(true), symbolValidator: validator(false));
         }
 
         [Fact]
@@ -1229,7 +1228,7 @@ public class C : I
                 Assert.False(classCIndexer.IsIndexer()); //not the default member of C
             };
 
-            CompileAndVerify(text, emitOptions: TestEmitters.RefEmitBug, sourceSymbolValidator: sourceValidator, symbolValidator: metadataValidator);
+            CompileAndVerify(text, emitters: TestEmitters.RefEmitBug, sourceSymbolValidator: sourceValidator, symbolValidator: metadataValidator);
         }
 
         [Fact]
@@ -1890,7 +1889,7 @@ interface B<T>
                 // (7,25): error CS0110: The evaluation of the constant value for 'A<T>.Constant2' involves a circular definition
                 //     public const string Constant2 = B<int>.Constant2;
                 Diagnostic(ErrorCode.ERR_CircConstValue, "Constant2").WithArguments("A<T>.Constant2"),
-                
+
                 // (15,18): error CS0525: Interfaces cannot contain fields
                 //     const string Constant1 = "X";
                 Diagnostic(ErrorCode.ERR_InterfacesCantContainFields, "Constant1"),
@@ -1935,7 +1934,7 @@ class B<T> where T : Q
     public int this[long x] { get { return 0; } }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics( 
+            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
                 // (7,25): error CS0110: The evaluation of the constant value for 'P.Constant2' involves a circular definition
                 //     public const string Constant2 = Q.Constant2;
                 Diagnostic(ErrorCode.ERR_CircConstValue, "Constant2").WithArguments("P.Constant2"),
@@ -1984,7 +1983,7 @@ class A
     public int this[ulong x] { get { return 0; } }
 }
 ";
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics( 
+            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
                 // (10,5): error CS0110: The evaluation of the constant value for 'E.E' involves a circular definition
                 //     E = F,
                 Diagnostic(ErrorCode.ERR_CircConstValue, "E").WithArguments("E.E"),
@@ -2144,7 +2143,7 @@ class B
 ";
             var compilation = CreateCompilationWithMscorlib(source);
 
-            var loopResult = Parallel.ForEach(compilation.GlobalNamespace.GetTypeMembers(), type => 
+            var loopResult = Parallel.ForEach(compilation.GlobalNamespace.GetTypeMembers(), type =>
                 type.ForceComplete(null, default(CancellationToken)));
 
             Assert.True(loopResult.IsCompleted);
@@ -2412,7 +2411,7 @@ public class Derived : Base
             CreateCompilationWithMscorlib(text).VerifyDiagnostics();
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void SameSignaturesDifferentNames()
         {
             var ilSource = @"
@@ -2717,7 +2716,7 @@ class Derived2 : Base
         }
 
         [WorkItem(545851, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void DistinctOptionalParameterValues()
         {
             var source1 =

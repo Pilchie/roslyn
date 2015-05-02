@@ -3,10 +3,12 @@
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
+using ProprietaryTestResources = Microsoft.CodeAnalysis.Test.Resources.Proprietary;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests.PDB
 {
@@ -61,7 +63,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""28"" endLine=""16"" endColumn=""29"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""30"" endLine=""16"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <namespace name=""System.Threading"" />
         <namespace name=""System.IO"" />
@@ -79,7 +80,6 @@ namespace X
         <entry offset=""0x0"" startLine=""10"" startColumn=""24"" endLine=""10"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""26"" endLine=""10"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <namespace name=""System.IO"" />
         <namespace name=""System"" />
@@ -95,7 +95,6 @@ namespace X
         <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
         <entry offset=""0x1"" startLine=""4"" startColumn=""22"" endLine=""4"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <namespace name=""System"" />
       </scope>
@@ -141,7 +140,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""28"" endLine=""16"" endColumn=""29"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""30"" endLine=""16"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""R"" target=""System.Threading"" kind=""namespace"" />
         <alias name=""Q"" target=""System.IO"" kind=""namespace"" />
@@ -159,7 +157,6 @@ namespace X
         <entry offset=""0x0"" startLine=""10"" startColumn=""24"" endLine=""10"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""26"" endLine=""10"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""Q"" target=""System.IO"" kind=""namespace"" />
         <alias name=""P"" target=""System"" kind=""namespace"" />
@@ -175,7 +172,6 @@ namespace X
         <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
         <entry offset=""0x1"" startLine=""4"" startColumn=""22"" endLine=""4"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""P"" target=""System"" kind=""namespace"" />
       </scope>
@@ -221,7 +217,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""28"" endLine=""16"" endColumn=""29"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""30"" endLine=""16"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""R"" target=""System.Char, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
         <alias name=""Q"" target=""System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
@@ -239,7 +234,6 @@ namespace X
         <entry offset=""0x0"" startLine=""10"" startColumn=""24"" endLine=""10"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""26"" endLine=""10"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""Q"" target=""System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
         <alias name=""P"" target=""System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
@@ -255,7 +249,6 @@ namespace X
         <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
         <entry offset=""0x1"" startLine=""4"" startColumn=""22"" endLine=""4"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""P"" target=""System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
       </scope>
@@ -301,7 +294,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""28"" endLine=""16"" endColumn=""29"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""30"" endLine=""16"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""P"" target=""System.Char, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
         <alias name=""Q"" target=""System.Collections.Generic.List`1[[System.Collections.Generic.List`1[[System.Char, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
@@ -319,7 +311,6 @@ namespace X
         <entry offset=""0x0"" startLine=""10"" startColumn=""24"" endLine=""10"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""26"" endLine=""10"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""Q"" target=""System.Collections.Generic.List`1[[System.Collections.Generic.List`1[[System.Char, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
         <alias name=""P"" target=""System.Collections.Generic.List`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
@@ -335,7 +326,6 @@ namespace X
         <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
         <entry offset=""0x1"" startLine=""4"" startColumn=""22"" endLine=""4"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""P"" target=""System.Collections.Generic.List`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
       </scope>
@@ -345,7 +335,7 @@ namespace X
         }
 
         [Fact]
-        public void TestExternAliases()
+        public void TestExternAliases1()
         {
             CSharpCompilation dummyCompilation1 = CreateDummyCompilation("a");
             CSharpCompilation dummyCompilation2 = CreateDummyCompilation("b");
@@ -379,6 +369,7 @@ namespace X
                     new CSharpCompilationReference(dummyCompilation2, ImmutableArray.Create("Q")),
                     new CSharpCompilationReference(dummyCompilation3, ImmutableArray.Create("R"))
                 });
+
             compilation.VerifyDiagnostics(
                 // (2,1): info CS8020: Unused extern alias.
                 // extern alias P;
@@ -390,9 +381,7 @@ namespace X
                 //         extern alias R;
                 Diagnostic(ErrorCode.HDN_UnusedExternAlias, "extern alias R;"));
 
-            //CONSIDER: Dev10 puts the <externinfo>s on A.M
-            string actual = GetPdbXml(compilation);
-            string expected = @"
+            compilation.VerifyPdb(@"
 <symbols>
   <methods>
     <method containingType=""A"" name=""M"">
@@ -405,7 +394,6 @@ namespace X
         <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
         <entry offset=""0x1"" startLine=""4"" startColumn=""22"" endLine=""4"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""P"" />
         <externinfo alias=""P"" assembly=""a, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
@@ -425,7 +413,6 @@ namespace X
         <entry offset=""0x0"" startLine=""10"" startColumn=""24"" endLine=""10"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""26"" endLine=""10"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""Q"" />
         <extern alias=""P"" />
@@ -444,7 +431,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""28"" endLine=""16"" endColumn=""29"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""30"" endLine=""16"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""R"" />
         <extern alias=""Q"" />
@@ -452,8 +438,140 @@ namespace X
       </scope>
     </method>
   </methods>
-</symbols>";
-            AssertXmlEqual(expected, actual);
+</symbols>");
+        }
+
+        [Fact, WorkItem(1120579)]
+        public void TestExternAliases2()
+        {
+            string source1 = @"
+namespace U.V.W {}
+";
+
+            var compilation1 = CreateCompilationWithMscorlib(source1, options: TestOptions.DebugDll, assemblyName: "TestExternAliases2");
+
+            string source2 = @"
+using U.V.W;
+ 
+class A { void M() {  } }
+";
+            var compilation2 = CreateCompilationWithMscorlib(
+                source2,
+                options: TestOptions.DebugDll,
+                references: new[]
+                {
+                // first unaliased reference 
+                compilation1.ToMetadataReference(),
+                // second aliased reference
+                compilation1.ToMetadataReference(ImmutableArray.Create("X"))
+                });
+
+            compilation2.VerifyPdb("A.M", @"
+<symbols>
+  <methods>
+    <method containingType=""A"" name=""M"">
+      <customDebugInfo>
+        <using>
+          <namespace usingCount=""1"" />
+        </using>
+      </customDebugInfo>
+      <sequencePoints>
+        <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
+        <entry offset=""0x1"" startLine=""4"" startColumn=""23"" endLine=""4"" endColumn=""24"" document=""0"" />
+      </sequencePoints>
+      <scope startOffset=""0x0"" endOffset=""0x2"">
+        <namespace name=""U.V.W"" />
+        <externinfo alias=""X"" assembly=""TestExternAliases2, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
+      </scope>
+    </method>
+  </methods>
+</symbols>
+");
+        }
+
+        [Fact, WorkItem(1120579)]
+        public void TestExternAliases3()
+        {
+            string source1 = @"
+namespace U.V.W {}
+";
+
+            var compilation1 = CreateCompilationWithMscorlib(source1, options: TestOptions.DebugDll, assemblyName: "TestExternAliases3");
+
+            string source2 = @"
+using U.V.W;
+ 
+class A { void M() {  } }
+";
+            var compilation2 = CreateCompilationWithMscorlib(
+                source2,
+                options: TestOptions.DebugDll,
+                references: new[]
+                {
+                // first aliased reference
+                compilation1.ToMetadataReference(ImmutableArray.Create("X")),
+                // second unaliased reference 
+                compilation1.ToMetadataReference(),
+                });
+
+            compilation2.VerifyPdb("A.M", @"
+<symbols>
+  <methods>
+    <method containingType=""A"" name=""M"">
+      <customDebugInfo>
+        <using>
+          <namespace usingCount=""1"" />
+        </using>
+      </customDebugInfo>
+      <sequencePoints>
+        <entry offset=""0x0"" startLine=""4"" startColumn=""20"" endLine=""4"" endColumn=""21"" document=""0"" />
+        <entry offset=""0x1"" startLine=""4"" startColumn=""23"" endLine=""4"" endColumn=""24"" document=""0"" />
+      </sequencePoints>
+      <scope startOffset=""0x0"" endOffset=""0x2"">
+        <namespace name=""U.V.W"" />
+        <externinfo alias=""X"" assembly=""TestExternAliases3, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" />
+      </scope>
+    </method>
+  </methods>
+</symbols>
+");
+        }
+
+        [Fact]
+        public void ExternAliases4()
+        {
+            var src1 = @"
+namespace N
+{
+    public class C { }
+}";
+            var dummyCompilation = CreateCompilationWithMscorlib(src1, assemblyName: "A", options: TestOptions.DebugDll);
+
+            var src2 = @"
+namespace M
+{
+    extern alias A;
+    using A::N;
+    
+    public class D
+    {
+        public C P
+        {
+            get { return new C(); }
+            set { }
+        }
+    }
+}";
+            var compilation = CreateCompilationWithMscorlib(src2,
+                assemblyName: GetUniqueName(),
+                options: TestOptions.DebugDll,
+                references: new[]
+                {
+                    new CSharpCompilationReference(dummyCompilation, ImmutableArray.Create("A", "A")),
+                });
+
+            compilation.VerifyDiagnostics();
+            compilation.VerifyEmitDiagnostics();
         }
 
         [Fact]
@@ -486,6 +604,7 @@ class C { void M() { } }
                     new CSharpCompilationReference(dummyCompilation1, ImmutableArray.Create("global", "A")),
                     new CSharpCompilationReference(dummyCompilation2, ImmutableArray.Create("B", "global"))
                 });
+
             compilation.VerifyDiagnostics(
                 // (5,1): hidden CS8019: Unnecessary using directive.
                 // using Y = B::N;
@@ -497,8 +616,7 @@ class C { void M() { } }
                 // using Z = global::N;
                 Diagnostic(ErrorCode.HDN_UnusedUsingDirective, "using Z = global::N;").WithLocation(6, 1));
 
-            string actual = GetPdbXml(compilation);
-            string expected = @"
+            compilation.VerifyPdb(@"
 <symbols>
     <methods>
         <method containingType=""C"" name=""M"">
@@ -511,20 +629,18 @@ class C { void M() { } }
                 <entry offset=""0x0"" startLine=""8"" startColumn=""20"" endLine=""8"" endColumn=""21"" document=""0""/>
                 <entry offset=""0x1"" startLine=""8"" startColumn=""22"" endLine=""8"" endColumn=""23"" document=""0""/>
             </sequencePoints>
-            <locals/>
             <scope startOffset=""0x0"" endOffset=""0x2"">
                 <extern alias=""A""/>
                 <extern alias=""B""/>
                 <alias name=""X"" target=""N"" kind=""namespace""/>
-                <alias name=""Y"" qualifier=""B"" target=""N"" kind=""namespace""/>
+                <alias name=""Y"" target=""N"" kind=""namespace""/>
                 <alias name=""Z"" target=""N"" kind=""namespace""/>
                 <externinfo alias=""A"" assembly=""A, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null""/>
                 <externinfo alias=""B"" assembly=""B, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null""/>
             </scope>
         </method>
     </methods>
-</symbols>";
-            AssertXmlEqual(expected, actual);
+</symbols>");
         }
 
         [Fact]
@@ -554,10 +670,10 @@ namespace N
                 assemblyName: "Test",
                 options: TestOptions.DebugDll,
                 references: new[] { new CSharpCompilationReference(libComp, ImmutableArray.Create("P")) });
+
             compilation.GetDiagnostics().Where(d => d.Severity > DiagnosticSeverity.Info).Verify();
 
-            string actual = GetPdbXml(compilation);
-            string expected = @"
+            compilation.VerifyPdb(@"
 <symbols>
   <methods>
     <method containingType=""N.B"" name=""M"">
@@ -571,7 +687,6 @@ namespace N
         <entry offset=""0x0"" startLine=""12"" startColumn=""24"" endLine=""12"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""12"" startColumn=""26"" endLine=""12"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""P"" />
         <namespace qualifier=""P"" name=""N"" />
@@ -584,8 +699,7 @@ namespace N
       </scope>
     </method>
   </methods>
-</symbols>";
-            AssertXmlEqual(expected, actual);
+</symbols>");
         }
 
         [Fact]
@@ -670,9 +784,7 @@ namespace X
                 //         extern alias R;
                 Diagnostic(ErrorCode.HDN_UnusedExternAlias, "extern alias R;"));
 
-            //CONSIDER: Dev10 puts the <externinfo>s on A.M
-            string actual = GetPdbXml(compilation);
-            string expected = @"
+            compilation.VerifyPdb(@"
 <symbols>
   <methods>
     <method containingType=""A"" name=""M"">
@@ -685,7 +797,6 @@ namespace X
         <entry offset=""0x0"" startLine=""7"" startColumn=""20"" endLine=""7"" endColumn=""21"" document=""0"" />
         <entry offset=""0x1"" startLine=""7"" startColumn=""22"" endLine=""7"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""P"" />
         <namespace name=""System"" />
@@ -708,7 +819,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""24"" endLine=""16"" endColumn=""25"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""26"" endLine=""16"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""Q"" />
         <namespace name=""System.IO"" />
@@ -733,7 +843,6 @@ namespace X
         <entry offset=""0x0"" startLine=""25"" startColumn=""28"" endLine=""25"" endColumn=""29"" document=""0"" />
         <entry offset=""0x1"" startLine=""25"" startColumn=""30"" endLine=""25"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""R"" />
         <namespace name=""System.Text"" />
@@ -750,8 +859,7 @@ namespace X
       </scope>
     </method>
   </methods>
-</symbols>";
-            AssertXmlEqual(expected, actual);
+</symbols>");
         }
 
         [Fact, WorkItem(913022, "DevDiv")]
@@ -791,9 +899,7 @@ public class C
                 });
 
             compilation2.VerifyDiagnostics();
-
-            string actual = GetPdbXml(compilation2);
-            string expected = @"
+            compilation2.VerifyPdb(@"
 <symbols>
     <methods>
         <method containingType=""C"" name=""Main"">
@@ -810,7 +916,6 @@ public class C
                 <entry offset=""0x22"" startLine=""17"" startColumn=""9"" endLine=""17"" endColumn=""45"" document=""0""/>
                 <entry offset=""0x2d"" startLine=""18"" startColumn=""5"" endLine=""18"" endColumn=""6"" document=""0""/>
             </sequencePoints>
-            <locals/>
             <scope startOffset=""0x0"" endOffset=""0x2e"">
                 <extern alias=""A""/>
                 <extern alias=""B""/>
@@ -824,8 +929,7 @@ public class C
         </method>
     </methods>
 </symbols>
-";
-            AssertXmlEqual(expected, actual);
+");
         }
 
         [Fact, WorkItem(913022, "DevDiv")]
@@ -858,9 +962,7 @@ public class C
                 });
 
             compilation2.VerifyDiagnostics();
-
-            string actual = GetPdbXml(compilation2);
-            string expected = @"
+            compilation2.VerifyPdb(@"
 <symbols>
   <methods>
     <method containingType=""C"" name=""Main"">
@@ -876,7 +978,6 @@ public class C
         <entry offset=""0x17"" startLine=""11"" startColumn=""9"" endLine=""11"" endColumn=""48"" document=""0"" />
         <entry offset=""0x22"" startLine=""12"" startColumn=""5"" endLine=""12"" endColumn=""6"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x23"">
         <extern alias=""A"" />
         <extern alias=""B"" />
@@ -886,8 +987,7 @@ public class C
     </method>
   </methods>
 </symbols>
-";
-            AssertXmlEqual(expected, actual);
+");
         }
 
         [Fact]
@@ -979,8 +1079,7 @@ namespace X
                 //     extern alias Q;
                 Diagnostic(ErrorCode.HDN_UnusedExternAlias, "extern alias Q;"));
 
-            string actual = GetPdbXml(compilation);
-            string expected = @"
+            compilation.VerifyPdb(@"
 <symbols>
   <methods>
     <method containingType=""X.C"" name=""M"">
@@ -994,7 +1093,6 @@ namespace X
         <entry offset=""0x0"" startLine=""30"" startColumn=""26"" endLine=""30"" endColumn=""27"" document=""0"" />
         <entry offset=""0x1"" startLine=""30"" startColumn=""28"" endLine=""30"" endColumn=""29"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""R"" />
         <namespace name=""System.Threading"" />
@@ -1021,7 +1119,6 @@ namespace X
         <entry offset=""0x0"" startLine=""17"" startColumn=""19"" endLine=""17"" endColumn=""20"" document=""0"" />
         <entry offset=""0x1"" startLine=""17"" startColumn=""21"" endLine=""17"" endColumn=""22"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""Q"" />
         <namespace name=""System.IO"" />
@@ -1045,7 +1142,6 @@ namespace X
         <entry offset=""0x0"" startLine=""31"" startColumn=""19"" endLine=""31"" endColumn=""20"" document=""0"" />
         <entry offset=""0x1"" startLine=""31"" startColumn=""21"" endLine=""31"" endColumn=""22"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""R"" />
         <namespace name=""System.Threading"" />
@@ -1058,8 +1154,7 @@ namespace X
       </scope>
     </method>
   </methods>
-</symbols>";
-            AssertXmlEqual(expected, actual);
+</symbols>");
         }
 
         [Fact]
@@ -1186,7 +1281,6 @@ namespace X
         <entry offset=""0x0"" startLine=""16"" startColumn=""26"" endLine=""16"" endColumn=""27"" document=""0"" />
         <entry offset=""0x1"" startLine=""16"" startColumn=""28"" endLine=""16"" endColumn=""29"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""S"" />
         <namespace name=""System.Threading"" />
@@ -1214,7 +1308,6 @@ namespace X
         <entry offset=""0x0"" startLine=""17"" startColumn=""19"" endLine=""17"" endColumn=""20"" document=""0"" />
         <entry offset=""0x1"" startLine=""17"" startColumn=""21"" endLine=""17"" endColumn=""22"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""Q"" />
         <namespace name=""System.IO"" />
@@ -1238,7 +1331,6 @@ namespace X
         <entry offset=""0x0"" startLine=""17"" startColumn=""19"" endLine=""17"" endColumn=""20"" document=""0"" />
         <entry offset=""0x1"" startLine=""17"" startColumn=""21"" endLine=""17"" endColumn=""22"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <extern alias=""S"" />
         <namespace name=""System.Threading"" />
@@ -1295,7 +1387,6 @@ namespace X
                 <entry offset=""0x0"" startLine=""8"" startColumn=""9"" endLine=""8"" endColumn=""19"" document=""0""/>
                 <entry offset=""0x7"" startLine=""19"" startColumn=""9"" endLine=""19"" endColumn=""19"" document=""0""/>
             </sequencePoints>
-            <locals/>
             <scope startOffset=""0x0"" endOffset=""0x16"">
                 <namespace name=""System""/>
             </scope>
@@ -1308,7 +1399,6 @@ namespace X
                 <entry offset=""0x0"" startLine=""9"" startColumn=""9"" endLine=""9"" endColumn=""27"" document=""0""/>
                 <entry offset=""0x6"" startLine=""20"" startColumn=""9"" endLine=""20"" endColumn=""27"" document=""0""/>
             </sequencePoints>
-            <locals/>
         </method>
     </methods>
 </symbols>");
@@ -1337,11 +1427,14 @@ class C
         <using>
           <namespace usingCount=""1"" />
         </using>
+        <encLambdaMap>
+          <methodOrdinal>2</methodOrdinal>
+          <lambda offset=""-23"" />
+        </encLambdaMap>
       </customDebugInfo>
       <sequencePoints>
         <entry offset=""0x0"" startLine=""6"" startColumn=""5"" endLine=""6"" endColumn=""59"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x38"">
         <namespace name=""System.Linq"" />
       </scope>
@@ -1349,11 +1442,14 @@ class C
     <method containingType=""C"" name="".cctor"">
       <customDebugInfo>
         <forward declaringType=""C"" methodName="".ctor"" />
+        <encLambdaMap>
+          <methodOrdinal>3</methodOrdinal>
+          <lambda offset=""-38"" />
+        </encLambdaMap>
       </customDebugInfo>
       <sequencePoints>
         <entry offset=""0x0"" startLine=""7"" startColumn=""5"" endLine=""10"" endColumn=""8"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C+&lt;&gt;c"" name=""&lt;.ctor&gt;b__2_0"" parameterNames=""x"">
       <customDebugInfo>
@@ -1364,7 +1460,6 @@ class C
         <entry offset=""0x1"" startLine=""6"" startColumn=""37"" endLine=""6"" endColumn=""55"" document=""0"" />
         <entry offset=""0xa"" startLine=""6"" startColumn=""56"" endLine=""6"" endColumn=""57"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C+&lt;&gt;c"" name=""&lt;.cctor&gt;b__3_0"" parameterNames=""x"">
       <customDebugInfo>
@@ -1375,7 +1470,6 @@ class C
         <entry offset=""0x1"" startLine=""9"" startColumn=""9"" endLine=""9"" endColumn=""27"" document=""0"" />
         <entry offset=""0xa"" startLine=""10"" startColumn=""5"" endLine=""10"" endColumn=""6"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
   </methods>
 </symbols>");
@@ -1404,13 +1498,11 @@ class C
       <sequencePoints>
         <entry offset=""0x0"" startLine=""6"" startColumn=""14"" endLine=""6"" endColumn=""18"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C"" name=""set_P1"" parameterNames=""value"">
       <sequencePoints>
         <entry offset=""0x0"" startLine=""6"" startColumn=""19"" endLine=""6"" endColumn=""23"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C"" name=""get_P2"">
       <customDebugInfo>
@@ -1423,7 +1515,6 @@ class C
         <entry offset=""0x1"" startLine=""7"" startColumn=""20"" endLine=""7"" endColumn=""29"" document=""0"" />
         <entry offset=""0x5"" startLine=""7"" startColumn=""30"" endLine=""7"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x7"">
         <namespace name=""System"" />
       </scope>
@@ -1436,7 +1527,6 @@ class C
         <entry offset=""0x0"" startLine=""7"" startColumn=""36"" endLine=""7"" endColumn=""37"" document=""0"" />
         <entry offset=""0x1"" startLine=""7"" startColumn=""38"" endLine=""7"" endColumn=""39"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C"" name=""add_E2"" parameterNames=""value"">
       <customDebugInfo>
@@ -1446,7 +1536,6 @@ class C
         <entry offset=""0x0"" startLine=""10"" startColumn=""34"" endLine=""10"" endColumn=""35"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""36"" endLine=""10"" endColumn=""37"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C"" name=""remove_E2"" parameterNames=""value"">
       <customDebugInfo>
@@ -1456,7 +1545,6 @@ class C
         <entry offset=""0x0"" startLine=""10"" startColumn=""45"" endLine=""10"" endColumn=""46"" document=""0"" />
         <entry offset=""0x1"" startLine=""10"" startColumn=""47"" endLine=""10"" endColumn=""48"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C"" name=""get_Item"" parameterNames=""x"">
       <customDebugInfo>
@@ -1467,7 +1555,6 @@ class C
         <entry offset=""0x1"" startLine=""8"" startColumn=""29"" endLine=""8"" endColumn=""38"" document=""0"" />
         <entry offset=""0x5"" startLine=""8"" startColumn=""39"" endLine=""8"" endColumn=""40"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""C"" name=""set_Item"" parameterNames=""x, value"">
       <customDebugInfo>
@@ -1477,7 +1564,6 @@ class C
         <entry offset=""0x0"" startLine=""8"" startColumn=""45"" endLine=""8"" endColumn=""46"" document=""0"" />
         <entry offset=""0x1"" startLine=""8"" startColumn=""47"" endLine=""8"" endColumn=""48"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
   </methods>
 </symbols>");
@@ -1507,13 +1593,11 @@ class Derived : Base
       <sequencePoints>
         <entry offset=""0x0"" startLine=""6"" startColumn=""28"" endLine=""6"" endColumn=""32"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""Base"" name=""set_P"" parameterNames=""value"">
       <sequencePoints>
         <entry offset=""0x0"" startLine=""6"" startColumn=""33"" endLine=""6"" endColumn=""37"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
     <method containingType=""Derived"" name=""set_P"" parameterNames=""value"">
       <customDebugInfo>
@@ -1525,7 +1609,6 @@ class Derived : Base
         <entry offset=""0x0"" startLine=""11"" startColumn=""40"" endLine=""11"" endColumn=""41"" document=""0"" />
         <entry offset=""0x1"" startLine=""11"" startColumn=""42"" endLine=""11"" endColumn=""43"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <namespace name=""System"" />
       </scope>
@@ -1572,7 +1655,6 @@ class C : I1, I2
         <entry offset=""0x1"" startLine=""18"" startColumn=""36"" endLine=""18"" endColumn=""45"" document=""0"" />
         <entry offset=""0x5"" startLine=""18"" startColumn=""46"" endLine=""18"" endColumn=""47"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x7"">
         <namespace name=""System.Runtime.CompilerServices"" />
       </scope>
@@ -1585,7 +1667,6 @@ class C : I1, I2
         <entry offset=""0x0"" startLine=""18"" startColumn=""52"" endLine=""18"" endColumn=""53"" document=""0"" />
         <entry offset=""0x1"" startLine=""18"" startColumn=""54"" endLine=""18"" endColumn=""55"" document=""0"" />
       </sequencePoints>
-      <locals />
     </method>
   </methods>
 </symbols>");
@@ -1677,7 +1758,6 @@ public class Test
         <entry offset=""0x0"" startLine=""7"" startColumn=""5"" endLine=""7"" endColumn=""6"" document=""0"" />
         <entry offset=""0x1"" startLine=""8"" startColumn=""5"" endLine=""8"" endColumn=""6"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""I"" target=""Outer+Inner, Lib, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" kind=""type"" />
       </scope>
@@ -1710,8 +1790,10 @@ namespace @namespace
 
 class Test { static void Main() { } }
 ";
+            var comp = CreateCompilationWithMscorlib(source);
+            
             // As in dev12, we drop all '@'s.
-            var expectedXml = @"
+            comp.VerifyPdb("Test.Main", @"
 <symbols>
   <methods>
     <method containingType=""Test"" name=""Main"">
@@ -1723,7 +1805,6 @@ class Test { static void Main() { } }
       <sequencePoints>
         <entry offset=""0x0"" startLine=""20"" startColumn=""35"" endLine=""20"" endColumn=""36"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x1"">
         <namespace name=""namespace"" />
         <alias name=""object"" target=""namespace"" kind=""namespace"" />
@@ -1731,10 +1812,7 @@ class Test { static void Main() { } }
       </scope>
     </method>
   </methods>
-</symbols>";
-
-            var comp = CreateCompilationWithMscorlib(source, assemblyName: "Test");
-            AssertXmlEqual(expectedXml, GetPdbXml(comp, "Test.Main"));
+</symbols>");
         }
 
         [WorkItem(842479, "DevDiv")]
@@ -1762,8 +1840,7 @@ namespace N
 }
 ";
             var comp = CreateCompilationWithMscorlib(source, new[] { libRef });
-
-            var expectedXml = @"
+            comp.VerifyPdb("N.D.Main", @"
 <symbols>
   <methods>
     <method containingType=""N.D"" name=""Main"">
@@ -1776,7 +1853,6 @@ namespace N
       <sequencePoints>
         <entry offset=""0x0"" startLine=""13"" startColumn=""30"" endLine=""13"" endColumn=""31"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x1"">
         <namespace qualifier=""Q"" name="""" />
         <alias name=""S"" qualifier=""Q"" target="""" kind=""namespace"" />
@@ -1787,9 +1863,7 @@ namespace N
       </scope>
     </method>
   </methods>
-</symbols>";
-
-            AssertXmlEqual(expectedXml, GetPdbXml(comp, "N.D.Main"));
+</symbols>");
         }
 
         [WorkItem(842478, "DevDiv")]
@@ -1805,8 +1879,7 @@ class D
 }
 ";
             var comp = CreateCompilationWithMscorlib(source);
-
-            var expectedXml = @"
+            comp.VerifyPdb("D.Main", @"
 <symbols>
   <methods>
     <method containingType=""D"" name=""Main"">
@@ -1818,15 +1891,12 @@ class D
       <sequencePoints>
         <entry offset=""0x0"" startLine=""6"" startColumn=""26"" endLine=""6"" endColumn=""27"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x1"">
         <alias name=""AD"" target=""System.Action`1[[System.Object, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089"" kind=""type"" />
       </scope>
     </method>
   </methods>
-</symbols>";
-
-            AssertXmlEqual(expectedXml, GetPdbXml(comp, "D.Main"));
+</symbols>");
         }
 
         [Fact]
@@ -1918,7 +1988,6 @@ public class C1
         <entry offset=""0x0"" startLine=""12"" startColumn=""5"" endLine=""12"" endColumn=""6"" document=""0"" />
         <entry offset=""0x1"" startLine=""13"" startColumn=""5"" endLine=""13"" endColumn=""6"" document=""0"" />
       </sequencePoints>
-      <locals />
       <scope startOffset=""0x0"" endOffset=""0x2"">
         <alias name=""t1"" target=""Y`1[[W[], Comp1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]], Comp1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" kind=""type"" />
         <alias name=""t2"" target=""Y`1[[W[,], Comp1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]], Comp1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"" kind=""type"" />
@@ -1980,8 +2049,7 @@ class D
 }
 ";
             var comp = CreateCompilationWithMscorlib(source);
-
-            var expectedXml = @"
+            comp.VerifyPdb("D.Main", @"
 <symbols>
     <methods>
         <method containingType=""D"" name=""Main"">
@@ -1994,15 +2062,58 @@ class D
                 <entry offset=""0x0"" startLine=""8"" startColumn=""9"" endLine=""8"" endColumn=""19"" document=""0""/>
                 <entry offset=""0x8"" startLine=""9"" startColumn=""5"" endLine=""9"" endColumn=""6"" document=""0""/>
             </sequencePoints>
-            <locals/>
             <scope startOffset=""0x0"" endOffset=""0x9"">
                 <type name=""System.Math, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089""/>
             </scope>
         </method>
     </methods>
-</symbols>";
+</symbols>");
+        }
 
-            AssertXmlEqual(expectedXml, GetPdbXml(comp, "D.Main"));
+        [Fact]
+        public void UnusedImports()
+        {
+            var source = @"
+extern alias A;
+using System;
+using X = A::System.Linq.Enumerable;
+using Y = A::System.Linq;
+using Z = System.Data.DataColumn;
+using F = System.Func<int>;
+
+class C
+{
+    static void Main() 
+    {
+    }
+}
+";
+            var comp = CreateCompilationWithMscorlib(source, new[] { SystemCoreRef.WithAliases(new[] { "A" }), SystemDataRef });
+            var v = CompileAndVerify(comp, emitters: TestEmitters.CCI, validator: (peAssembly, emitters) =>
+            {
+                var reader = peAssembly.ManifestModule.MetadataReader;
+
+                Assert.Equal(new[] 
+                {
+                    "mscorlib",
+                    "System.Core",
+                    "System.Data"
+                }, peAssembly.AssemblyReferences.Select(ai => ai.Name));
+
+                Assert.Equal(new[] 
+                {
+                    "CompilationRelaxationsAttribute",
+                    "RuntimeCompatibilityAttribute",
+                    "DebuggableAttribute",
+                    "DebuggingModes",
+                    "Object",
+                    "Enumerable",
+                    "DataColumn",
+                    "Func`1"
+                }, reader.TypeReferences.Select(h => reader.GetString(reader.GetTypeReference(h).Name)));
+
+                Assert.Equal(1, reader.GetTableRowCount(TableIndex.TypeSpec));
+            });
         }
     }
 }

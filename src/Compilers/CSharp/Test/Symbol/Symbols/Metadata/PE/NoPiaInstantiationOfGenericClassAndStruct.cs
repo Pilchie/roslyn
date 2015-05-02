@@ -176,8 +176,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
             var local = classLocalType1.GetMembers("typeRef").OfType<FieldSymbol>().Single();
             var importedProperty = local.Type.GetMembers("Property1").OfType<PropertySymbol>().Single();
 
-            Assert.Equal(SymbolKind.ErrorType, importedProperty.Parameters.Where(arg => arg.Name == "x").Single().Type.Kind);
-            Assert.IsType<NoPiaIllegalGenericInstantiationSymbol>(importedProperty.Parameters.Where(arg => arg.Name == "x").Single().Type);
+            Assert.Equal(SymbolKind.ErrorType, importedProperty.Parameters.Single(arg => arg.Name == "x").Type.Kind);
+            Assert.IsType<NoPiaIllegalGenericInstantiationSymbol>(importedProperty.Parameters.Single(arg => arg.Name == "x").Type);
         }
 
         [Fact]
@@ -237,7 +237,6 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
 
             Assert.Equal(SymbolKind.ErrorType, importedMethod.Parameters.Where(arg => arg.Name == "x").Select(arg => arg).Single().Type.Kind);
             Assert.IsType<NoPiaIllegalGenericInstantiationSymbol>(importedMethod.Parameters.Where(arg => arg.Name == "x").Select(arg => arg).Single().Type);
-
         }
 
         [Fact]
@@ -312,8 +311,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
             var local = classLocalType.GetMembers("tr2a").OfType<FieldSymbol>().Single();
             var importedMethod = local.Type.GetMembers("op_Implicit").OfType<MethodSymbol>().Single();
 
-            Assert.Equal(SymbolKind.ErrorType, importedMethod.Parameters.Where(arg => arg.Name == "x").Single().Type.Kind);
-            Assert.IsType<NoPiaIllegalGenericInstantiationSymbol>(importedMethod.Parameters.Where(arg => arg.Name == "x").Single().Type);
+            Assert.Equal(SymbolKind.ErrorType, importedMethod.Parameters.Single(arg => arg.Name == "x").Type.Kind);
+            Assert.IsType<NoPiaIllegalGenericInstantiationSymbol>(importedMethod.Parameters.Single(arg => arg.Name == "x").Type);
         }
 
         [Fact]
@@ -549,10 +548,10 @@ public class TypeRefs1
     }
 }";
 
-            var localType = CreateCompilationWithMscorlib(assemblyName: "Dummy", text: localTypeSource, 
+            var localType = CreateCompilationWithMscorlib(assemblyName: "Dummy", text: localTypeSource,
                 references: new[] { TestReferences.SymbolsTests.NoPia.GeneralPia.WithEmbedInteropTypes(true) });
 
-            var localConsumer = CreateCompilationWithMscorlib(assemblyName: "Dummy", sources: null, 
+            var localConsumer = CreateCompilationWithMscorlib(assemblyName: "Dummy", sources: null,
                 references: new MetadataReference[]
                 {
                     TestReferences.SymbolsTests.NoPia.GeneralPiaCopy,
@@ -574,7 +573,7 @@ public class TypeRefs1
         public CSharpCompilation CreateCompilation(string source)
         {
             return CreateCompilationWithMscorlib(
-                assemblyName: "Dummy", 
+                assemblyName: "Dummy",
                 sources: (null == source) ? null : new string[] { source },
                 references: new[]
                 {

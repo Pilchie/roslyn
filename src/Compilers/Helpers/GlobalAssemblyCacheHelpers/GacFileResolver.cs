@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
@@ -6,7 +8,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Roslyn.Utilities;
 
-namespace Roslyn.Scripting
+namespace Microsoft.CodeAnalysis.Scripting
 {
     /// <summary>
     /// Extends <see cref="MetadataFileReferenceResolver"/> to enable resolution of assembly
@@ -14,8 +16,8 @@ namespace Roslyn.Scripting
     /// </summary>
     internal sealed class GacFileResolver : MetadataFileReferenceResolver
     {
-        private readonly ImmutableArray<ProcessorArchitecture> architectures;
-        private readonly CultureInfo preferredCulture;
+        private readonly ImmutableArray<ProcessorArchitecture> _architectures;
+        private readonly CultureInfo _preferredCulture;
 
         /// <summary>
         /// A resolver that is configured to resolve against the GAC associated
@@ -43,8 +45,8 @@ namespace Roslyn.Scripting
             CultureInfo preferredCulture)
             : base(assemblySearchPaths, baseDirectory)
         {
-            this.architectures = architectures;
-            this.preferredCulture = preferredCulture;
+            _architectures = architectures;
+            _preferredCulture = preferredCulture;
         }
 
         /// <summary>
@@ -52,7 +54,7 @@ namespace Roslyn.Scripting
         /// </summary>
         public ImmutableArray<ProcessorArchitecture> Architectures
         {
-            get { return architectures; }
+            get { return _architectures; }
         }
 
         /// <summary>
@@ -60,7 +62,7 @@ namespace Roslyn.Scripting
         /// </summary>
         public CultureInfo PreferredCulture
         {
-            get { return preferredCulture; }
+            get { return _preferredCulture; }
         }
 
         public override string ResolveReference(string reference, string baseFilePath)
@@ -71,7 +73,7 @@ namespace Roslyn.Scripting
             }
 
             string path;
-            GlobalAssemblyCache.ResolvePartialName(reference, out path, this.architectures, this.PreferredCulture);
+            GlobalAssemblyCache.ResolvePartialName(reference, out path, _architectures, this.PreferredCulture);
             return FileExists(path) ? path : null;
         }
 
@@ -83,14 +85,14 @@ namespace Roslyn.Scripting
             }
 
             var other = (GacFileResolver)obj;
-            return this.architectures.SequenceEqual(other.architectures) &&
-                this.preferredCulture == other.preferredCulture;
+            return _architectures.SequenceEqual(other._architectures) &&
+                _preferredCulture == other._preferredCulture;
         }
 
         public override int GetHashCode()
         {
             return Hash.Combine(base.GetHashCode(),
-                   Hash.Combine(this.preferredCulture, Hash.CombineValues(this.architectures)));
+                   Hash.Combine(_preferredCulture, Hash.CombineValues(_architectures)));
         }
     }
 }

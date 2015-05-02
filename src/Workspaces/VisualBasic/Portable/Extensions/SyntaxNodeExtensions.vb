@@ -185,12 +185,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
         ' Matches the following:
         '
         ' (whitespace* newline)+ 
-        Private ReadOnly OneOrMoreBlankLines As Matcher(Of SyntaxTrivia)
+        Private ReadOnly s_oneOrMoreBlankLines As Matcher(Of SyntaxTrivia)
 
         ' Matches the following:
         '
         ' (whitespace* comment whitespace* newline)+ OneOrMoreBlankLines
-        Private ReadOnly BannerMatcher As Matcher(Of SyntaxTrivia)
+        Private ReadOnly s_bannerMatcher As Matcher(Of SyntaxTrivia)
 
         Sub New()
             Dim whitespace = Matcher.Repeat(Match(SyntaxKind.WhitespaceTrivia, "\\b"))
@@ -200,11 +200,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             Dim comment = Match(SyntaxKind.CommentTrivia, "'")
             Dim commentLine = Matcher.Sequence(whitespace, comment, whitespace, endOfLine)
 
-            OneOrMoreBlankLines = Matcher.OneOrMore(singleBlankLine)
-            BannerMatcher =
+            s_oneOrMoreBlankLines = Matcher.OneOrMore(singleBlankLine)
+            s_bannerMatcher =
                 Matcher.Sequence(
                     Matcher.OneOrMore(commentLine),
-                    OneOrMoreBlankLines)
+                    s_oneOrMoreBlankLines)
         End Sub
 
         Private Function Match(kind As SyntaxKind, description As String) As Matcher(Of SyntaxTrivia)
@@ -253,7 +253,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 Case TypeCharacter.String
                     Return "$"
                 Case Else
-                    Throw New ArgumentException("Unexpected TypeCharacter.", "type")
+                    Throw New ArgumentException("Unexpected TypeCharacter.", NameOf(type))
             End Select
         End Function
 
@@ -482,7 +482,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             Dim leadingTriviaToKeep = New List(Of SyntaxTrivia)(node.GetLeadingTrivia())
 
             Dim index = 0
-            OneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, index)
+            s_oneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, index)
 
             strippedTrivia = New List(Of SyntaxTrivia)(leadingTriviaToKeep.Take(index))
 
@@ -540,8 +540,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             ' Now, consume as many banners as we can.
             Dim index = 0
             While (
-                OneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, index) OrElse
-                BannerMatcher.TryMatch(leadingTriviaToKeep, index))
+                s_oneOrMoreBlankLines.TryMatch(leadingTriviaToKeep, index) OrElse
+                s_bannerMatcher.TryMatch(leadingTriviaToKeep, index))
             End While
 
             leadingTriviaToStrip.AddRange(leadingTriviaToKeep.Take(index))
@@ -672,7 +672,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             Dim skippedTokenFinder As Func(Of SyntaxTriviaList, Integer, SyntaxToken) = Nothing
 
             skippedTokenFinder =
-                If(includeSkipped, FindSkippedTokenForward, CType(Nothing, Func(Of SyntaxTriviaList, Integer, SyntaxToken)))
+                If(includeSkipped, s_findSkippedTokenForward, CType(Nothing, Func(Of SyntaxTriviaList, Integer, SyntaxToken)))
 
             Return FindTokenHelper.FindTokenOnRightOfPosition(Of CompilationUnitSyntax)(
                     root, position, skippedTokenFinder, includeSkipped, includeDirectives, includeDocumentationComments)
@@ -692,7 +692,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             Dim skippedTokenFinder As Func(Of SyntaxTriviaList, Integer, SyntaxToken) = Nothing
 
             skippedTokenFinder =
-                If(includeSkipped, FindSkippedTokenBackward, CType(Nothing, Func(Of SyntaxTriviaList, Integer, SyntaxToken)))
+                If(includeSkipped, s_findSkippedTokenBackward, CType(Nothing, Func(Of SyntaxTriviaList, Integer, SyntaxToken)))
 
             Return FindTokenHelper.FindTokenOnLeftOfPosition(Of CompilationUnitSyntax)(
                     root, position, skippedTokenFinder, includeSkipped, includeDirectives, includeDocumentationComments)
@@ -724,20 +724,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
             End While
 
             Debug.Assert(Not self.FullSpan.Contains(position), "Position is valid. How could we not find a child?")
-            Throw New ArgumentOutOfRangeException("position")
+            Throw New ArgumentOutOfRangeException(NameOf(position))
         End Function
 
 
         ''' <summary>
         ''' Look inside a trivia list for a skipped token that contains the given position.
         ''' </summary>
-        Private FindSkippedTokenForward As Func(Of SyntaxTriviaList, Integer, SyntaxToken) =
+        Private s_findSkippedTokenForward As Func(Of SyntaxTriviaList, Integer, SyntaxToken) =
             Function(l, p) FindTokenHelper.FindSkippedTokenForward(GetSkippedTokens(l), p)
 
         ''' <summary>
         ''' Look inside a trivia list for a skipped token that contains the given position.
         ''' </summary>
-        Private FindSkippedTokenBackward As Func(Of SyntaxTriviaList, Integer, SyntaxToken) =
+        Private s_findSkippedTokenBackward As Func(Of SyntaxTriviaList, Integer, SyntaxToken) =
             Function(l, p) FindTokenHelper.FindSkippedTokenBackward(GetSkippedTokens(l), p)
 
         ''' <summary>
@@ -795,7 +795,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
 #End If
 
                     Return SyntaxFactory.MultiLineSubLambdaExpression(
-                        singleLineLambda.Begin,
+                        singleLineLambda.SubOrFunctionHeader,
                         statements,
                         SyntaxFactory.EndSubStatement()).WithAdditionalAnnotations(annotations)
                 End If
@@ -906,7 +906,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 ElseIf current.Kind = SyntaxKind.SingleLineSubLambdaExpression Then
                     Dim singleLineLambda = DirectCast(current, SingleLineLambdaExpressionSyntax)
                     Dim multiLineLambda = SyntaxFactory.MultiLineSubLambdaExpression(
-                        singleLineLambda.Begin,
+                        singleLineLambda.SubOrFunctionHeader,
                         statements,
                         SyntaxFactory.EndSubStatement()).WithAdditionalAnnotations(annotations)
 
@@ -1016,7 +1016,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                 Return False
             End If
 
-            Dim blockSpan = TextSpan.FromBounds(block.Begin.Span.End, block.End.SpanStart)
+            Dim blockSpan = TextSpan.FromBounds(block.BlockStatement.Span.End, block.EndBlockStatement.SpanStart)
             Return blockSpan.Contains(textSpan)
         End Function
 
@@ -1102,6 +1102,60 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions
                     End If
                 Next
             Next
+        End Function
+
+        ''' <summary>
+        ''' Given an expression within a tree of <see cref="ConditionalAccessExpressionSyntax"/>s, 
+        ''' finds the <see cref="ConditionalAccessExpressionSyntax"/> that it is part of.
+        ''' </summary>
+        ''' <param name="node"></param>
+        ''' <returns></returns>
+        <Extension>
+        Friend Function GetCorrespondingConditionalAccessExpression(node As ExpressionSyntax) As ConditionalAccessExpressionSyntax
+            Dim access As SyntaxNode = node
+            Dim parent As SyntaxNode = access.Parent
+
+            While parent IsNot Nothing
+                Select Case parent.Kind
+                    Case SyntaxKind.DictionaryAccessExpression,
+                         SyntaxKind.SimpleMemberAccessExpression
+
+                        If DirectCast(parent, MemberAccessExpressionSyntax).Expression IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case SyntaxKind.XmlElementAccessExpression,
+                         SyntaxKind.XmlDescendantAccessExpression,
+                         SyntaxKind.XmlAttributeAccessExpression
+
+                        If DirectCast(parent, XmlMemberAccessExpressionSyntax).Base IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case SyntaxKind.InvocationExpression
+
+                        If DirectCast(parent, InvocationExpressionSyntax).Expression IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case SyntaxKind.ConditionalAccessExpression
+
+                        Dim conditional = DirectCast(parent, ConditionalAccessExpressionSyntax)
+                        If conditional.WhenNotNull Is access Then
+                            Return conditional
+                        ElseIf conditional.Expression IsNot access Then
+                            Return Nothing
+                        End If
+
+                    Case Else
+                        Return Nothing
+                End Select
+
+                access = parent
+                parent = access.Parent
+            End While
+
+            Return Nothing
         End Function
     End Module
 End Namespace

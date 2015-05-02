@@ -170,10 +170,11 @@ namespace Microsoft.CodeAnalysis.CSharp
                             int ordinal = synthesizedLocalOrdinals.AssignLocalOrdinal(synthesizedKind, syntaxOffset);
                             id = new LocalDebugId(syntaxOffset, ordinal);
 
-                            if (mapToPreviousFields)
+                            // map local id to the previous id, if available:
+                            int previousSlotIndex;
+                            if (mapToPreviousFields && slotAllocatorOpt.TryGetPreviousHoistedLocalSlotIndex(declaratorSyntax, (Cci.ITypeReference)fieldType, synthesizedKind, id, out previousSlotIndex))
                             {
-                                // map local id to the previous id, if available:
-                                slotIndex = slotAllocatorOpt.GetPreviousHoistedLocalSlotIndex(declaratorSyntax, (Cci.ITypeReference)fieldType, synthesizedKind, id);
+                                slotIndex = previousSlotIndex;
                             }
                         }
                         else
@@ -185,7 +186,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                         {
                             slotIndex = nextFreeHoistedLocalSlot++;
                         }
-                        
+
                         string fieldName = GeneratedNames.MakeHoistedLocalFieldName(synthesizedKind, slotIndex, local.Name);
                         field = F.StateMachineField(fieldType, fieldName, new LocalSlotDebugInfo(synthesizedKind, id), slotIndex);
                     }
@@ -274,22 +275,17 @@ namespace Microsoft.CodeAnalysis.CSharp
         protected SynthesizedImplementationMethod OpenMethodImplementation(
             MethodSymbol methodToImplement,
             string methodName = null,
-            bool debuggerHidden = false,
-            bool generateDebugInfo = true,
             bool hasMethodBodyDependency = false)
         {
-            var result = new SynthesizedStateMachineMethod(methodName, methodToImplement, (StateMachineTypeSymbol)F.CurrentType, null, debuggerHidden, generateDebugInfo, hasMethodBodyDependency);
+            var result = new SynthesizedStateMachineDebuggerHiddenMethod(methodName, methodToImplement, (StateMachineTypeSymbol)F.CurrentType, null, hasMethodBodyDependency);
             F.ModuleBuilderOpt.AddSynthesizedDefinition(F.CurrentType, result);
             F.CurrentMethod = result;
             return result;
         }
 
-        protected MethodSymbol OpenPropertyImplementation(
-            MethodSymbol getterToImplement,
-            bool debuggerHidden = false,
-            bool hasMethodBodyDependency = false)
+        protected MethodSymbol OpenPropertyImplementation(MethodSymbol getterToImplement)
         {
-            var prop = new SynthesizedStateMachineProperty(getterToImplement, (StateMachineTypeSymbol)F.CurrentType, debuggerHidden, hasMethodBodyDependency);
+            var prop = new SynthesizedStateMachineProperty(getterToImplement, (StateMachineTypeSymbol)F.CurrentType);
             F.ModuleBuilderOpt.AddSynthesizedDefinition(F.CurrentType, prop);
 
             var getter = prop.GetMethod;
@@ -299,15 +295,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             return getter;
         }
 
-        protected bool IsDebuggerHidden(MethodSymbol method)
+        protected SynthesizedImplementationMethod OpenMoveNextMethodImplementation(MethodSymbol methodToImplement)
         {
-            var debuggerHiddenAttribute = F.Compilation.GetWellKnownType(WellKnownType.System_Diagnostics_DebuggerHiddenAttribute);
-            foreach (var a in this.method.GetAttributes())
-            {
-                if (a.AttributeClass == debuggerHiddenAttribute) return true;
-            }
-
-            return false;
+            var result = new SynthesizedStateMachineMoveNextMethod(methodToImplement, (StateMachineTypeSymbol)F.CurrentType);
+            F.ModuleBuilderOpt.AddSynthesizedDefinition(F.CurrentType, result);
+            F.CurrentMethod = result;
+            return result;
         }
     }
 }

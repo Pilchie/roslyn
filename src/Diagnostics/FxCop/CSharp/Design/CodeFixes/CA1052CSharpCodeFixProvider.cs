@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Immutable;
 using System.Composition;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -16,9 +18,9 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Design
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = StaticTypeRulesDiagnosticAnalyzer.RuleNameForExportAttribute), Shared]
     public class CA1052CSharpCodeFixProvider : CodeFixProvider
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(StaticTypeRulesDiagnosticAnalyzer.CA1052RuleId);
+            get { return ImmutableArray.Create(StaticTypeRulesDiagnosticAnalyzer.CA1052RuleId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -26,7 +28,7 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Design
             return WellKnownFixAllProviders.BatchFixer;
         }
 
-        public sealed override async Task ComputeFixesAsync(CodeFixContext context)
+        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var document = context.Document;
             var span = context.Span;
@@ -34,22 +36,27 @@ namespace Microsoft.CodeAnalysis.CSharp.FxCopAnalyzers.Design
 
             cancellationToken.ThrowIfCancellationRequested();
             var root = await document.GetSyntaxRootAsync(cancellationToken);
-            var classDeclaration = root.FindToken(span.Start).GetAncestor<ClassDeclarationSyntax>();
+            var classDeclaration = root.FindToken(span.Start).Parent?.FirstAncestorOrSelf<ClassDeclarationSyntax>();
             if (classDeclaration != null)
             {
-                var staticKeyword = SyntaxFactory.Token(SyntaxKind.StaticKeyword).WithAdditionalAnnotations(Formatter.Annotation);
-                var newDeclaration = classDeclaration.AddModifiers(staticKeyword);
-                var newRoot = root.ReplaceNode(classDeclaration, newDeclaration);
-                context.RegisterFix(
-                    new MyCodeAction(string.Format(FxCopRulesResources.StaticHolderTypeIsNotStatic, classDeclaration.Identifier.Text), document.WithSyntaxRoot(newRoot)),
-                    context.Diagnostics);
+                var title = string.Format(FxCopRulesResources.StaticHolderTypeIsNotStatic, classDeclaration.Identifier.Text);
+                var codeAction = new MyCodeAction(title, ct => AddStaticKeyword(document, root, classDeclaration));
+                context.RegisterCodeFix(codeAction, context.Diagnostics);
             }
         }
 
-        private class MyCodeAction : CodeAction.DocumentChangeAction
+        private Task<Document> AddStaticKeyword(Document document, SyntaxNode root, ClassDeclarationSyntax classDeclaration)
         {
-            public MyCodeAction(string title, Document newDocument) :
-                base(title, c => Task.FromResult(newDocument))
+            var staticKeyword = SyntaxFactory.Token(SyntaxKind.StaticKeyword).WithAdditionalAnnotations(Formatter.Annotation);
+            var newDeclaration = classDeclaration.AddModifiers(staticKeyword);
+            var newRoot = root.ReplaceNode(classDeclaration, newDeclaration);
+            return Task.FromResult(document.WithSyntaxRoot(newRoot));
+        }
+
+        private class MyCodeAction : DocumentChangeAction
+        {
+            public MyCodeAction(string title, Func<CancellationToken, Task<Document>> createChangedDocument) :
+                base(title, createChangedDocument)
             {
             }
         }

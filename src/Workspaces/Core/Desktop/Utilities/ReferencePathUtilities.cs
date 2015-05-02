@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -50,7 +52,7 @@ namespace Roslyn.Utilities
 
             // 1. Look in subdirectories based on the current culture
             // TODO: This logic is somewhat duplicated between here and 
-            // Roslyn.Scripting.MetadataShadowCopyProvider
+            // Microsoft.CodeAnalysis.Scripting.MetadataShadowCopyProvider
             string xmlFileName = Path.ChangeExtension(Path.GetFileName(assemblyFilePath), ".xml");
             string originalDirectory = Path.GetDirectoryName(assemblyFilePath);
 

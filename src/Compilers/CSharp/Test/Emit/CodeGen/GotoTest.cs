@@ -230,7 +230,6 @@ class C
   IL_0000:  br.s       IL_0000
 }
 ");
-                
         }
 
         // Label Next to Label  
@@ -362,7 +361,7 @@ class C
   IL_0005:  call       ""void System.Console.WriteLine(string)""
   IL_000a:  ret
 }
-");                
+");
         }
 
         // Finally is executed while use 'goto' to exit try block
@@ -708,7 +707,7 @@ label
         // the overload that emits with both CCI and ReflectionEmit. (Bug #7012)
         private CompilationVerifier CompileAndVerify(string source, string expectedOutput = null)
         {
-            return base.CompileAndVerify(source: source, emitOptions: TestEmitters.CCI, expectedOutput: expectedOutput);
+            return base.CompileAndVerify(source: source, emitters: TestEmitters.CCI, expectedOutput: expectedOutput);
         }
 
         [WorkItem(540719, "DevDiv")]
@@ -804,6 +803,5 @@ public class A
 ";
             CompileAndVerify(text, expectedOutput: "Catch");
         }
-
     }
 }

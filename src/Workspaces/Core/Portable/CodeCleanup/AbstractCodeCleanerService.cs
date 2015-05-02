@@ -616,14 +616,14 @@ namespace Microsoft.CodeAnalysis.CodeCleanup
             /// <summary>
             /// Indicates the current marker type
             /// </summary>
-            public SpanMarkerType Type { get; private set; }
+            public SpanMarkerType Type { get; }
 
             /// <summary>
             /// Indicates how to find the other side of the span marker if it is missing
             /// </summary>
-            public SpanMarkerType OppositeMarkerType { get; private set; }
+            public SpanMarkerType OppositeMarkerType { get; }
 
-            public SyntaxAnnotation Annotation { get; private set; }
+            public SyntaxAnnotation Annotation { get; }
 
             public static readonly string AnnotationId = "SpanMarker";
 
@@ -639,11 +639,11 @@ namespace Microsoft.CodeAnalysis.CodeCleanup
             {
             }
 
-            private static readonly char[] separators = new char[] { ' ' };
+            private static readonly char[] s_separators = new char[] { ' ' };
 
             public static SpanMarker FromAnnotation(SyntaxAnnotation annotation)
             {
-                var types = annotation.Data.Split(separators).Select(s => (SpanMarkerType)Enum.Parse(typeof(SpanMarkerType), s)).ToArray();
+                var types = annotation.Data.Split(s_separators).Select(s => (SpanMarkerType)Enum.Parse(typeof(SpanMarkerType), s)).ToArray();
                 return new SpanMarker(types[0], types[1], annotation);
             }
         }

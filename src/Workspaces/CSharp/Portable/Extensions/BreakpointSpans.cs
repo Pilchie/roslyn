@@ -299,7 +299,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
             return TryCreateSpanForNode(switchSection.Statements[0], position);
         }
 
-        private static TextSpan CreateSpanForBlock(BlockSyntax block, int position) 
+        private static TextSpan CreateSpanForBlock(BlockSyntax block, int position)
         {
             // If the user was on the close curly of the block, then set the breakpoint
             // there.  Otherwise, set it on the open curly.
@@ -658,11 +658,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions
                     return true;
 
                 case SyntaxKind.SimpleLambdaExpression:
-                    Debug.Assert(((SimpleLambdaExpressionSyntax)parent).Body == expression);
-                    return true;
-
                 case SyntaxKind.ParenthesizedLambdaExpression:
-                    Debug.Assert(((ParenthesizedLambdaExpressionSyntax)parent).Body == expression);
+                    Debug.Assert(((AnonymousFunctionExpressionSyntax)parent).Body == expression);
                     return true;
 
                 case SyntaxKind.ForStatement:

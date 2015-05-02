@@ -51,7 +51,7 @@ public class C
         }
 
         // AllInOne does not include experimental features.
-#region Experimental Features
+        #region Experimental Features
 
         [Fact]
         public void DiagnosticAnalyzerConditionalAccess()
@@ -79,14 +79,15 @@ public class C
 }").VerifyAnalyzerDiagnostics(new[] { new CSharpTrackingDiagnosticAnalyzer() });
         }
 
-#endregion
+        #endregion
 
         [Fact]
+        [WorkItem(759)]
         public void AnalyzerDriverIsSafeAgainstAnalyzerExceptions()
         {
             var compilation = CreateCompilationWithMscorlib45(TestResource.AllInOneCSharpCode, parseOptions: TestOptions.Regular);
-            ThrowingDiagnosticAnalyzer<SyntaxKind>.VerifyAnalyzerEngineIsSafeAgainstExceptions(analyzer => 
-                compilation.GetAnalyzerDiagnostics(new[] { analyzer }, null, CodeAnalysis.DiagnosticExtensions.AlwaysCatchAnalyzerExceptions), AnalyzerDriverHelper.DiagnosticId);
+            ThrowingDiagnosticAnalyzer<SyntaxKind>.VerifyAnalyzerEngineIsSafeAgainstExceptions(analyzer =>
+                compilation.GetAnalyzerDiagnostics(new[] { analyzer }, null, logAnalyzerExceptionAsDiagnostics: true));
         }
 
         [Fact]
@@ -106,17 +107,17 @@ public class C
 
         private sealed class TestAdditionalText : AdditionalText
         {
-            private readonly SourceText text;
-             
+            private readonly SourceText _text;
+
             public TestAdditionalText(string path, SourceText text)
             {
                 this.Path = path;
-                this.text = text;
+                _text = text;
             }
 
             public override string Path { get; }
 
-            public override SourceText GetText(CancellationToken cancellationToken = default(CancellationToken)) => this.text;
+            public override SourceText GetText(CancellationToken cancellationToken = default(CancellationToken)) => _text;
         }
     }
 }

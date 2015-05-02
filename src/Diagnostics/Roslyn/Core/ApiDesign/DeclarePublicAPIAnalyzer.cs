@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
@@ -15,6 +16,8 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
     public class DeclarePublicAPIAnalyzer : DiagnosticAnalyzer
     {
         internal const string PublicApiFileName = "PublicAPI.txt";
+        internal const string PublicApiNamePropertyBagKey = "PublicAPIName";
+        internal const string MinimalNamePropertyBagKey = "MinimalName";
 
         internal static readonly DiagnosticDescriptor DeclareNewApiRule = new DiagnosticDescriptor(
             id: RoslynDiagnosticIds.DeclarePublicApiRuleId,
@@ -36,7 +39,20 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
             description: RoslynDiagnosticsResources.RemoveDeletedApiDescription,
             customTags: WellKnownDiagnosticTags.Telemetry);
 
-        internal static readonly SymbolDisplayFormat PublicApiFormat =
+        internal static readonly SymbolDisplayFormat ShortSymbolNameFormat =
+            new SymbolDisplayFormat(
+                globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
+                typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameOnly,
+                propertyStyle: SymbolDisplayPropertyStyle.NameOnly,
+                genericsOptions: SymbolDisplayGenericsOptions.IncludeTypeParameters,
+                memberOptions:
+                    SymbolDisplayMemberOptions.None,
+                parameterOptions:
+                    SymbolDisplayParameterOptions.None,
+                miscellaneousOptions:
+                    SymbolDisplayMiscellaneousOptions.None);
+
+        private static readonly SymbolDisplayFormat s_publicApiFormat =
             new SymbolDisplayFormat(
                 globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.OmittedAsContaining,
                 typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
@@ -57,7 +73,7 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
                 miscellaneousOptions:
                     SymbolDisplayMiscellaneousOptions.UseSpecialTypes);
 
-        private static HashSet<MethodKind> ignorableMethodKinds = new HashSet<MethodKind>
+        private static HashSet<MethodKind> s_ignorableMethodKinds = new HashSet<MethodKind>
         {
             MethodKind.EventAdd,
             MethodKind.EventRemove
@@ -69,14 +85,15 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
         {
             context.RegisterCompilationStartAction(compilationContext =>
             {
-                AdditionalText publicApiAdditionalText = TryGetPublicApiSpec(compilationContext.Options.AdditionalFiles);
+                AdditionalText publicApiAdditionalText = TryGetPublicApiSpec(compilationContext.Options.AdditionalFiles, compilationContext.CancellationToken);
 
                 if (publicApiAdditionalText == null)
                 {
                     return;
                 }
 
-                HashSet<string> declaredPublicSymbols = ReadPublicSymbols(publicApiAdditionalText);
+                SourceText publicApiSourceText = publicApiAdditionalText.GetText(compilationContext.CancellationToken);
+                HashSet<string> declaredPublicSymbols = ReadPublicSymbols(publicApiSourceText, compilationContext.CancellationToken);
                 HashSet<string> examinedPublicTypes = new HashSet<string>();
                 object lockObj = new object();
 
@@ -86,7 +103,7 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
 
                     var methodSymbol = symbol as IMethodSymbol;
                     if (methodSymbol != null &&
-                        ignorableMethodKinds.Contains(methodSymbol.MethodKind))
+                        s_ignorableMethodKinds.Contains(methodSymbol.MethodKind))
                     {
                         return;
                     }
@@ -96,15 +113,24 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
                         return;
                     }
 
-                    var fullyQualifiedName = symbol.ToDisplayString(PublicApiFormat);
+                    string publicApiName = GetPublicApiName(symbol);
 
                     lock (lockObj)
                     {
-                        examinedPublicTypes.Add(fullyQualifiedName);
+                        examinedPublicTypes.Add(publicApiName);
 
-                        if (!declaredPublicSymbols.Contains(fullyQualifiedName))
+                        if (!declaredPublicSymbols.Contains(publicApiName))
                         {
-                            symbolContext.ReportDiagnostic(Diagnostic.Create(DeclareNewApiRule, symbol.Locations.First(loc => loc.IsInSource), fullyQualifiedName));
+                            var errorMessageName = symbol.ToDisplayString(ShortSymbolNameFormat);
+
+                            var propertyBag = ImmutableDictionary<string, string>.Empty
+                                .Add(PublicApiNamePropertyBagKey, publicApiName)
+                                .Add(MinimalNamePropertyBagKey, errorMessageName);
+
+                            foreach (var sourceLocation in symbol.Locations.Where(loc => loc.IsInSource))
+                            {
+                                symbolContext.ReportDiagnostic(Diagnostic.Create(DeclareNewApiRule, sourceLocation, propertyBag, errorMessageName));
+                            }
                         }
                     }
                 },
@@ -123,20 +149,83 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
 
                     foreach (var symbol in deletedSymbols)
                     {
-                        var location = Location.Create(publicApiAdditionalText.Path, default(TextSpan), default(LinePositionSpan));
-                        compilationEndContext.ReportDiagnostic(Diagnostic.Create(RemoveDeletedApiRule, location, symbol));
+                        var span = FindString(publicApiSourceText, symbol);
+                        Location location;
+                        if (span.HasValue)
+                        {
+                            var linePositionSpan = publicApiSourceText.Lines.GetLinePositionSpan(span.Value);
+                            location = Location.Create(publicApiAdditionalText.Path, span.Value, linePositionSpan);
+                        }
+                        else
+                        {
+                            location = Location.Create(publicApiAdditionalText.Path, default(TextSpan), default(LinePositionSpan));
+                        }
+
+                        var propertyBag = ImmutableDictionary<string, string>.Empty.Add(PublicApiNamePropertyBagKey, symbol);
+
+                        compilationEndContext.ReportDiagnostic(Diagnostic.Create(RemoveDeletedApiRule, location, propertyBag, symbol));
                     }
                 });
             });
         }
 
-        private static HashSet<string> ReadPublicSymbols(AdditionalText additionalFile)
+        internal static string GetPublicApiName(ISymbol symbol)
+        {
+            var publicApiName = symbol.ToDisplayString(s_publicApiFormat);
+
+            ITypeSymbol memberType = null;
+            if (symbol is IMethodSymbol)
+            {
+                memberType = ((IMethodSymbol)symbol).ReturnType;
+            }
+            else if (symbol is IPropertySymbol)
+            {
+                memberType = ((IPropertySymbol)symbol).Type;
+            }
+            else if (symbol is IEventSymbol)
+            {
+                memberType = ((IEventSymbol)symbol).Type;
+            }
+            else if (symbol is IFieldSymbol)
+            {
+                memberType = ((IFieldSymbol)symbol).Type;
+            }
+
+            if (memberType != null)
+            {
+                publicApiName = publicApiName + " -> " + memberType.ToDisplayString(s_publicApiFormat);
+            }
+
+            return publicApiName;
+        }
+
+        private TextSpan? FindString(SourceText sourceText, string symbol)
+        {
+            foreach (var line in sourceText.Lines)
+            {
+                if (line.ToString() == symbol)
+                {
+                    return line.Span;
+                }
+            }
+
+            return null;
+        }
+
+        private static HashSet<string> ReadPublicSymbols(SourceText file, CancellationToken cancellationToken)
         {
             HashSet<string> publicSymbols = new HashSet<string>();
 
-            foreach (var line in additionalFile.GetText().Lines)
+            foreach (var line in file.Lines)
             {
-                publicSymbols.Add(line.ToString());
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var text = line.ToString();
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    publicSymbols.Add(text);
+                }
             }
 
             return publicSymbols;
@@ -170,10 +259,12 @@ namespace Roslyn.Diagnostics.Analyzers.ApiDesign
             return false;
         }
 
-        private static AdditionalText TryGetPublicApiSpec(ImmutableArray<AdditionalText> additionalTexts)
+        private static AdditionalText TryGetPublicApiSpec(ImmutableArray<AdditionalText> additionalTexts, CancellationToken cancellationToken)
         {
             foreach (var text in additionalTexts)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 if (Path.GetFileName(text.Path).Equals(PublicApiFileName, StringComparison.OrdinalIgnoreCase))
                 {
                     return text;

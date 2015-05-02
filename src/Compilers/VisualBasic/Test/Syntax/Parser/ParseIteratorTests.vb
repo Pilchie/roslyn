@@ -78,7 +78,7 @@ End Class]]>)
     End Sub
 
     <Fact>
-    Sub ParseYieldStatements()
+    Public Sub ParseYieldStatements()
         Dim tree = VisualBasicSyntaxTree.ParseText(<![CDATA[
 Module Program
 
@@ -224,7 +224,7 @@ End Module]]>.Value)
         Assert.Equal(1, yieldStatements.Count)
 
     End Sub
-    
+
     <Fact>
     Public Sub ParseIteratorLambdas()
         Dim tree = ParseAndVerify(<![CDATA[
@@ -417,7 +417,7 @@ End Function]]>.Value,
     End Sub
 
     Private Shared Function IsIteratorMethod(methodSyntax As MethodBlockBaseSyntax) As Boolean
-        Return methodSyntax.Begin.Modifiers.Contains(Function(t As SyntaxToken) t.Kind = SyntaxKind.IteratorKeyword)
+        Return methodSyntax.BlockStatement.Modifiers.Contains(Function(t As SyntaxToken) t.Kind = SyntaxKind.IteratorKeyword)
     End Function
 
     Private Shared Function IsInIteratorMethod(yieldStatement As YieldStatementSyntax) As Boolean

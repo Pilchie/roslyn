@@ -19,32 +19,32 @@ namespace Microsoft.CodeAnalysis.CSharp
 
     internal sealed partial class OverloadResolution
     {
-        private readonly Binder binder;
+        private readonly Binder _binder;
 
         public OverloadResolution(Binder binder)
         {
-            this.binder = binder;
+            _binder = binder;
         }
 
-        CSharpCompilation Compilation
+        private CSharpCompilation Compilation
         {
-            get { return binder.Compilation; }
+            get { return _binder.Compilation; }
         }
 
-        Conversions Conversions
+        private Conversions Conversions
         {
-            get { return binder.Conversions; }
+            get { return _binder.Conversions; }
         }
 
         // lazily compute if the compiler is in "strict" mode (rather than duplicating bugs for compatibility)
-        private bool? strict = null;
-        bool Strict
+        private bool? _strict = null;
+        private bool Strict
         {
             get
             {
-                if (strict.HasValue) return strict.Value;
-                bool value = binder.Compilation.Feature("strict") != null;
-                strict = value;
+                if (_strict.HasValue) return _strict.Value;
+                bool value = _binder.Compilation.FeatureStrictEnabled;
+                _strict = value;
                 return value;
             }
         }
@@ -467,7 +467,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
 
-            var leastOverriddenMember = (TMember)member.GetLeastOverriddenMember(binder.ContainingType);
+            var leastOverriddenMember = (TMember)member.GetLeastOverriddenMember(_binder.ContainingType);
 
             // Filter out members with unsupported metadata.
             if (member.HasUnsupportedMetadata)
@@ -685,7 +685,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             foreach (TypeSymbol arg in typeArguments)
             {
-                if (!binder.IsAccessible(arg, ref useSiteDiagnostics)) return false;
+                if (!_binder.IsAccessible(arg, ref useSiteDiagnostics)) return false;
             }
             return true;
         }
@@ -747,12 +747,12 @@ namespace Microsoft.CodeAnalysis.CSharp
             // overriding methods. For the purposes of removing more stuff, we need to behave as
             // though that's what was there.
             //
-            // The presense of Giraffe.M(T2) does *not* justify the removal of Mammal.M(T3); it is
+            // The presence of Giraffe.M(T2) does *not* justify the removal of Mammal.M(T3); it is
             // not to be considered a method of Giraffe, but rather a method of Mammal for the
             // purposes of removing other methods. 
             //
-            // However, the presense of Mammal.M(T3) does justify the removal of Giraffe.M(T1). Why?
-            // Because the presense of Mammal.M(T3) justifies the removal of Animal.M(T1), and that
+            // However, the presence of Mammal.M(T3) does justify the removal of Giraffe.M(T1). Why?
+            // Because the presence of Mammal.M(T3) justifies the removal of Animal.M(T1), and that
             // is what is supposed to be in the set instead of Giraffe.M(T1).
             //
             // The resulting candidate set after the filtering according to the spec should be:
@@ -1261,16 +1261,20 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             int m1ParameterCount;
             int m2ParameterCount;
+            int m1ParametersUsedIncludingExpansionAndOptional;
+            int m2ParametersUsedIncludingExpansionAndOptional;
 
-            if (!allSame)
+            GetParameterCounts(m1, arguments, out m1ParameterCount, out m1ParametersUsedIncludingExpansionAndOptional);
+            GetParameterCounts(m2, arguments, out m2ParameterCount, out m2ParametersUsedIncludingExpansionAndOptional);
+
+            // SPEC VIOLATION: When checking for matching parameter type sequences {P1, P2, …, PN} and {Q1, Q2, …, QN},
+            //                 native compiler includes types of optinal parameters. We partially duplicate this behavior
+            //                 here by comparing the number of parameters used taking params expansion and 
+            //                 optional parameters into account.
+            if (!allSame || m1ParametersUsedIncludingExpansionAndOptional != m2ParametersUsedIncludingExpansionAndOptional)
             {
                 // SPEC VIOLATION: Even when parameter type sequences {P1, P2, …, PN} and {Q1, Q2, …, QN} are
-                //                 not equivalent, we have tie-breaking rules when optional parameters are involved:
-                //                 1. A candidate Mp that uses optional parameters and is not applicable only in expanded
-                //                    form is better than a candidate Mq that is applicable only in expanded form.
-                //                 2. A candidate Mp that does not use optional parameters and is not applicable only in
-                //                    expanded form is better than a candidate Mq that uses optional parameters and is
-                //                    not applicable only in expanded form.
+                //                 not equivalent, we have tie-breaking rules.
                 //
                 // Relevant code in the native compiler is at the end of
                 //                       BetterTypeEnum ExpressionBinder::WhichMethodIsBetter(
@@ -1279,38 +1283,34 @@ namespace Microsoft.CodeAnalysis.CSharp
                 //                                           Type* pTypeThrough,
                 //                                           ArgInfos*args)
                 //
-                m1ParameterCount = m1.Member.GetParameterCount();
-                m2ParameterCount = m2.Member.GetParameterCount();
 
-                if (m1.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm)
+                if (m1ParametersUsedIncludingExpansionAndOptional != m2ParametersUsedIncludingExpansionAndOptional)
                 {
-                    if (m2.Result.Kind != MemberResolutionKind.ApplicableInExpandedForm && m2ParameterCount != arguments.Count)
+                    if (m1.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm)
                     {
-                        // Optionals used
+                        if (m2.Result.Kind != MemberResolutionKind.ApplicableInExpandedForm)
+                        {
+                            return BetterResult.Right;
+                        }
+                    }
+                    else if (m2.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm)
+                    {
+                        Debug.Assert(m1.Result.Kind != MemberResolutionKind.ApplicableInExpandedForm);
+                        return BetterResult.Left;
+                    }
+
+                    // Here, if both methods needed to use optionals to fill in the signatures,
+                    // then we are ambiguous. Otherwise, take the one that didn't need any 
+                    // optionals.
+
+                    if (m1ParametersUsedIncludingExpansionAndOptional == arguments.Count)
+                    {
+                        return BetterResult.Left;
+                    }
+                    else if (m2ParametersUsedIncludingExpansionAndOptional == arguments.Count)
+                    {
                         return BetterResult.Right;
                     }
-                }
-                else if (m2.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm)
-                {
-                    if (m1.Result.Kind != MemberResolutionKind.ApplicableInExpandedForm && m1ParameterCount != arguments.Count)
-                    {
-                        // Optionals used
-                        return BetterResult.Left;
-                    }
-                }
-                else if (m1ParameterCount == arguments.Count)
-                {
-                    if (m2ParameterCount != arguments.Count)
-                    {
-                        // Optionals used
-                        return BetterResult.Left;
-                    }
-                }
-                else if (m2ParameterCount == arguments.Count)
-                {
-                    Debug.Assert(m1ParameterCount != arguments.Count);
-                    // Optionals used
-                    return BetterResult.Right;
                 }
 
                 return BetterResult.Neither;
@@ -1352,9 +1352,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             //
             // Otherwise, if both methods have params arrays and are applicable only in their
             // expanded forms, and if MP has more declared parameters than MQ, then MP is better than MQ. 
-
-            m1ParameterCount = m1.Member.GetParameterCount();
-            m2ParameterCount = m2.Member.GetParameterCount();
 
             if (m1.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm && m2.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm)
             {
@@ -1446,6 +1443,28 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             // Otherwise, neither function member is better.
             return BetterResult.Neither;
+        }
+
+        private static void GetParameterCounts<TMember>(MemberResolutionResult<TMember> m, ArrayBuilder<BoundExpression> arguments, out int declaredParameterCount, out int parametersUsedIncludingExpansionAndOptional) where TMember : Symbol
+        {
+            declaredParameterCount = m.Member.GetParameterCount();
+
+            if (m.Result.Kind == MemberResolutionKind.ApplicableInExpandedForm)
+            {
+                if (arguments.Count < declaredParameterCount)
+                {
+                    // params parameter isn't used (see ExpressionBinder::TryGetExpandedParams in the native compiler)
+                    parametersUsedIncludingExpansionAndOptional = declaredParameterCount - 1;
+                }
+                else
+                {
+                    parametersUsedIncludingExpansionAndOptional = arguments.Count;
+                }
+            }
+            else
+            {
+                parametersUsedIncludingExpansionAndOptional = declaredParameterCount;
+            }
         }
 
         private static BetterResult MoreSpecificType(ArrayBuilder<TypeSymbol> t1, ArrayBuilder<TypeSymbol> t2, ref HashSet<DiagnosticInfo> useSiteDiagnostics)
@@ -1789,11 +1808,11 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private class ReturnStatements : BoundTreeWalker
         {
-            private readonly ArrayBuilder<BoundReturnStatement> returns;
+            private readonly ArrayBuilder<BoundReturnStatement> _returns;
 
             public ReturnStatements(ArrayBuilder<BoundReturnStatement> returns)
             {
-                this.returns = returns;
+                _returns = returns;
             }
 
             public override BoundNode VisitLambda(BoundLambda node)
@@ -1804,7 +1823,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             public override BoundNode VisitReturnStatement(BoundReturnStatement node)
             {
-                returns.Add(node);
+                _returns.Add(node);
                 return null;
             }
         }
@@ -2195,7 +2214,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // We must ignore the 'ref' on the parameter while determining the applicability of argument for the given method call.
             // During argument rewriting, we will replace the argument value with a temporary local and pass that local by reference.
 
-            if (allowRefOmittedArguments && paramRefKind == RefKind.Ref && argRefKind == RefKind.None && !binder.InAttributeArgument)
+            if (allowRefOmittedArguments && paramRefKind == RefKind.Ref && argRefKind == RefKind.None && !_binder.InAttributeArgument)
             {
                 hasAnyRefOmittedArgument = true;
                 return RefKind.None;
@@ -2510,7 +2529,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // in "Infer" for details.
 
             var inferenceResult = MethodTypeInferrer.Infer(
-                binder,
+                _binder,
                 originalTypeParameters,
                 method.ContainingType,
                 originalEffectiveParameters.ParameterTypes,
@@ -2527,7 +2546,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (arguments.IsExtensionMethodInvocation)
             {
-                var inferredFromFirstArgument = MethodTypeInferrer.InferTypeArgumentsFromFirstArgument(binder.Conversions, method, originalEffectiveParameters.ParameterTypes, args, ref useSiteDiagnostics);
+                var inferredFromFirstArgument = MethodTypeInferrer.InferTypeArgumentsFromFirstArgument(_binder.Conversions, method, originalEffectiveParameters.ParameterTypes, args, ref useSiteDiagnostics);
                 if (inferredFromFirstArgument.IsDefault)
                 {
                     error = MemberAnalysisResult.TypeInferenceExtensionInstanceArgumentFailed();
@@ -2617,7 +2636,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             MemberAnalysisResult result;
             var conversionsArray = conversions != null ? conversions.ToImmutableAndFree() : default(ImmutableArray<Conversion>);
-            if (badArguments!= null)
+            if (badArguments != null)
             {
                 result = MemberAnalysisResult.BadArgumentConversions(argsToParameters, badArguments.ToImmutableAndFree(), conversionsArray);
             }

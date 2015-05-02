@@ -626,8 +626,7 @@ End structure
         ]]>
     </file>
 </compilation>)
-
-            CompilationUtils.AssertTheseDiagnostics(compilation,
+            AssertTheseEmitDiagnostics(compilation,
 <expected><![CDATA[
 BC35000: Requested operation is not available because the runtime library function 'Microsoft.VisualBasic.CompilerServices.Conversions.ToString' is not defined.
         Dim x1$ = 33 & 2.34 'No inference here
@@ -732,7 +731,6 @@ BC30039: Loop control variable cannot be a property or a late-bound indexed arra
             Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
 <compilation>
     <file name="a.vb">
-Imports System
 Class Program
     Shared Sub Main()
         Dim Result As Object
@@ -742,8 +740,7 @@ Class Program
 End Class
     </file>
 </compilation>)
-
-            CompilationUtils.AssertTheseDiagnostics(compilation,
+            AssertTheseEmitDiagnostics(compilation,
 <expected>
 BC35000: Requested operation is not available because the runtime library function 'Microsoft.VisualBasic.CompilerServices.ObjectFlowControl+ForLoopControl.ForLoopInitObj' is not defined.
         For Result = 1 To 2
@@ -787,8 +784,7 @@ Class Program
 End Class
     </file>
 </compilation>)
-
-            CompilationUtils.AssertTheseDiagnostics(compilation,
+            AssertTheseEmitDiagnostics(compilation,
 <expected>
 BC35000: Requested operation is not available because the runtime library function 'Microsoft.VisualBasic.CompilerServices.NewLateBinding.LateSet' is not defined.
         obj.P1 = 42                         ' assignment    (Set)
@@ -2962,7 +2958,7 @@ BC30547: 'T' cannot be indexed because it has no default property.
     End Class
     </file>
 </compilation>)
-            compilation.VerifyDiagnostics(
+            compilation.VerifyEmitDiagnostics(
                 Diagnostic(ERRID.ERR_MissingRuntimeHelper, "P").WithArguments("Microsoft.VisualBasic.CompilerServices.Conversions.ToInteger"))
         End Sub
 
@@ -12818,10 +12814,10 @@ BC31189: Element names cannot use the 'xmlns' prefix.
 ]]></file>
 </compilation>)
             compilation.AssertTheseDiagnostics(<errors><![CDATA[
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
                 Dim x = Function() <aoeu>
                                    ~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
                 Dim y = Function() <aoeu val=<%= (Function() <htns></htns>)().ToString() %>/>
                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ]]></errors>)
@@ -12848,13 +12844,13 @@ End Module
 ]]></file>
 </compilation>)
             compilation.AssertTheseDiagnostics(<errors><![CDATA[
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private A = <a><b><%= <c/> %></b></a>
                 ~~~~~~~~~~~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private B = <a b=<%= <c/> %>/>
                 ~~~~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private C = <a/>.<b>.<c>
                 ~~~~~~~~~~~~
 BC31172: An embedded expression cannot be used here.
@@ -12863,22 +12859,22 @@ BC31172: An embedded expression cannot be used here.
 BC31172: An embedded expression cannot be used here.
     Private E = <%= <x><%= A %></x> %>
                 ~~~~~~~~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private E = <%= <x><%= A %></x> %>
                     ~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private F = <a/>.<a>.<b>
                 ~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private G = <a b="c"/>.<a>.@b
                 ~~~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private H = <a/>...<b>
                 ~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private J = <!-- comment -->
                 ~~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private K = <?xml version="1.0"?><x/>
                 ~~~~~~~~~~~~~~~~~~~~~~~~~
 ]]></errors>)
@@ -12896,10 +12892,10 @@ End Module
 </file>
 </compilation>)
             compilation.AssertTheseDiagnostics(<errors>
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private F1 = &lt;x&gt;&lt;![CDATA[str]]&gt;&lt;/&gt;
                  ~~~~~~~~~~~~~~~~~~~~~
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private F2 = &lt;![CDATA[str]]&gt;
                  ~~~~~~~~~~~~~~~
 </errors>)
@@ -12916,7 +12912,7 @@ End Module
 ]]></file>
 </compilation>)
             compilation.AssertTheseDiagnostics(<errors><![CDATA[
-BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core.
+BC31190: XML literals and XML axis properties are not available. Add references to System.Xml, System.Xml.Linq, and System.Core or other assemblies declaring System.Linq.Enumerable, System.Xml.Linq.XElement, System.Xml.Linq.XName, System.Xml.Linq.XAttribute and System.Xml.Linq.XNamespace types.
     Private F = GetXmlNamespace()
                 ~~~~~~~~~~~~~~~~~
 ]]></errors>)
@@ -14039,7 +14035,7 @@ End Class
 
         End Sub
 
-        Private Shared ReadOnly BadAttributeIl As String = <![CDATA[
+        Private Shared ReadOnly s_badAttributeIl As String = <![CDATA[
 .class public auto ansi beforefieldinit BaseAttribute
        extends [mscorlib]System.Attribute
 {
@@ -14118,7 +14114,7 @@ Class Test
 
 End Class
     ]]></file>
-    </compilation>, BadAttributeIl).VerifyDiagnostics(Diagnostic(ERRID.ERR_BadAttributeReadOnlyProperty1, "PROP").WithArguments("PROP"))
+    </compilation>, s_badAttributeIl).VerifyDiagnostics(Diagnostic(ERRID.ERR_BadAttributeReadOnlyProperty1, "PROP").WithArguments("PROP"))
 
         End Sub
 
@@ -16810,8 +16806,7 @@ BC36594: Definition of method 'y' is not accessible in this context.
         End Module
     </file>
     </compilation>)
-
-            AssertTheseDiagnostics(compilation,
+            AssertTheseEmitDiagnostics(compilation,
 <expected>
 BC36597: 'Goto Label1' is not valid because 'Label1' is inside a scope that defines a variable that is used in a lambda or query expression.
                 GoTo Label1
@@ -17377,7 +17372,7 @@ BC36639: 'ByRef' parameter 'x' cannot be used in a lambda expression.
         End Module
     </file>
     </compilation>)
-            compilation.VerifyDiagnostics(
+            compilation.VerifyEmitDiagnostics(
                 Diagnostic(ERRID.ERR_CannotLiftRestrictedTypeLambda, "x").WithArguments("System.ArgIterator"))
         End Sub
 
@@ -19615,7 +19610,7 @@ BC42104: Variable 'x' is used before it has been assigned a value. A null refere
 
         <Fact()>
         Public Sub BC42104WRN_DefAsgUseNullRef_2()
-            Dim compilation1 = CompilationUtils.CreateCompilationWithMscorlib(
+            Dim compilation = CompilationUtils.CreateCompilationWithMscorlib(
     <compilation>
         <file name="a.vb">
 Class C
@@ -19633,7 +19628,8 @@ Class C
 End Class
         </file>
     </compilation>)
-            Dim expectedErrors1 = <errors>
+            AssertTheseEmitDiagnostics(compilation,
+<errors>
 BC35000: Requested operation is not available because the runtime library function 'Microsoft.VisualBasic.CompilerServices.Conversions.ToString' is not defined.
         For Each x As String In "abc"
                                 ~~~~~
@@ -19646,8 +19642,7 @@ BC35000: Requested operation is not available because the runtime library functi
 BC42104: Variable 'S' is used before it has been assigned a value. A null reference exception could result at runtime.
         System.Console.WriteLine(S)
                                  ~
-</errors>
-            CompilationUtils.AssertTheseDiagnostics(compilation1, expectedErrors1)
+</errors>)
         End Sub
 
         <WorkItem(542080, "DevDiv")>
@@ -21919,9 +21914,6 @@ BC30002: Type 'System.Object' is not defined.
 BC30652: Reference required to assembly '<Missing Core Assembly>, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' containing the type 'Object'. Add one to your project.
         Dim a = DnT.DateString
                 ~~~
-BC30652: Reference required to assembly '<Missing Core Assembly>, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' containing the type 'Object'. Add one to your project.
-        Dim a = DnT.DateString
-                ~~~~~~~~~~~~~~
 BC30652: Reference required to assembly '<Missing Core Assembly>, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' containing the type 'String'. Add one to your project.
         Dim a = DnT.DateString
                 ~~~~~~~~~~~~~~
@@ -24316,7 +24308,7 @@ BC30002: Type 'Settings' is not defined.
                        ~~~~~~~~
 ]]></expected>)
 
-            Dim tree = comp.SyntaxTrees.Where(Function(t) t.FilePath.EndsWith("a.vb")).Single
+            Dim tree = comp.SyntaxTrees.Where(Function(t) t.FilePath.EndsWith("a.vb", StringComparison.Ordinal)).Single
             Dim model = comp.GetSemanticModel(tree)
 
             AssertTheseDiagnostics(model.GetDiagnostics(),
@@ -24326,7 +24318,7 @@ BC30002: Type 'Settings' is not defined.
                      ~~~~~~~~
 ]]></expected>)
 
-            tree = comp.SyntaxTrees.Where(Function(t) t.FilePath.EndsWith("b.vb")).Single
+            tree = comp.SyntaxTrees.Where(Function(t) t.FilePath.EndsWith("b.vb", StringComparison.Ordinal)).Single
             model = comp.GetSemanticModel(tree)
             AssertTheseDiagnostics(model.GetDiagnostics(),
 <expected><![CDATA[

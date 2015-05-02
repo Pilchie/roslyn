@@ -18,9 +18,9 @@ namespace Roslyn.Diagnostics.Analyzers.CSharp.ApiDesign
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = "CancellationAnalyzerCodeFixProvider"), Shared]
     public class CancellationTokenMustBeLastCodeFixProvider : CodeFixProvider
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(RoslynDiagnosticIds.CancellationTokenMustBeLastRuleId);
+            get { return ImmutableArray.Create(RoslynDiagnosticIds.CancellationTokenMustBeLastRuleId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -28,7 +28,7 @@ namespace Roslyn.Diagnostics.Analyzers.CSharp.ApiDesign
             return WellKnownFixAllProviders.BatchFixer;
         }
 
-        public sealed override async Task ComputeFixesAsync(CodeFixContext context)
+        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
             var diagnostic = context.Diagnostics.First();
@@ -40,20 +40,20 @@ namespace Roslyn.Diagnostics.Analyzers.CSharp.ApiDesign
             // TODO: When we have a public Change Signature API, use that
             // instead of introducing a bunch of build breaks :(
 
-            context.RegisterFix(new MyCodeAction(context.Document, root, declaration), diagnostic);
+            context.RegisterCodeFix(new MyCodeAction(context.Document, root, declaration), diagnostic);
         }
 
         private class MyCodeAction : CodeAction
         {
-            private readonly MethodDeclarationSyntax declaration;
-            private readonly Document document;
-            private readonly SyntaxNode syntaxRoot;
+            private readonly MethodDeclarationSyntax _declaration;
+            private readonly Document _document;
+            private readonly SyntaxNode _syntaxRoot;
 
             public MyCodeAction(Document document, SyntaxNode syntaxRoot, MethodDeclarationSyntax declaration)
             {
-                this.document = document;
-                this.syntaxRoot = syntaxRoot;
-                this.declaration = declaration;
+                _document = document;
+                _syntaxRoot = syntaxRoot;
+                _declaration = declaration;
             }
 
             public override string Title
@@ -66,16 +66,16 @@ namespace Roslyn.Diagnostics.Analyzers.CSharp.ApiDesign
 
             protected override async Task<Document> GetChangedDocumentAsync(CancellationToken cancellationToken)
             {
-                var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-                var methodSymbol = semanticModel.GetDeclaredSymbol(declaration);
-                var compilation = await document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
+                var semanticModel = await _document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+                var methodSymbol = semanticModel.GetDeclaredSymbol(_declaration, cancellationToken);
+                var compilation = await _document.Project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
                 var cancellationTokenType = compilation.GetTypeByMetadataName("System.Threading.CancellationToken");
 
                 var cancellationTokenParameters = new List<ParameterSyntax>();
                 var nonCancellationTokenParameters = new List<ParameterSyntax>();
-                foreach (var param in declaration.ParameterList.Parameters)
+                foreach (var param in _declaration.ParameterList.Parameters)
                 {
-                    var paramSymbol = semanticModel.GetDeclaredSymbol(param);
+                    var paramSymbol = semanticModel.GetDeclaredSymbol(param, cancellationToken);
                     if (paramSymbol.Type.Equals(cancellationTokenType))
                     {
                         cancellationTokenParameters.Add(param);
@@ -87,15 +87,15 @@ namespace Roslyn.Diagnostics.Analyzers.CSharp.ApiDesign
                 }
 
                 // TODO: This blows away trivia on the separators :(
-                var newDeclaration = declaration.WithParameterList(
+                var newDeclaration = _declaration.WithParameterList(
                     SyntaxFactory.ParameterList(
-                        declaration.ParameterList.OpenParenToken,
+                        _declaration.ParameterList.OpenParenToken,
                         SyntaxFactory.SeparatedList(nonCancellationTokenParameters.Concat(cancellationTokenParameters)),
-                        declaration.ParameterList.CloseParenToken))
+                        _declaration.ParameterList.CloseParenToken))
                     .WithAdditionalAnnotations(Formatter.Annotation);
 
-                var newRoot = syntaxRoot.ReplaceNode(declaration, newDeclaration);
-                return document.WithSyntaxRoot(newRoot);
+                var newRoot = _syntaxRoot.ReplaceNode(_declaration, newDeclaration);
+                return _document.WithSyntaxRoot(newRoot);
             }
         }
     }

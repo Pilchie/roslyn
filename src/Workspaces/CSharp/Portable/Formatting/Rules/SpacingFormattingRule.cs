@@ -68,10 +68,27 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
                 return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceWithinMethodCallParentheses);
             }
 
+            // For spacing in the parenthesis of typeof, treat like a Method Call
+            if (currentKind == SyntaxKind.OpenParenToken && currentParentKind == SyntaxKind.TypeOfExpression)
+            {
+                return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceAfterMethodCallName);
+            }
+
+            if (previousKind == SyntaxKind.OpenParenToken && previousParentKind == SyntaxKind.TypeOfExpression)
+            {
+                return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceWithinMethodCallParentheses);
+            }
+
+            if (currentKind == SyntaxKind.CloseParenToken && currentParentKind == SyntaxKind.TypeOfExpression)
+            {
+                return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceWithinMethodCallParentheses);
+            }
+
             // For Spacing b/n control flow keyword and paren. Parent check not needed.
             if (currentKind == SyntaxKind.OpenParenToken &&
                 (previousKind == SyntaxKind.IfKeyword || previousKind == SyntaxKind.WhileKeyword || previousKind == SyntaxKind.SwitchKeyword ||
-                previousKind == SyntaxKind.ForKeyword || previousKind == SyntaxKind.ForEachKeyword))
+                previousKind == SyntaxKind.ForKeyword || previousKind == SyntaxKind.ForEachKeyword || previousKind == SyntaxKind.CatchKeyword ||
+                previousKind == SyntaxKind.UsingKeyword))
             {
                 return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceAfterControlFlowStatementKeyword);
             }
@@ -94,15 +111,31 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             if (previousKind == SyntaxKind.OpenParenToken &&
                 (previousParentKind == SyntaxKind.IfStatement || previousParentKind == SyntaxKind.WhileStatement || previousParentKind == SyntaxKind.SwitchStatement ||
                 previousParentKind == SyntaxKind.ForStatement || previousParentKind == SyntaxKind.ForEachStatement || previousParentKind == SyntaxKind.DoStatement ||
-                previousParentKind == SyntaxKind.CatchDeclaration))
+                previousParentKind == SyntaxKind.CatchDeclaration || previousParentKind == SyntaxKind.UsingStatement || previousParentKind == SyntaxKind.LockStatement))
             {
                 return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceWithinOtherParentheses);
+            }
+
+            // Semicolons in an empty for statement.  i.e.   for(;;)
+            if (previousKind == SyntaxKind.OpenParenToken || previousKind == SyntaxKind.SemicolonToken)
+            {
+                if (previousToken.Parent.Kind() == SyntaxKind.ForStatement)
+                {
+                    var forStatement = (ForStatementSyntax)previousToken.Parent;
+                    if (forStatement.Initializers.Count == 0 &&
+                        forStatement.Declaration == null &&
+                        forStatement.Condition == null &&
+                        forStatement.Incrementors.Count == 0)
+                    {
+                        return CreateAdjustSpacesOperation(0, AdjustSpacesOption.ForceSpaces);
+                    }
+                }
             }
 
             if (currentKind == SyntaxKind.CloseParenToken &&
                 (currentParentKind == SyntaxKind.IfStatement || currentParentKind == SyntaxKind.WhileStatement || currentParentKind == SyntaxKind.SwitchStatement ||
                 currentParentKind == SyntaxKind.ForStatement || currentParentKind == SyntaxKind.ForEachStatement || currentParentKind == SyntaxKind.DoStatement ||
-                previousParentKind == SyntaxKind.CatchDeclaration))
+                currentParentKind == SyntaxKind.CatchDeclaration || currentParentKind == SyntaxKind.UsingStatement || currentParentKind == SyntaxKind.LockStatement))
             {
                 return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceWithinOtherParentheses);
             }
@@ -120,7 +153,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             }
 
             // For spacing empty square braces
-            if (previousKind == SyntaxKind.OpenBracketToken && currentKind == SyntaxKind.OmittedArraySizeExpressionToken && HasFormattableBracketParent(previousToken))
+            if (previousKind == SyntaxKind.OpenBracketToken && (currentKind == SyntaxKind.CloseBracketToken || currentKind == SyntaxKind.OmittedArraySizeExpressionToken) && HasFormattableBracketParent(previousToken))
             {
                 return AdjustSpacesOperationZeroOrOne(optionSet, CSharpFormattingOptions.SpaceBetweenEmptySquareBrackets);
             }

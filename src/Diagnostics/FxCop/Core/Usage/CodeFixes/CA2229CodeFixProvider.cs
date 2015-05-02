@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Diagnostics;
@@ -8,7 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.FxCopAnalyzers;
 using Microsoft.CodeAnalysis.FxCopAnalyzers.Utilities;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -19,9 +18,9 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = "CA2229 CodeFix provider"), Shared]
     public sealed class CA2229CodeFixProvider : CodeFixProviderBase
     {
-        public sealed override ImmutableArray<string> GetFixableDiagnosticIds()
+        public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            return ImmutableArray.Create(SerializationRulesDiagnosticAnalyzer.RuleCA2229Id);
+            get { return ImmutableArray.Create(SerializationRulesDiagnosticAnalyzer.RuleCA2229Id); }
         }
 
         protected sealed override string GetCodeFixDescription(Diagnostic diagnostic)
@@ -31,7 +30,7 @@ namespace Microsoft.CodeAnalysis.FxCopAnalyzers.Usage
 
         internal async override Task<Document> GetUpdatedDocumentAsync(Document document, SemanticModel model, SyntaxNode root, SyntaxNode nodeToFix, Diagnostic diagnostic, CancellationToken cancellationToken)
         {
-            var symbol = model.GetDeclaredSymbol(nodeToFix);
+            var symbol = model.GetDeclaredSymbol(nodeToFix, cancellationToken);
             var generator = SyntaxGenerator.GetGenerator(document);
 
             // There was no constructor and so the diagnostic was on the type. Generate a serlialization ctor.

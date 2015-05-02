@@ -25,32 +25,32 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
         Private Class AddMissingTokensRewriter
             Inherits AbstractTokensCodeCleanupProvider.Rewriter
 
-            Private ReadOnly document As Document
-            Private ReadOnly modifiedSpan As TextSpan
+            Private ReadOnly _document As Document
+            Private ReadOnly _modifiedSpan As TextSpan
 
-            Private model As SemanticModel = Nothing
+            Private _model As SemanticModel = Nothing
 
             Public Sub New(document As Document, spans As IEnumerable(Of TextSpan), cancellationToken As CancellationToken)
                 MyBase.New(spans, cancellationToken)
 
-                Me.document = document
-                Me.modifiedSpan = spans.Collapse()
+                Me._document = document
+                Me._modifiedSpan = spans.Collapse()
             End Sub
 
             Private ReadOnly Property SemanticModel As SemanticModel
                 Get
-                    If document Is Nothing Then
+                    If _document Is Nothing Then
                         Return Nothing
                     End If
 
-                    If model Is Nothing Then
+                    If _model Is Nothing Then
                         ' don't want to create semantic model when it is not needed. so get it synchronously when needed
                         ' most of cases, this will run on UI thread, so it shouldn't matter
-                        model = document.GetSemanticModelForSpanAsync(modifiedSpan, Me._cancellationToken).WaitAndGetResult(Me._cancellationToken)
+                        _model = _document.GetSemanticModelForSpanAsync(_modifiedSpan, Me._cancellationToken).WaitAndGetResult(Me._cancellationToken)
                     End If
 
-                    Contract.Requires(model IsNot Nothing)
-                    Return model
+                    Contract.Requires(_model IsNot Nothing)
+                    Return _model
                 End Get
             End Property
 
@@ -213,13 +213,13 @@ Namespace Microsoft.CodeAnalysis.CodeCleanup.Providers
 
             Public Overrides Function VisitAccessorStatement(node As AccessorStatementSyntax) As SyntaxNode
                 Dim newNode = MyBase.VisitAccessorStatement(node)
-                If node.Keyword.Kind <> SyntaxKind.AddHandlerKeyword AndAlso
-                   node.Keyword.Kind <> SyntaxKind.RemoveHandlerKeyword AndAlso
-                   node.Keyword.Kind <> SyntaxKind.RaiseEventKeyword Then
+                If node.DeclarationKeyword.Kind <> SyntaxKind.AddHandlerKeyword AndAlso
+                   node.DeclarationKeyword.Kind <> SyntaxKind.RemoveHandlerKeyword AndAlso
+                   node.DeclarationKeyword.Kind <> SyntaxKind.RaiseEventKeyword Then
                     Return newNode
                 End If
 
-                Return AddParameterListTransform(node, newNode, Function(n) Not n.Keyword.IsMissing)
+                Return AddParameterListTransform(node, newNode, Function(n) Not n.DeclarationKeyword.IsMissing)
             End Function
 
             Public Overrides Function VisitAttribute(node As AttributeSyntax) As SyntaxNode

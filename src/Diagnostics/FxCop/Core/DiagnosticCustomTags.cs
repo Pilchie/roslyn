@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using Roslyn.Utilities;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 namespace Microsoft.CodeAnalysis.Diagnostics
 {
@@ -8,25 +7,13 @@ namespace Microsoft.CodeAnalysis.Diagnostics
         /// <summary>
         /// it is string[] because DiagnosticDescriptor expects string[]. 
         /// </summary>
-        private static readonly string[] MicrosoftCustomTags = new string[] { WellKnownDiagnosticTags.Telemetry };
+        private static readonly string[] s_microsoftCustomTags = new string[] { WellKnownDiagnosticTags.Telemetry };
 
         public static string[] Microsoft
         {
             get
             {
-                Assert(MicrosoftCustomTags, WellKnownDiagnosticTags.Telemetry);
-                return MicrosoftCustomTags;
-            }
-        }
-
-        [Conditional("DEBUG")]
-        private static void Assert(string[] customTags, params string[] tags)
-        {
-            Contract.Requires(customTags.Length == tags.Length);
-
-            for (int i = 0; i < tags.Length; i++)
-            {
-                Contract.Requires(customTags[i] == tags[i]);
+                return s_microsoftCustomTags;
             }
         }
     }

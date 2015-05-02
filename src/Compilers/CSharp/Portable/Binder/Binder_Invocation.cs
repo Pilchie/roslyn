@@ -18,7 +18,6 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// </summary>
     internal partial class Binder
     {
-
         private BoundExpression BindMethodGroup(ExpressionSyntax node, bool invoked, bool indexed, DiagnosticBag diagnostics)
         {
             switch (node.Kind())
@@ -71,7 +70,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <param name="allowFieldsAndProperties">True to allow invocation of fields and properties of delegate type. Only methods are allowed otherwise.</param>
         /// <param name="allowUnexpandedForm">False to prevent selecting a params method in unexpanded form.</param>
         /// <returns>Synthesized method invocation expression.</returns>
-        protected BoundExpression MakeInvocationExpression(
+        internal BoundExpression MakeInvocationExpression(
             CSharpSyntaxNode node,
             BoundExpression receiver,
             string methodName,
@@ -296,7 +295,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                             // Ideally the runtime binder would choose between type and value based on the result of the overload resolution.
                             // We need to pick one or the other here. Dev11 compiler passes the type only if the value can't be accessed.
                             bool inStaticContext;
-                            bool useType = IsInstance(typeOrValue.ValueSymbol) && !HasThis(isExplicit: false, inStaticContext: out inStaticContext);
+                            bool useType = IsInstance(typeOrValue.Data.ValueSymbol) && !HasThis(isExplicit: false, inStaticContext: out inStaticContext);
 
                             BoundExpression finalReceiver = ReplaceTypeOrValueReceiver(typeOrValue, useType, diagnostics);
 
@@ -850,6 +849,15 @@ namespace Microsoft.CodeAnalysis.CSharp
                     gotError = true;
                 }
 
+                if (!method.IsStatic)
+                {
+                    WarnOnAccessOfOffDefault(node.Kind() == SyntaxKind.InvocationExpression ?
+                                                ((InvocationExpressionSyntax)node).Expression :
+                                                node,
+                                             receiver,
+                                             diagnostics);
+                }
+
                 return new BoundCall(node, receiver, method, args, argNames, argRefKinds, isDelegateCall: false,
                             expanded: expanded, invokedAsExtensionMethod: invokedAsExtensionMethod,
                             argsToParamsOpt: argsToParams, resultKind: LookupResultKind.Viable, type: returnType, hasErrors: gotError);
@@ -897,13 +905,13 @@ namespace Microsoft.CodeAnalysis.CSharp
                     var typeOrValue = (BoundTypeOrValueExpression)receiver;
                     if (useType)
                     {
-                        diagnostics.AddRange(typeOrValue.TypeDiagnostics);
-                        return typeOrValue.TypeExpression;
+                        diagnostics.AddRange(typeOrValue.Data.TypeDiagnostics);
+                        return typeOrValue.Data.TypeExpression;
                     }
                     else
                     {
-                        diagnostics.AddRange(typeOrValue.ValueDiagnostics);
-                        return CheckValue(typeOrValue.ValueExpression, BindValueKind.RValue, diagnostics);
+                        diagnostics.AddRange(typeOrValue.Data.ValueDiagnostics);
+                        return CheckValue(typeOrValue.Data.ValueExpression, BindValueKind.RValue, diagnostics);
                     }
 
                 case BoundKind.QueryClause:
@@ -1359,6 +1367,5 @@ namespace Microsoft.CodeAnalysis.CSharp
         //    }
         //    return true;
         //}
-
     }
 }

@@ -1,9 +1,10 @@
 ﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.Composition
+Imports System.Text
 Imports System.Threading
 Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.Host
+Imports Microsoft.CodeAnalysis.FindSymbols
 Imports Microsoft.CodeAnalysis.Host.Mef
 Imports Microsoft.CodeAnalysis.LanguageServices
 Imports Microsoft.CodeAnalysis.Text
@@ -12,7 +13,7 @@ Imports Microsoft.CodeAnalysis.VisualBasic.SyntaxFacts
 
 Namespace Microsoft.CodeAnalysis.VisualBasic
     <ExportLanguageService(GetType(ISyntaxFactsService), LanguageNames.VisualBasic), [Shared]>
-    Class VisualBasicSyntaxFactsService
+    Friend Class VisualBasicSyntaxFactsService
         Implements ISyntaxFactsService
 
         Public Function IsAwaitKeyword(token As SyntaxToken) As Boolean Implements ISyntaxFactsService.IsAwaitKeyword
@@ -81,13 +82,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             Return vbTree.IsInNonUserCode(position, cancellationToken)
         End Function
 
-        Public Function IsEntirelyWithinStringOrCharLiteral(syntaxTree As SyntaxTree, position As Integer, cancellationToken As CancellationToken) As Boolean Implements ISyntaxFactsService.IsEntirelyWithinStringOrCharLiteral
+        Public Function IsEntirelyWithinStringOrCharOrNumericLiteral(syntaxTree As SyntaxTree, position As Integer, cancellationToken As CancellationToken) As Boolean Implements ISyntaxFactsService.IsEntirelyWithinStringOrCharOrNumericLiteral
             Dim vbTree = TryCast(syntaxTree, SyntaxTree)
             If vbTree Is Nothing Then
                 Return False
             End If
 
-            Return vbTree.IsEntirelyWithinStringOrCharLiteral(position, cancellationToken)
+            Return vbTree.IsEntirelyWithinStringOrCharOrNumericLiteral(position, cancellationToken)
         End Function
 
         Public Function IsDirective(node As SyntaxNode) As Boolean Implements ISyntaxFactsService.IsDirective
@@ -385,11 +386,28 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Function IsLiteral(token As SyntaxToken) As Boolean Implements ISyntaxFactsService.IsLiteral
-            Return SyntaxFacts.IsLiteralExpressionToken(CType(token.Kind, SyntaxKind))
+            Select Case token.Kind()
+                Case _
+                        SyntaxKind.IntegerLiteralToken,
+                        SyntaxKind.CharacterLiteralToken,
+                        SyntaxKind.DecimalLiteralToken,
+                        SyntaxKind.FloatingLiteralToken,
+                        SyntaxKind.DateLiteralToken,
+                        SyntaxKind.StringLiteralToken,
+                        SyntaxKind.DollarSignDoubleQuoteToken,
+                        SyntaxKind.DoubleQuoteToken,
+                        SyntaxKind.InterpolatedStringTextToken,
+                        SyntaxKind.TrueKeyword,
+                        SyntaxKind.FalseKeyword,
+                        SyntaxKind.NothingKeyword
+                    Return True
+            End Select
+
+            Return False
         End Function
 
         Public Function IsStringLiteral(token As SyntaxToken) As Boolean Implements ISyntaxFactsService.IsStringLiteral
-            Return CType(token.Kind, SyntaxKind) = SyntaxKind.StringLiteralToken
+            Return token.IsKind(SyntaxKind.StringLiteralToken, SyntaxKind.InterpolatedStringTextToken)
         End Function
 
         Public Function IsBindableToken(token As Microsoft.CodeAnalysis.SyntaxToken) As Boolean Implements ISyntaxFactsService.IsBindableToken
@@ -474,11 +492,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function GetContainingTypeDeclaration(root As SyntaxNode, position As Integer) As SyntaxNode Implements ISyntaxFactsService.GetContainingTypeDeclaration
             If root Is Nothing Then
-                Throw New ArgumentNullException("root")
+                Throw New ArgumentNullException(NameOf(root))
             End If
 
             If position < 0 OrElse position > root.Span.End Then
-                Throw New ArgumentOutOfRangeException("position")
+                Throw New ArgumentOutOfRangeException(NameOf(position))
             End If
 
             Return root.
@@ -489,7 +507,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
 
         Public Function GetContainingVariableDeclaratorOfFieldDeclaration(node As SyntaxNode) As SyntaxNode Implements ISyntaxFactsService.GetContainingVariableDeclaratorOfFieldDeclaration
             If node Is Nothing Then
-                Throw New ArgumentNullException("node")
+                Throw New ArgumentNullException(NameOf(node))
             End If
 
             Dim parent = node.Parent
@@ -561,8 +579,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Function GetContainingMemberDeclaration(root As SyntaxNode, position As Integer) As SyntaxNode Implements ISyntaxFactsService.GetContainingMemberDeclaration
-            Contract.ThrowIfNull(root, "root")
-            Contract.ThrowIfTrue(position < 0 OrElse position > root.FullSpan.End, "position")
+            Contract.ThrowIfNull(root, NameOf(root))
+            Contract.ThrowIfTrue(position < 0 OrElse position > root.FullSpan.End, NameOf(position))
 
             Dim [end] = root.FullSpan.End
             If [end] = 0 Then
@@ -636,11 +654,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             ' TODO: currently we only support method for now
             Dim method = TryCast(member, MethodBlockBaseSyntax)
             If method IsNot Nothing Then
-                If method.Begin Is Nothing OrElse method.End Is Nothing Then
+                If method.BlockStatement Is Nothing OrElse method.EndBlockStatement Is Nothing Then
                     Return Nothing
                 End If
 
-                Return TextSpan.FromBounds(method.Begin.Span.End, method.End.SpanStart)
+                Return TextSpan.FromBounds(method.BlockStatement.Span.End, method.EndBlockStatement.SpanStart)
             End If
 
             Return Nothing
@@ -710,6 +728,224 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                    TypeOf node Is EnumBlockSyntax
         End Function
 
+        Public Function TryGetDeclaredSymbolInfo(node As SyntaxNode, ByRef declaredSymbolInfo As DeclaredSymbolInfo) As Boolean Implements ISyntaxFactsService.TryGetDeclaredSymbolInfo
+            Select Case node.Kind()
+                Case SyntaxKind.ClassBlock
+                    Dim classDecl = CType(node, ClassBlockSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(classDecl.ClassStatement.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.Class, classDecl.ClassStatement.Identifier.Span)
+                    Return True
+                Case SyntaxKind.ConstructorBlock
+                    Dim constructor = CType(node, ConstructorBlockSyntax)
+                    Dim typeBlock = TryCast(constructor.Parent, TypeBlockSyntax)
+                    If typeBlock IsNot Nothing Then
+                        declaredSymbolInfo = New DeclaredSymbolInfo(
+                            typeBlock.BlockStatement.Identifier.ValueText,
+                            GetContainerDisplayName(node.Parent),
+                            GetFullyQualifiedContainerName(node.Parent),
+                            DeclaredSymbolInfoKind.Constructor,
+                            constructor.SubNewStatement.NewKeyword.Span,
+                            parameterCount:=CType(If(constructor.SubNewStatement.ParameterList?.Parameters.Count, 0), UShort))
+
+                        Return True
+                    End If
+                Case SyntaxKind.DelegateFunctionStatement, SyntaxKind.DelegateSubStatement
+                    Dim delegateDecl = CType(node, DelegateStatementSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(delegateDecl.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.Delegate, delegateDecl.Identifier.Span)
+                    Return True
+                Case SyntaxKind.EnumBlock
+                    Dim enumDecl = CType(node, EnumBlockSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(enumDecl.EnumStatement.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.Enum, enumDecl.EnumStatement.Identifier.Span)
+                    Return True
+                Case SyntaxKind.EnumMemberDeclaration
+                    Dim enumMember = CType(node, EnumMemberDeclarationSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(enumMember.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.EnumMember, enumMember.Identifier.Span)
+                    Return True
+                Case SyntaxKind.EventStatement
+                    Dim eventDecl = CType(node, EventStatementSyntax)
+                    Dim eventParent = If(TypeOf node.Parent Is EventBlockSyntax, node.Parent.Parent, node.Parent)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(eventDecl.Identifier.ValueText,
+                                                                GetContainerDisplayName(eventParent),
+                                                                GetFullyQualifiedContainerName(eventParent),
+                                                                DeclaredSymbolInfoKind.Event, eventDecl.Identifier.Span)
+                    Return True
+                Case SyntaxKind.FunctionBlock, SyntaxKind.SubBlock
+                    Dim funcDecl = CType(node, MethodBlockSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(
+                        funcDecl.SubOrFunctionStatement.Identifier.ValueText,
+                        GetContainerDisplayName(node.Parent),
+                        GetFullyQualifiedContainerName(node.Parent),
+                        DeclaredSymbolInfoKind.Method,
+                        funcDecl.SubOrFunctionStatement.Identifier.Span,
+                        parameterCount:=CType(If(funcDecl.SubOrFunctionStatement.ParameterList?.Parameters.Count, 0), UShort),
+                        typeParameterCount:=CType(If(funcDecl.SubOrFunctionStatement.TypeParameterList?.Parameters.Count, 0), UShort))
+                    Return True
+                Case SyntaxKind.InterfaceBlock
+                    Dim interfaceDecl = CType(node, InterfaceBlockSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(interfaceDecl.InterfaceStatement.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.Interface, interfaceDecl.InterfaceStatement.Identifier.Span)
+                    Return True
+                Case SyntaxKind.ModifiedIdentifier
+                    Dim modifiedIdentifier = CType(node, ModifiedIdentifierSyntax)
+                    Dim variableDeclarator = TryCast(modifiedIdentifier.Parent, VariableDeclaratorSyntax)
+                    Dim fieldDecl = TryCast(variableDeclarator?.Parent, FieldDeclarationSyntax)
+                    If fieldDecl IsNot Nothing Then
+                        Dim kind = If(fieldDecl.Modifiers.Any(Function(m) m.Kind() = SyntaxKind.ConstKeyword),
+                            DeclaredSymbolInfoKind.Constant,
+                            DeclaredSymbolInfoKind.Field)
+                        declaredSymbolInfo = New DeclaredSymbolInfo(modifiedIdentifier.Identifier.ValueText,
+                                                                    GetContainerDisplayName(fieldDecl.Parent),
+                                                                    GetFullyQualifiedContainerName(fieldDecl.Parent),
+                                                                    kind, modifiedIdentifier.Identifier.Span)
+                        Return True
+                    End If
+                Case SyntaxKind.ModuleBlock
+                    Dim moduleDecl = CType(node, ModuleBlockSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(moduleDecl.ModuleStatement.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.Module, moduleDecl.ModuleStatement.Identifier.Span)
+                    Return True
+                Case SyntaxKind.PropertyStatement
+                    Dim propertyDecl = CType(node, PropertyStatementSyntax)
+                    Dim propertyParent = If(TypeOf node.Parent Is PropertyBlockSyntax, node.Parent.Parent, node.Parent)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(propertyDecl.Identifier.ValueText,
+                                                                GetContainerDisplayName(propertyParent),
+                                                                GetFullyQualifiedContainerName(propertyParent),
+                                                                DeclaredSymbolInfoKind.Property, propertyDecl.Identifier.Span)
+                    Return True
+                Case SyntaxKind.StructureBlock
+                    Dim structDecl = CType(node, StructureBlockSyntax)
+                    declaredSymbolInfo = New DeclaredSymbolInfo(structDecl.StructureStatement.Identifier.ValueText,
+                                                                GetContainerDisplayName(node.Parent),
+                                                                GetFullyQualifiedContainerName(node.Parent),
+                                                                DeclaredSymbolInfoKind.Struct, structDecl.StructureStatement.Identifier.Span)
+                    Return True
+            End Select
+
+            declaredSymbolInfo = Nothing
+            Return False
+        End Function
+
+        Private Shared Function GetContainerDisplayName(node As SyntaxNode) As String
+            Return GetContainer(node, immediate:=True)
+        End Function
+
+        Private Shared Function GetFullyQualifiedContainerName(node As SyntaxNode) As String
+            Return GetContainer(node, immediate:=False)
+        End Function
+
+        Private Shared Function GetContainer(node As SyntaxNode, immediate As Boolean) As String
+            If node Is Nothing Then
+                Return String.Empty
+            End If
+
+            Dim name = GetNodeName(node, includeTypeParameters:=immediate)
+            Dim names = New List(Of String) From {name}
+
+            Dim parent = node.Parent
+            While TypeOf parent Is TypeBlockSyntax
+                Dim currentParent = CType(parent, TypeBlockSyntax)
+                Dim typeName = currentParent.BlockStatement.Identifier.ValueText
+                names.Add(If(immediate, typeName + ExpandTypeParameterList(currentParent.BlockStatement.TypeParameterList), typeName))
+                parent = currentParent.Parent
+            End While
+
+            ' If they're just asking for the immediate parent, then we're done. Otherwise keep 
+            ' walking all the way to the root, adding the names.
+            If Not immediate Then
+                While parent IsNot Nothing AndAlso parent.Kind() <> SyntaxKind.CompilationUnit
+                    names.Add(GetNodeName(parent, includeTypeParameters:=False))
+                    parent = parent.Parent
+                End While
+            End If
+
+            names.Reverse()
+            Return String.Join(".", names)
+        End Function
+
+        Private Shared Function GetNodeName(node As SyntaxNode, includeTypeParameters As Boolean) As String
+            Dim name As String
+            Dim typeParameterList As TypeParameterListSyntax
+            Select Case node.Kind()
+                Case SyntaxKind.ClassBlock
+                    Dim classDecl = CType(node, ClassBlockSyntax)
+                    name = classDecl.ClassStatement.Identifier.ValueText
+                    typeParameterList = classDecl.ClassStatement.TypeParameterList
+                Case SyntaxKind.CompilationUnit
+                    Return String.Empty
+                Case SyntaxKind.EnumBlock
+                    Return CType(node, EnumBlockSyntax).EnumStatement.Identifier.ValueText
+                Case SyntaxKind.IdentifierName
+                    Return CType(node, IdentifierNameSyntax).Identifier.ValueText
+                Case SyntaxKind.InterfaceBlock
+                    Dim interfaceDecl = CType(node, InterfaceBlockSyntax)
+                    name = interfaceDecl.InterfaceStatement.Identifier.ValueText
+                    typeParameterList = interfaceDecl.InterfaceStatement.TypeParameterList
+                Case SyntaxKind.FunctionBlock, SyntaxKind.SubBlock
+                    Dim methodDecl = CType(node, MethodBlockSyntax)
+                    name = methodDecl.SubOrFunctionStatement.Identifier.ValueText
+                    typeParameterList = methodDecl.SubOrFunctionStatement.TypeParameterList
+                Case SyntaxKind.ModuleBlock
+                    Dim moduleDecl = CType(node, ModuleBlockSyntax)
+                    name = moduleDecl.ModuleStatement.Identifier.ValueText
+                    typeParameterList = moduleDecl.ModuleStatement.TypeParameterList
+                Case SyntaxKind.NamespaceBlock
+                    Dim nameSyntax = CType(node, NamespaceBlockSyntax).NamespaceStatement.Name
+                    If nameSyntax.Kind() = SyntaxKind.GlobalName Then
+                        Return Nothing
+                    Else
+                        Return GetNodeName(nameSyntax, includeTypeParameters:=False)
+                    End If
+                Case SyntaxKind.QualifiedName
+                    Dim qualified = CType(node, QualifiedNameSyntax)
+                    If qualified.Left.Kind() = SyntaxKind.GlobalName Then
+                        Return GetNodeName(qualified.Right, includeTypeParameters:=False) ' don't use the Global prefix if specified
+                    Else
+                        Return GetNodeName(qualified.Left, includeTypeParameters:=False) + "." + GetNodeName(qualified.Right, includeTypeParameters:=False)
+                    End If
+                Case SyntaxKind.StructureBlock
+                    Dim structDecl = CType(node, StructureBlockSyntax)
+                    name = structDecl.StructureStatement.Identifier.ValueText
+                    typeParameterList = structDecl.StructureStatement.TypeParameterList
+                Case Else
+                    Debug.Assert(False, "Unexpected node type " + node.Kind().ToString())
+                    Return Nothing
+            End Select
+
+            Return If(includeTypeParameters, name + ExpandTypeParameterList(typeParameterList), name)
+        End Function
+
+        Private Shared Function ExpandTypeParameterList(typeParameterList As TypeParameterListSyntax) As String
+            If typeParameterList IsNot Nothing AndAlso typeParameterList.Parameters.Count > 0 Then
+                Dim builder = New StringBuilder()
+                builder.Append("(Of ")
+                builder.Append(typeParameterList.Parameters(0).Identifier.ValueText)
+                For i = 1 To typeParameterList.Parameters.Count - 1
+                    builder.Append(","c)
+                    builder.Append(typeParameterList.Parameters(i).Identifier.ValueText)
+                Next
+
+                builder.Append(")"c)
+                Return builder.ToString()
+            Else
+                Return Nothing
+            End If
+        End Function
+
         Private Sub AppendMethodLevelMembers(node As SyntaxNode, list As List(Of SyntaxNode))
             For Each member In node.GetMembers()
                 If IsTopLevelNodeWithMembers(member) Then
@@ -739,7 +975,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Function GetMethodLevelMember(root As SyntaxNode, memberId As Integer) As SyntaxNode Implements ISyntaxFactsService.GetMethodLevelMember
             Dim currentId As Integer = Nothing
             Dim currentNode As SyntaxNode = Nothing
-            Contract.ThrowIfFalse(TryGetMethodLevelMember(root, Function(n, i) i = memberId, currentId, currentNode))
+
+            If Not TryGetMethodLevelMember(root, Function(n, i) i = memberId, currentId, currentNode) Then
+                Return Nothing
+            End If
 
             Contract.ThrowIfNull(currentNode)
             CheckMemberId(root, currentNode, memberId)
@@ -811,6 +1050,13 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
                         node = parent
                         Exit While
                     End If
+                End If
+
+                ' The inside of an interpolated string is treated as its own token so we
+                ' need to force navigation to the parent expression syntax.
+                If TypeOf node Is InterpolatedStringTextSyntax AndAlso TypeOf parent Is InterpolatedStringExpressionSyntax Then
+                    node = parent
+                    Exit While
                 End If
 
                 ' If this node is not parented by a name, we're done.

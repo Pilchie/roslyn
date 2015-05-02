@@ -622,7 +622,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             if ((object)receiverType == null)
             {
-                throw new ArgumentNullException("receiverType");
+                throw new ArgumentNullException(nameof(receiverType));
             }
 
             if (!this.IsExtensionMethod || this.MethodKind == MethodKind.ReducedExtension)
@@ -730,7 +730,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             if (typeArguments.IsDefault)
             {
-                throw new ArgumentNullException("typeArguments");
+                throw new ArgumentNullException(nameof(typeArguments));
             }
 
             if (typeArguments.Any(NamedTypeSymbol.TypeSymbolIsNullFunction))
@@ -761,13 +761,13 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         /// <summary>
         /// As a performance optimization, cache parameter types and refkinds - overload resolution uses them a lot.
         /// </summary>
-        private ParameterSignature lazyParameterSignature;
+        private ParameterSignature _lazyParameterSignature;
         internal ImmutableArray<TypeSymbol> ParameterTypes
         {
             get
             {
-                ParameterSignature.PopulateParameterSignature(this.Parameters, ref this.lazyParameterSignature);
-                return this.lazyParameterSignature.parameterTypes;
+                ParameterSignature.PopulateParameterSignature(this.Parameters, ref _lazyParameterSignature);
+                return _lazyParameterSignature.parameterTypes;
             }
         }
 
@@ -778,8 +778,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         {
             get
             {
-                ParameterSignature.PopulateParameterSignature(this.Parameters, ref this.lazyParameterSignature);
-                return this.lazyParameterSignature.parameterRefKinds;
+                ParameterSignature.PopulateParameterSignature(this.Parameters, ref _lazyParameterSignature);
+                return _lazyParameterSignature.parameterRefKinds;
             }
         }
 

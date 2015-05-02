@@ -1,15 +1,11 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-Imports System.Linq
-Imports Microsoft.CodeAnalysis
-Imports Microsoft.CodeAnalysis.CodeGeneration
-Imports Microsoft.CodeAnalysis.Editting
-Imports Microsoft.CodeAnalysis.Simplification
-Imports Microsoft.CodeAnalysis.VisualBasic
-Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
-Imports Microsoft.CodeAnalysis.Host
-Imports Microsoft.CodeAnalysis.Host.Mef
 Imports System.Composition
+Imports Microsoft.CodeAnalysis
+Imports Microsoft.CodeAnalysis.Editing
+Imports Microsoft.CodeAnalysis.Host.Mef
+Imports Microsoft.CodeAnalysis.Simplification
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
     <ExportLanguageService(GetType(SyntaxGenerator), LanguageNames.VisualBasic), [Shared]>
@@ -17,6 +13,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         Inherits SyntaxGenerator
 
 #Region "Expressions and Statements"
+
+        Public Overrides Function AwaitExpression(expression As SyntaxNode) As SyntaxNode
+            Return SyntaxFactory.AwaitExpression(DirectCast(expression, ExpressionSyntax))
+        End Function
+
         Private Function Parenthesize(expression As SyntaxNode) As ParenthesizedExpressionSyntax
             Return DirectCast(expression, ExpressionSyntax).Parenthesize()
         End Function
@@ -57,11 +58,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Public Overrides Function CastExpression(type As SyntaxNode, expression As SyntaxNode) As SyntaxNode
-            Return SyntaxFactory.DirectCastExpression(DirectCast(expression, ExpressionSyntax), DirectCast(type, TypeSyntax))
+            Return SyntaxFactory.DirectCastExpression(DirectCast(expression, ExpressionSyntax), DirectCast(type, TypeSyntax)).WithAdditionalAnnotations(Simplifier.Annotation)
         End Function
 
         Public Overrides Function ConvertExpression(type As SyntaxNode, expression As SyntaxNode) As SyntaxNode
-            Return SyntaxFactory.CTypeExpression(DirectCast(expression, ExpressionSyntax), DirectCast(type, TypeSyntax))
+            Return SyntaxFactory.CTypeExpression(DirectCast(expression, ExpressionSyntax), DirectCast(type, TypeSyntax)).WithAdditionalAnnotations(Simplifier.Annotation)
         End Function
 
         Public Overrides Function ConditionalExpression(condition As SyntaxNode, whenTrue As SyntaxNode, whenFalse As SyntaxNode) As SyntaxNode
@@ -73,6 +74,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
         Public Overrides Function LiteralExpression(value As Object) As SyntaxNode
             Return ExpressionGenerator.GenerateNonEnumValueExpression(Nothing, value, canUseFieldReference:=True)
+        End Function
+
+        Public Overrides Function TypedConstantExpression(value As TypedConstant) As SyntaxNode
+            Return ExpressionGenerator.GenerateExpression(value)
         End Function
 
         Public Overrides Function DefaultExpression(type As ITypeSymbol) As SyntaxNode
@@ -174,6 +179,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Return SyntaxFactory.TypeOfIsExpression(Parenthesize(expression), DirectCast(type, TypeSyntax))
         End Function
 
+        Public Overrides Function TypeOfExpression(type As SyntaxNode) As SyntaxNode
+            Return SyntaxFactory.GetTypeExpression(DirectCast(type, TypeSyntax))
+        End Function
+
         Public Overrides Function LogicalAndExpression(left As SyntaxNode, right As SyntaxNode) As SyntaxNode
             Return SyntaxFactory.AndAlsoExpression(Parenthesize(left), Parenthesize(right))
         End Function
@@ -195,7 +204,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
         ' parenthesize the left-side of a dot or target of an invocation if not unnecessary
         Private Function ParenthesizeLeft(expression As SyntaxNode) As ExpressionSyntax
-            Dim expressionSyntax = DirectCast(expression, expressionSyntax)
+            Dim expressionSyntax = DirectCast(expression, ExpressionSyntax)
             If TypeOf expressionSyntax Is TypeSyntax _
                OrElse expressionSyntax.IsMeMyBaseOrMyClass() _
                OrElse expressionSyntax.IsKind(SyntaxKind.ParenthesizedExpression) _
@@ -253,37 +262,37 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
         Public Overrides Function TypeExpression(specialType As SpecialType) As SyntaxNode
             Select Case specialType
-                Case specialType.System_Boolean
+                Case SpecialType.System_Boolean
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BooleanKeyword))
-                Case specialType.System_Byte
+                Case SpecialType.System_Byte
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ByteKeyword))
-                Case specialType.System_Char
+                Case SpecialType.System_Char
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.CharKeyword))
-                Case specialType.System_Decimal
+                Case SpecialType.System_Decimal
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.DecimalKeyword))
-                Case specialType.System_Double
+                Case SpecialType.System_Double
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.DoubleKeyword))
-                Case specialType.System_Int16
+                Case SpecialType.System_Int16
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ShortKeyword))
-                Case specialType.System_Int32
+                Case SpecialType.System_Int32
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntegerKeyword))
-                Case specialType.System_Int64
+                Case SpecialType.System_Int64
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword))
-                Case specialType.System_Object
+                Case SpecialType.System_Object
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ObjectKeyword))
-                Case specialType.System_SByte
+                Case SpecialType.System_SByte
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.SByteKeyword))
-                Case specialType.System_Single
+                Case SpecialType.System_Single
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.SingleKeyword))
-                Case specialType.System_String
+                Case SpecialType.System_String
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))
-                Case specialType.System_UInt16
+                Case SpecialType.System_UInt16
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.UShortKeyword))
-                Case specialType.System_UInt32
+                Case SpecialType.System_UInt32
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.UIntegerKeyword))
-                Case specialType.System_UInt64
+                Case SpecialType.System_UInt64
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ULongKeyword))
-                Case specialType.System_DateTime
+                Case SpecialType.System_DateTime
                     Return SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.DateKeyword))
                 Case Else
                     Throw New NotSupportedException("Unsupported SpecialType")
@@ -518,19 +527,20 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Return list
         End Function
 
-        Private Shared fieldModifiers As DeclarationModifiers = DeclarationModifiers.Const Or DeclarationModifiers.[New] Or DeclarationModifiers.ReadOnly Or DeclarationModifiers.Static
-        Private Shared methodModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.Async Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.Partial Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static Or DeclarationModifiers.Virtual
-        Private Shared constructorModifers As DeclarationModifiers = DeclarationModifiers.Static
-        Private Shared propertyModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.ReadOnly Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static Or DeclarationModifiers.Virtual
-        Private Shared indexerModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.ReadOnly Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static Or DeclarationModifiers.Virtual
-        Private Shared classModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Partial Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static
-        Private Shared structModifiers As DeclarationModifiers = DeclarationModifiers.[New] Or DeclarationModifiers.Partial
-        Private Shared interfaceModifiers As DeclarationModifiers = DeclarationModifiers.[New] Or DeclarationModifiers.Partial
+        Private Shared s_fieldModifiers As DeclarationModifiers = DeclarationModifiers.Const Or DeclarationModifiers.[New] Or DeclarationModifiers.ReadOnly Or DeclarationModifiers.Static
+        Private Shared s_methodModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.Async Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.Partial Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static Or DeclarationModifiers.Virtual
+        Private Shared s_constructorModifers As DeclarationModifiers = DeclarationModifiers.Static
+        Private Shared s_propertyModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.ReadOnly Or DeclarationModifiers.WriteOnly Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static Or DeclarationModifiers.Virtual
+        Private Shared s_indexerModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.ReadOnly Or DeclarationModifiers.WriteOnly Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static Or DeclarationModifiers.Virtual
+        Private Shared s_classModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Partial Or DeclarationModifiers.Sealed Or DeclarationModifiers.Static
+        Private Shared s_structModifiers As DeclarationModifiers = DeclarationModifiers.[New] Or DeclarationModifiers.Partial
+        Private Shared s_interfaceModifiers As DeclarationModifiers = DeclarationModifiers.[New] Or DeclarationModifiers.Partial
+        Private Shared s_accessorModifiers As DeclarationModifiers = DeclarationModifiers.Abstract Or DeclarationModifiers.[New] Or DeclarationModifiers.Override Or DeclarationModifiers.Virtual
 
         Private Function GetAllowedModifiers(kind As SyntaxKind) As DeclarationModifiers
             Select Case kind
                 Case SyntaxKind.ClassBlock, SyntaxKind.ClassStatement
-                    Return classModifiers
+                    Return s_classModifiers
 
                 Case SyntaxKind.EnumBlock, SyntaxKind.EnumStatement
                     Return DeclarationModifiers.[New]
@@ -539,10 +549,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DeclarationModifiers.[New]
 
                 Case SyntaxKind.InterfaceBlock, SyntaxKind.InterfaceStatement
-                    Return interfaceModifiers
+                    Return s_interfaceModifiers
 
                 Case SyntaxKind.StructureBlock, SyntaxKind.StructureStatement
-                    Return structModifiers
+                    Return s_structModifiers
 
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.FunctionStatement,
@@ -550,22 +560,34 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                      SyntaxKind.SubStatement,
                      SyntaxKind.OperatorBlock,
                      SyntaxKind.OperatorStatement
-                    Return methodModifiers
+                    Return s_methodModifiers
 
                 Case SyntaxKind.ConstructorBlock,
                      SyntaxKind.SubNewStatement
-                    Return constructorModifers
+                    Return s_constructorModifers
 
                 Case SyntaxKind.FieldDeclaration
-                    Return fieldModifiers
+                    Return s_fieldModifiers
 
                 Case SyntaxKind.PropertyBlock,
                      SyntaxKind.PropertyStatement
-                    Return propertyModifiers
+                    Return s_propertyModifiers
 
                 Case SyntaxKind.EventBlock,
                      SyntaxKind.EventStatement
-                    Return propertyModifiers
+                    Return s_propertyModifiers
+
+                Case SyntaxKind.GetAccessorBlock,
+                     SyntaxKind.GetAccessorStatement,
+                     SyntaxKind.SetAccessorBlock,
+                     SyntaxKind.SetAccessorStatement,
+                     SyntaxKind.AddHandlerAccessorBlock,
+                     SyntaxKind.AddHandlerAccessorStatement,
+                     SyntaxKind.RemoveHandlerAccessorBlock,
+                     SyntaxKind.RemoveHandlerAccessorStatement,
+                     SyntaxKind.RaiseEventAccessorBlock,
+                     SyntaxKind.RaiseEventAccessorStatement
+                    Return s_accessorModifiers
 
                 Case SyntaxKind.EnumMemberDeclaration
                 Case SyntaxKind.Parameter
@@ -578,7 +600,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         Public Overrides Function FieldDeclaration(name As String, type As SyntaxNode, Optional accessibility As Accessibility = Nothing, Optional modifiers As DeclarationModifiers = Nothing, Optional initializer As SyntaxNode = Nothing) As SyntaxNode
             Return SyntaxFactory.FieldDeclaration(
                 attributeLists:=Nothing,
-                modifiers:=GetModifierList(accessibility, modifiers And fieldModifiers, isField:=True),
+                modifiers:=GetModifierList(accessibility, modifiers And s_fieldModifiers, isField:=True),
                 declarators:=SyntaxFactory.SingletonSeparatedList(VariableDeclarator(type, name, initializer)))
         End Function
 
@@ -594,8 +616,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Dim statement = SyntaxFactory.MethodStatement(
                 kind:=If(returnType Is Nothing, SyntaxKind.SubStatement, SyntaxKind.FunctionStatement),
                 attributeLists:=Nothing,
-                modifiers:=GetModifierList(accessibility, modifiers And methodModifiers),
-                keyword:=If(returnType Is Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.FunctionKeyword)),
+                modifiers:=GetModifierList(accessibility, modifiers And s_methodModifiers),
+                subOrFunctionKeyword:=If(returnType Is Nothing, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.FunctionKeyword)),
                 identifier:=identifier.ToIdentifierToken(),
                 typeParameterList:=GetTypeParameters(typeParameters),
                 parameterList:=GetParameterList(parameters),
@@ -608,9 +630,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Else
                 Return SyntaxFactory.MethodBlock(
                     kind:=If(returnType Is Nothing, SyntaxKind.SubBlock, SyntaxKind.FunctionBlock),
-                    begin:=statement,
+                    subOrFunctionStatement:=statement,
                     statements:=GetStatementList(statements),
-                    [end]:=If(returnType Is Nothing, SyntaxFactory.EndSubStatement(), SyntaxFactory.EndFunctionStatement()))
+                    endSubOrFunctionStatement:=If(returnType Is Nothing, SyntaxFactory.EndSubStatement(), SyntaxFactory.EndFunctionStatement()))
             End If
         End Function
 
@@ -649,7 +671,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Dim asClause = SyntaxFactory.SimpleAsClause(DirectCast(type, TypeSyntax))
             Dim statement = SyntaxFactory.PropertyStatement(
                 attributeLists:=Nothing,
-                modifiers:=GetModifierList(accessibility, modifiers And propertyModifiers),
+                modifiers:=GetModifierList(accessibility, modifiers And s_propertyModifiers),
                 identifier:=identifier.ToIdentifierToken(),
                 parameterList:=Nothing,
                 asClause:=asClause,
@@ -661,7 +683,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Else
                 Dim accessors = New List(Of AccessorBlockSyntax)
 
-                accessors.Add(CreateGetAccessorBlock(getAccessorStatements))
+                If Not modifiers.IsWriteOnly Then
+                    accessors.Add(CreateGetAccessorBlock(getAccessorStatements))
+                End If
 
                 If Not modifiers.IsReadOnly Then
                     accessors.Add(CreateSetAccessorBlock(type, setAccessorStatements))
@@ -685,7 +709,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Dim asClause = SyntaxFactory.SimpleAsClause(DirectCast(type, TypeSyntax))
             Dim statement = SyntaxFactory.PropertyStatement(
                 attributeLists:=Nothing,
-                modifiers:=GetModifierList(accessibility, modifiers And indexerModifiers, isDefault:=True),
+                modifiers:=GetModifierList(accessibility, modifiers And s_indexerModifiers, isDefault:=True),
                 identifier:=SyntaxFactory.Identifier("Item"),
                 parameterList:=SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(parameters.Cast(Of ParameterSyntax))),
                 asClause:=asClause,
@@ -697,7 +721,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Else
                 Dim accessors = New List(Of AccessorBlockSyntax)
 
-                accessors.Add(CreateGetAccessorBlock(getAccessorStatements))
+                If Not modifiers.IsWriteOnly Then
+                    accessors.Add(CreateGetAccessorBlock(getAccessorStatements))
+                End If
 
                 If Not modifiers.IsReadOnly Then
                     accessors.Add(CreateSetAccessorBlock(type, setAccessorStatements))
@@ -749,7 +775,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     kind:=SyntaxKind.SetAccessorStatement,
                     attributeLists:=Nothing,
                     modifiers:=Nothing,
-                    keyword:=SyntaxFactory.Token(SyntaxKind.SetKeyword),
+                    accessorKeyword:=SyntaxFactory.Token(SyntaxKind.SetKeyword),
                     parameterList:=SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(valueParameter))),
                 GetStatementList(statements),
                 SyntaxFactory.EndSetStatement())
@@ -771,7 +797,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     kind:=SyntaxKind.AddHandlerAccessorStatement,
                     attributeLists:=Nothing,
                     modifiers:=Nothing,
-                    keyword:=SyntaxFactory.Token(SyntaxKind.AddHandlerKeyword),
+                    accessorKeyword:=SyntaxFactory.Token(SyntaxKind.AddHandlerKeyword),
                     parameterList:=SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(valueParameter))),
                 GetStatementList(statements),
                 SyntaxFactory.EndAddHandlerStatement())
@@ -793,7 +819,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     kind:=SyntaxKind.RemoveHandlerAccessorStatement,
                     attributeLists:=Nothing,
                     modifiers:=Nothing,
-                    keyword:=SyntaxFactory.Token(SyntaxKind.RemoveHandlerKeyword),
+                    accessorKeyword:=SyntaxFactory.Token(SyntaxKind.RemoveHandlerKeyword),
                     parameterList:=SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(valueParameter))),
                 GetStatementList(statements),
                 SyntaxFactory.EndRemoveHandlerStatement())
@@ -808,22 +834,27 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     kind:=SyntaxKind.RaiseEventAccessorStatement,
                     attributeLists:=Nothing,
                     modifiers:=Nothing,
-                    keyword:=SyntaxFactory.Token(SyntaxKind.RaiseEventKeyword),
+                    accessorKeyword:=SyntaxFactory.Token(SyntaxKind.RaiseEventKeyword),
                     parameterList:=parameterList),
                 GetStatementList(statements),
                 SyntaxFactory.EndRaiseEventStatement())
         End Function
 
         Public Overrides Function AsPublicInterfaceImplementation(declaration As SyntaxNode, typeName As SyntaxNode) As SyntaxNode
+            Return Isolate(declaration, Function(decl) AsPublicInterfaceImplementationInternal(decl, typeName))
+        End Function
+
+        Private Function AsPublicInterfaceImplementationInternal(declaration As SyntaxNode, typeName As SyntaxNode) As SyntaxNode
             Dim type = DirectCast(typeName, NameSyntax)
 
-            declaration = AsImplementation(declaration, Accessibility.Public, allowDefault:=True)
+            declaration = WithBody(declaration, allowDefault:=True)
+            declaration = WithAccessibility(declaration, Accessibility.Public)
 
             Dim method = TryCast(declaration, MethodBlockSyntax)
             If method IsNot Nothing Then
-                Return method.WithBegin(
-                    method.Begin.WithImplementsClause(
-                        SyntaxFactory.ImplementsClause(SyntaxFactory.QualifiedName(type, SyntaxFactory.IdentifierName(method.Begin.Identifier)))))
+                Return method.WithSubOrFunctionStatement(
+                    method.SubOrFunctionStatement.WithImplementsClause(
+                        SyntaxFactory.ImplementsClause(SyntaxFactory.QualifiedName(type, SyntaxFactory.IdentifierName(method.SubOrFunctionStatement.Identifier)))))
             End If
 
             Dim prop = TryCast(declaration, PropertyBlockSyntax)
@@ -837,25 +868,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Public Overrides Function AsPrivateInterfaceImplementation(declaration As SyntaxNode, typeName As SyntaxNode) As SyntaxNode
+            Return Isolate(declaration, Function(decl) AsPrivateInterfaceImplementationInternal(decl, typeName))
+        End Function
+
+        Private Function AsPrivateInterfaceImplementationInternal(declaration As SyntaxNode, typeName As SyntaxNode) As SyntaxNode
             Dim type = DirectCast(typeName, NameSyntax)
 
             ' convert declaration statements to blocks
-            declaration = AsImplementation(declaration, Accessibility.Private, allowDefault:=False)
+            declaration = WithBody(declaration, allowDefault:=False)
+            declaration = WithAccessibility(declaration, Accessibility.Private)
 
             Dim method = TryCast(declaration, MethodBlockSyntax)
             If method IsNot Nothing Then
-                Dim interfaceMemberName = SyntaxFactory.IdentifierName(method.Begin.Identifier)
+                Dim interfaceMemberName = SyntaxFactory.IdentifierName(method.SubOrFunctionStatement.Identifier)
 
-                ' original method's name is used for interace member's name
-                Dim memberName = SyntaxFactory.IdentifierName(method.Begin.Identifier)
+                ' original method's name is used for interface member's name
+                Dim memberName = SyntaxFactory.IdentifierName(method.SubOrFunctionStatement.Identifier)
 
                 ' change actual method name to hide it
-                method = method.WithBegin(
-                    method.Begin.WithIdentifier(SyntaxFactory.Identifier(GetNameAsIdentifier(typeName) & "_" & GetNameAsIdentifier(memberName))))
+                method = method.WithSubOrFunctionStatement(
+                    method.SubOrFunctionStatement.WithIdentifier(SyntaxFactory.Identifier(GetNameAsIdentifier(typeName) & "_" & GetNameAsIdentifier(memberName))))
 
                 ' add implements clause
-                Return method.WithBegin(
-                    method.Begin.WithImplementsClause(
+                Return method.WithSubOrFunctionStatement(
+                    method.SubOrFunctionStatement.WithImplementsClause(
                         SyntaxFactory.ImplementsClause(SyntaxFactory.QualifiedName(type, interfaceMemberName))))
             End If
 
@@ -897,31 +933,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Return "[" & type.ToString() & "]"
         End Function
 
-        Private Function AsImplementation(declaration As SyntaxNode, requiredAccess As Accessibility, allowDefault As Boolean) As SyntaxNode
+        Private Function WithBody(declaration As SyntaxNode, allowDefault As Boolean) As SyntaxNode
 
-            Dim access As Accessibility
-            Dim modifiers As DeclarationModifiers
-            Dim isDefault As Boolean
+            declaration = Me.WithModifiersInternal(declaration, Me.GetModifiers(declaration) - DeclarationModifiers.Abstract)
 
             Dim method = TryCast(declaration, MethodStatementSyntax)
             If method IsNot Nothing Then
-                Me.GetAccessibilityAndModifiers(method.Modifiers, access, modifiers, isDefault)
-                If modifiers.IsAbstract OrElse access <> requiredAccess Then
-                    method = method.WithModifiers(GetModifierList(requiredAccess, modifiers - DeclarationModifiers.Abstract, False))
-                End If
-
                 Return SyntaxFactory.MethodBlock(
                     kind:=If(method.IsKind(SyntaxKind.FunctionStatement), SyntaxKind.FunctionBlock, SyntaxKind.SubBlock),
-                    begin:=method,
-                    [end]:=If(method.IsKind(SyntaxKind.FunctionStatement), SyntaxFactory.EndFunctionStatement(), SyntaxFactory.EndSubStatement()))
+                    subOrFunctionStatement:=method,
+                    endSubOrFunctionStatement:=If(method.IsKind(SyntaxKind.FunctionStatement), SyntaxFactory.EndFunctionStatement(), SyntaxFactory.EndSubStatement()))
             End If
 
             Dim prop = TryCast(declaration, PropertyStatementSyntax)
             If prop IsNot Nothing Then
-                Me.GetAccessibilityAndModifiers(prop.Modifiers, access, modifiers, isDefault)
-                If modifiers.IsAbstract OrElse access <> requiredAccess Then
-                    prop = prop.WithModifiers(GetModifierList(requiredAccess, modifiers - DeclarationModifiers.Abstract, isDefault And allowDefault))
-                End If
+                prop = prop.WithModifiers(WithIsDefault(prop.Modifiers, GetIsDefault(prop.Modifiers) And allowDefault))
 
                 Dim accessors = New List(Of AccessorBlockSyntax)
                 accessors.Add(CreateGetAccessorBlock(Nothing))
@@ -937,6 +963,30 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             End If
 
             Return declaration
+        End Function
+
+        Private Function GetIsDefault(modifierList As SyntaxTokenList) As Boolean
+            Dim access As Accessibility
+            Dim modifiers As DeclarationModifiers
+            Dim isDefault As Boolean
+
+            Me.GetAccessibilityAndModifiers(modifierList, access, modifiers, isDefault)
+
+            Return isDefault
+        End Function
+
+        Private Function WithIsDefault(modifierList As SyntaxTokenList, isDefault As Boolean) As SyntaxTokenList
+            Dim access As Accessibility
+            Dim modifiers As DeclarationModifiers
+            Dim currentIsDefault As Boolean
+
+            Me.GetAccessibilityAndModifiers(modifierList, access, modifiers, currentIsDefault)
+
+            If currentIsDefault <> isDefault Then
+                Return GetModifierList(access, modifiers, isDefault)
+            Else
+                Return modifierList
+            End If
         End Function
 
         Public Overrides Function ConstructorDeclaration(
@@ -955,9 +1005,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             End If
 
             Return SyntaxFactory.ConstructorBlock(
-                begin:=SyntaxFactory.SubNewStatement(
+                subNewStatement:=SyntaxFactory.SubNewStatement(
                     attributeLists:=Nothing,
-                    modifiers:=GetModifierList(accessibility, modifiers And constructorModifers),
+                    modifiers:=GetModifierList(accessibility, modifiers And s_constructorModifers),
                     parameterList:=If(parameters IsNot Nothing, SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(parameters.Cast(Of ParameterSyntax)())), SyntaxFactory.ParameterList())),
                 statements:=stats)
         End Function
@@ -977,9 +1027,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             End If
 
             Return SyntaxFactory.ClassBlock(
-                begin:=SyntaxFactory.ClassStatement(
+                classStatement:=SyntaxFactory.ClassStatement(
                     attributeLists:=Nothing,
-                    modifiers:=GetModifierList(accessibility, modifiers And classModifiers),
+                    modifiers:=GetModifierList(accessibility, modifiers And s_classModifiers),
                     identifier:=name.ToIdentifierToken(),
                     typeParameterList:=GetTypeParameters(typeParameters)),
                     [inherits]:=If(baseType IsNot Nothing, SyntaxFactory.SingletonList(SyntaxFactory.InheritsStatement(DirectCast(baseType, TypeSyntax))), Nothing),
@@ -1013,9 +1063,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             End If
 
             Return SyntaxFactory.StructureBlock(
-                begin:=SyntaxFactory.StructureStatement(
+                structureStatement:=SyntaxFactory.StructureStatement(
                     attributeLists:=Nothing,
-                    modifiers:=GetModifierList(accessibility, modifiers And structModifiers),
+                    modifiers:=GetModifierList(accessibility, modifiers And s_structModifiers),
                     identifier:=name.ToIdentifierToken(),
                     typeParameterList:=GetTypeParameters(typeParameters)),
                 [inherits]:=Nothing,
@@ -1048,7 +1098,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             End If
 
             Return SyntaxFactory.InterfaceBlock(
-                begin:=SyntaxFactory.InterfaceStatement(
+                interfaceStatement:=SyntaxFactory.InterfaceStatement(
                     attributeLists:=Nothing,
                     modifiers:=GetModifierList(accessibility, DeclarationModifiers.None),
                     identifier:=name.ToIdentifierToken(),
@@ -1070,7 +1120,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Select Case node.Kind
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock
-                    Return AsInterfaceMember(DirectCast(node, MethodBlockSyntax).Begin)
+                    Return AsInterfaceMember(DirectCast(node, MethodBlockSyntax).BlockStatement)
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return DirectCast(node, MethodStatementSyntax).WithModifiers(Nothing)
@@ -1141,7 +1191,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 kind:=kind,
                 attributeLists:=Nothing,
                 modifiers:=GetModifierList(accessibility, modifiers, kind),
-                keyword:=If(kind = SyntaxKind.DelegateSubStatement, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.FunctionKeyword)),
+                subOrFunctionKeyword:=If(kind = SyntaxKind.DelegateSubStatement, SyntaxFactory.Token(SyntaxKind.SubKeyword), SyntaxFactory.Token(SyntaxKind.FunctionKeyword)),
                 identifier:=name.ToIdentifierToken(),
                 typeParameterList:=GetTypeParameters(typeParameters),
                 parameterList:=GetParameterList(parameters),
@@ -1195,7 +1245,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
         Private Function AsArgumentList(arguments As IEnumerable(Of SyntaxNode)) As ArgumentListSyntax
             If arguments IsNot Nothing Then
-                Return SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(MyBase.ClearTrivia(arguments).Select(AddressOf AsArgument)))
+                Return SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(arguments.Select(AddressOf AsArgument)))
             Else
                 Return Nothing
             End If
@@ -1205,7 +1255,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Return Argument(name, RefKind.None, expression)
         End Function
 
-        Protected Overrides Function ClearTrivia(Of TNode As SyntaxNode)(node As TNode) As TNode
+        Public Overrides Function ClearTrivia(Of TNode As SyntaxNode)(node As TNode) As TNode
             If node IsNot Nothing Then
                 Return node.WithLeadingTrivia(SyntaxFactory.ElasticMarker).WithTrailingTrivia(SyntaxFactory.ElasticMarker)
             Else
@@ -1247,11 +1297,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Public Overrides Function InsertAttributes(declaration As SyntaxNode, index As Integer, attributes As IEnumerable(Of SyntaxNode)) As SyntaxNode
-            Return Isolate(declaration, Function(d) InsertAttributesInternal(d, index, MyBase.ClearTrivia(attributes)))
+            Return Isolate(declaration, Function(d) InsertAttributesInternal(d, index, attributes))
         End Function
 
         Private Function InsertAttributesInternal(declaration As SyntaxNode, index As Integer, attributes As IEnumerable(Of SyntaxNode)) As SyntaxNode
-            Dim newAttributes = AsAttributeLists(MyBase.ClearTrivia(attributes))
+            Dim newAttributes = AsAttributeLists(attributes)
             Dim existingAttributes = Me.GetAttributes(declaration)
 
             If index >= 0 AndAlso index < existingAttributes.Count Then
@@ -1300,7 +1350,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Private Function InsertReturnAttributesInternal(declaration As SyntaxNode, index As Integer, attributes As IEnumerable(Of SyntaxNode)) As SyntaxNode
-            Dim newAttributes = AsAttributeLists(MyBase.ClearTrivia(attributes))
+            Dim newAttributes = AsAttributeLists(attributes)
             Dim existingReturnAttributes = Me.GetReturnAttributes(declaration)
 
             If index >= 0 AndAlso index < existingReturnAttributes.Count Then
@@ -1336,7 +1386,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.FunctionBlock
                     Dim fb = DirectCast(declaration, MethodBlockSyntax)
                     Dim asClause = DirectCast(WithReturnAttributeLists(GetAsClause(declaration), lists), SimpleAsClauseSyntax)
-                    Return fb.WithBegin(fb.Begin.WithAsClause(asClause))
+                    Return fb.WithSubOrFunctionStatement(fb.SubOrFunctionStatement.WithAsClause(asClause))
                 Case SyntaxKind.FunctionStatement
                     Dim ms = DirectCast(declaration, MethodStatementSyntax)
                     Dim asClause = DirectCast(WithReturnAttributeLists(GetAsClause(declaration), lists), SimpleAsClauseSyntax)
@@ -1357,15 +1407,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.CompilationUnit
                     Return SyntaxFactory.List(DirectCast(node, CompilationUnitSyntax).Attributes.SelectMany(Function(s) s.AttributeLists))
                 Case SyntaxKind.ClassBlock
-                    Return DirectCast(node, ClassBlockSyntax).Begin.AttributeLists
+                    Return DirectCast(node, ClassBlockSyntax).BlockStatement.AttributeLists
                 Case SyntaxKind.ClassStatement
                     Return DirectCast(node, ClassStatementSyntax).AttributeLists
                 Case SyntaxKind.StructureBlock
-                    Return DirectCast(node, StructureBlockSyntax).Begin.AttributeLists
+                    Return DirectCast(node, StructureBlockSyntax).BlockStatement.AttributeLists
                 Case SyntaxKind.StructureStatement
                     Return DirectCast(node, StructureStatementSyntax).AttributeLists
                 Case SyntaxKind.InterfaceBlock
-                    Return DirectCast(node, InterfaceBlockSyntax).Begin.AttributeLists
+                    Return DirectCast(node, InterfaceBlockSyntax).BlockStatement.AttributeLists
                 Case SyntaxKind.InterfaceStatement
                     Return DirectCast(node, InterfaceStatementSyntax).AttributeLists
                 Case SyntaxKind.EnumBlock
@@ -1382,12 +1432,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock,
                      SyntaxKind.ConstructorBlock
-                    Return DirectCast(node, MethodBlockSyntax).Begin.AttributeLists
+                    Return DirectCast(node, MethodBlockSyntax).BlockStatement.AttributeLists
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return DirectCast(node, MethodStatementSyntax).AttributeLists
                 Case SyntaxKind.ConstructorBlock
-                    Return DirectCast(node, ConstructorBlockSyntax).Begin.AttributeLists
+                    Return DirectCast(node, ConstructorBlockSyntax).BlockStatement.AttributeLists
                 Case SyntaxKind.SubNewStatement
                     Return DirectCast(node, SubNewStatementSyntax).AttributeLists
                 Case SyntaxKind.Parameter
@@ -1397,7 +1447,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.PropertyStatement
                     Return DirectCast(node, PropertyStatementSyntax).AttributeLists
                 Case SyntaxKind.OperatorBlock
-                    Return DirectCast(node, OperatorBlockSyntax).Begin.AttributeLists
+                    Return DirectCast(node, OperatorBlockSyntax).BlockStatement.AttributeLists
                 Case SyntaxKind.OperatorStatement
                     Return DirectCast(node, OperatorStatementSyntax).AttributeLists
                 Case SyntaxKind.EventBlock
@@ -1419,15 +1469,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     ' add as single attributes statement
                     Return DirectCast(node, CompilationUnitSyntax).WithAttributes(SyntaxFactory.SingletonList(SyntaxFactory.AttributesStatement(arg)))
                 Case SyntaxKind.ClassBlock
-                    Return DirectCast(node, ClassBlockSyntax).WithBegin(DirectCast(node, ClassBlockSyntax).Begin.WithAttributeLists(arg))
+                    Return DirectCast(node, ClassBlockSyntax).WithClassStatement(DirectCast(node, ClassBlockSyntax).ClassStatement.WithAttributeLists(arg))
                 Case SyntaxKind.ClassStatement
                     Return DirectCast(node, ClassStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.StructureBlock
-                    Return DirectCast(node, StructureBlockSyntax).WithBegin(DirectCast(node, StructureBlockSyntax).Begin.WithAttributeLists(arg))
+                    Return DirectCast(node, StructureBlockSyntax).WithStructureStatement(DirectCast(node, StructureBlockSyntax).StructureStatement.WithAttributeLists(arg))
                 Case SyntaxKind.StructureStatement
                     Return DirectCast(node, StructureStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.InterfaceBlock
-                    Return DirectCast(node, InterfaceBlockSyntax).WithBegin(DirectCast(node, InterfaceBlockSyntax).Begin.WithAttributeLists(arg))
+                    Return DirectCast(node, InterfaceBlockSyntax).WithInterfaceStatement(DirectCast(node, InterfaceBlockSyntax).InterfaceStatement.WithAttributeLists(arg))
                 Case SyntaxKind.InterfaceStatement
                     Return DirectCast(node, InterfaceStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.EnumBlock
@@ -1443,12 +1493,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(node, FieldDeclarationSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock
-                    Return DirectCast(node, MethodBlockSyntax).WithBegin(DirectCast(node, MethodBlockSyntax).Begin.WithAttributeLists(arg))
+                    Return DirectCast(node, MethodBlockSyntax).WithSubOrFunctionStatement(DirectCast(node, MethodBlockSyntax).SubOrFunctionStatement.WithAttributeLists(arg))
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return DirectCast(node, MethodStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.ConstructorBlock
-                    Return DirectCast(node, ConstructorBlockSyntax).WithBegin(DirectCast(node, ConstructorBlockSyntax).Begin.WithAttributeLists(arg))
+                    Return DirectCast(node, ConstructorBlockSyntax).WithSubNewStatement(DirectCast(node, ConstructorBlockSyntax).SubNewStatement.WithAttributeLists(arg))
                 Case SyntaxKind.SubNewStatement
                     Return DirectCast(node, SubNewStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.Parameter
@@ -1458,7 +1508,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.PropertyStatement
                     Return DirectCast(node, PropertyStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.OperatorBlock
-                    Return DirectCast(node, OperatorBlockSyntax).WithBegin(DirectCast(node, OperatorBlockSyntax).Begin.WithAttributeLists(arg))
+                    Return DirectCast(node, OperatorBlockSyntax).WithOperatorStatement(DirectCast(node, OperatorBlockSyntax).OperatorStatement.WithAttributeLists(arg))
                 Case SyntaxKind.OperatorStatement
                     Return DirectCast(node, OperatorStatementSyntax).WithAttributeLists(arg)
                 Case SyntaxKind.EventBlock
@@ -1532,17 +1582,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     End If
                 Case SyntaxKind.Parameter
                     Return DeclarationKind.Parameter
-
                 Case SyntaxKind.FieldDeclaration
                     If GetDeclarationCount(declaration) = 1 Then
                         Return DeclarationKind.Field
                     End If
-
                 Case SyntaxKind.LocalDeclarationStatement
                     If GetDeclarationCount(declaration) = 1 Then
                         Return DeclarationKind.Variable
                     End If
-
                 Case SyntaxKind.ModifiedIdentifier
                     If IsChildOf(declaration, SyntaxKind.VariableDeclarator) Then
                         If IsChildOf(declaration.Parent, SyntaxKind.FieldDeclaration) And GetDeclarationCount(declaration.Parent.Parent) > 1 Then
@@ -1551,18 +1598,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                             Return DeclarationKind.Variable
                         End If
                     End If
-
                 Case SyntaxKind.Attribute
                     Dim list = TryCast(declaration.Parent, AttributeListSyntax)
                     If list Is Nothing OrElse list.Attributes.Count > 1 Then
                         Return DeclarationKind.Attribute
                     End If
-
                 Case SyntaxKind.AttributeList
                     Dim list = DirectCast(declaration, AttributeListSyntax)
                     If list.Attributes.Count = 1 Then
                         Return DeclarationKind.Attribute
                     End If
+                Case SyntaxKind.GetAccessorBlock
+                    Return DeclarationKind.GetAccessor
+                Case SyntaxKind.SetAccessorBlock
+                    Return DeclarationKind.SetAccessor
+                Case SyntaxKind.AddHandlerAccessorBlock
+                    Return DeclarationKind.AddAccessor
+                Case SyntaxKind.RemoveHandlerAccessorBlock
+                    Return DeclarationKind.RemoveAccessor
+                Case SyntaxKind.RaiseEventAccessorBlock
+                    Return DeclarationKind.RaiseAccessor
             End Select
             Return DeclarationKind.None
         End Function
@@ -1607,7 +1662,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Dim result As SyntaxNode = Nothing
 
             If shouldPreserveTrivia Then
-                result = preserveTrivia(isolated, editor)
+                result = PreserveTrivia(isolated, editor)
             Else
                 result = editor(isolated)
             End If
@@ -1697,11 +1752,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         Public Overrides Function GetName(declaration As SyntaxNode) As String
             Select Case declaration.Kind
                 Case SyntaxKind.ClassBlock
-                    Return DirectCast(declaration, ClassBlockSyntax).Begin.Identifier.ValueText
+                    Return DirectCast(declaration, ClassBlockSyntax).BlockStatement.Identifier.ValueText
                 Case SyntaxKind.StructureBlock
-                    Return DirectCast(declaration, StructureBlockSyntax).Begin.Identifier.ValueText
+                    Return DirectCast(declaration, StructureBlockSyntax).BlockStatement.Identifier.ValueText
                 Case SyntaxKind.InterfaceBlock
-                    Return DirectCast(declaration, InterfaceBlockSyntax).Begin.Identifier.ValueText
+                    Return DirectCast(declaration, InterfaceBlockSyntax).BlockStatement.Identifier.ValueText
                 Case SyntaxKind.EnumBlock
                     Return DirectCast(declaration, EnumBlockSyntax).EnumStatement.Identifier.ValueText
                 Case SyntaxKind.EnumMemberDeclaration
@@ -1711,7 +1766,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, DelegateStatementSyntax).Identifier.ValueText
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).Begin.Identifier.ValueText
+                    Return DirectCast(declaration, MethodBlockSyntax).SubOrFunctionStatement.Identifier.ValueText
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return DirectCast(declaration, MethodStatementSyntax).Identifier.ValueText
@@ -1785,11 +1840,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             Select Case declaration.Kind
                 Case SyntaxKind.ClassBlock
-                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, ClassBlockSyntax).Begin.Identifier, id)
+                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, ClassBlockSyntax).BlockStatement.Identifier, id)
                 Case SyntaxKind.StructureBlock
-                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, StructureBlockSyntax).Begin.Identifier, id)
+                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, StructureBlockSyntax).BlockStatement.Identifier, id)
                 Case SyntaxKind.InterfaceBlock
-                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, InterfaceBlockSyntax).Begin.Identifier, id)
+                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, InterfaceBlockSyntax).BlockStatement.Identifier, id)
                 Case SyntaxKind.EnumBlock
                     Return ReplaceWithTrivia(declaration, DirectCast(declaration, EnumBlockSyntax).EnumStatement.Identifier, id)
                 Case SyntaxKind.EnumMemberDeclaration
@@ -1799,7 +1854,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return ReplaceWithTrivia(declaration, DirectCast(declaration, DelegateStatementSyntax).Identifier, id)
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock
-                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, MethodBlockSyntax).Begin.Identifier, id)
+                    Return ReplaceWithTrivia(declaration, DirectCast(declaration, MethodBlockSyntax).SubOrFunctionStatement.Identifier, id)
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return ReplaceWithTrivia(declaration, DirectCast(declaration, MethodStatementSyntax).Identifier, id)
@@ -1911,7 +1966,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.DelegateFunctionStatement
                     Return DirectCast(declaration, DelegateStatementSyntax).AsClause
                 Case SyntaxKind.FunctionBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).Begin.AsClause
+                    Return DirectCast(declaration, MethodBlockSyntax).SubOrFunctionStatement.AsClause
                 Case SyntaxKind.FunctionStatement
                     Return DirectCast(declaration, MethodStatementSyntax).AsClause
                 Case SyntaxKind.PropertyBlock
@@ -1955,7 +2010,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         Return ReplaceWithTrivia(declaration, fd.Declarators(0), fd.Declarators(0).WithAsClause(asClause))
                     End If
                 Case SyntaxKind.FunctionBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).WithBegin(DirectCast(declaration, MethodBlockSyntax).Begin.WithAsClause(DirectCast(asClause, SimpleAsClauseSyntax)))
+                    Return DirectCast(declaration, MethodBlockSyntax).WithSubOrFunctionStatement(DirectCast(declaration, MethodBlockSyntax).SubOrFunctionStatement.WithAsClause(DirectCast(asClause, SimpleAsClauseSyntax)))
                 Case SyntaxKind.FunctionStatement
                     Return DirectCast(declaration, MethodStatementSyntax).WithAsClause(DirectCast(asClause, SimpleAsClauseSyntax))
                 Case SyntaxKind.PropertyBlock
@@ -1989,12 +2044,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Dim sb = DirectCast(declaration, MethodBlockSyntax)
                     Return SyntaxFactory.MethodBlock(
                         SyntaxKind.FunctionBlock,
-                        DirectCast(AsFunction(sb.Begin), MethodStatementSyntax),
+                        DirectCast(AsFunction(sb.BlockStatement), MethodStatementSyntax),
                         sb.Statements,
                         SyntaxFactory.EndBlockStatement(
                             SyntaxKind.EndFunctionStatement,
-                            sb.End.EndKeyword,
-                            SyntaxFactory.Token(sb.End.BlockKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, sb.End.BlockKeyword.TrailingTrivia)
+                            sb.EndBlockStatement.EndKeyword,
+                            SyntaxFactory.Token(sb.EndBlockStatement.BlockKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, sb.EndBlockStatement.BlockKeyword.TrailingTrivia)
                             ))
                 Case SyntaxKind.SubStatement
                     Dim ss = DirectCast(declaration, MethodStatementSyntax)
@@ -2002,7 +2057,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         SyntaxKind.FunctionStatement,
                         ss.AttributeLists,
                         ss.Modifiers,
-                        SyntaxFactory.Token(ss.Keyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ss.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(ss.DeclarationKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ss.DeclarationKeyword.TrailingTrivia),
                         ss.Identifier,
                         ss.TypeParameterList,
                         ss.ParameterList,
@@ -2015,7 +2070,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         SyntaxKind.DelegateFunctionStatement,
                         ds.AttributeLists,
                         ds.Modifiers,
-                        SyntaxFactory.Token(ds.Keyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ds.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(ds.DeclarationKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ds.DeclarationKeyword.TrailingTrivia),
                         ds.Identifier,
                         ds.TypeParameterList,
                         ds.ParameterList,
@@ -2024,18 +2079,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Dim ml = DirectCast(declaration, MultiLineLambdaExpressionSyntax)
                     Return SyntaxFactory.MultiLineLambdaExpression(
                         SyntaxKind.MultiLineFunctionLambdaExpression,
-                        DirectCast(AsFunction(ml.Begin), LambdaHeaderSyntax),
+                        DirectCast(AsFunction(ml.SubOrFunctionHeader), LambdaHeaderSyntax),
                         ml.Statements,
                         SyntaxFactory.EndBlockStatement(
                             SyntaxKind.EndFunctionStatement,
-                            ml.End.EndKeyword,
-                            SyntaxFactory.Token(ml.End.BlockKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ml.End.BlockKeyword.TrailingTrivia)
+                            ml.EndSubOrFunctionStatement.EndKeyword,
+                            SyntaxFactory.Token(ml.EndSubOrFunctionStatement.BlockKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ml.EndSubOrFunctionStatement.BlockKeyword.TrailingTrivia)
                             ))
                 Case SyntaxKind.SingleLineSubLambdaExpression
                     Dim sl = DirectCast(declaration, SingleLineLambdaExpressionSyntax)
                     Return SyntaxFactory.SingleLineLambdaExpression(
                         SyntaxKind.SingleLineFunctionLambdaExpression,
-                        DirectCast(AsFunction(sl.Begin), LambdaHeaderSyntax),
+                        DirectCast(AsFunction(sl.SubOrFunctionHeader), LambdaHeaderSyntax),
                         sl.Body)
                 Case SyntaxKind.SubLambdaHeader
                     Dim lh = DirectCast(declaration, LambdaHeaderSyntax)
@@ -2043,7 +2098,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         SyntaxKind.FunctionLambdaHeader,
                         lh.AttributeLists,
                         lh.Modifiers,
-                        SyntaxFactory.Token(lh.Keyword.LeadingTrivia, SyntaxKind.FunctionKeyword, lh.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(lh.DeclarationKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, lh.DeclarationKeyword.TrailingTrivia),
                         lh.ParameterList,
                         asClause:=Nothing)
                 Case SyntaxKind.DeclareSubStatement
@@ -2053,7 +2108,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         ds.AttributeLists,
                         ds.Modifiers,
                         ds.CharsetKeyword,
-                        SyntaxFactory.Token(ds.Keyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ds.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(ds.DeclarationKeyword.LeadingTrivia, SyntaxKind.FunctionKeyword, ds.DeclarationKeyword.TrailingTrivia),
                         ds.Identifier,
                         ds.LibraryName,
                         ds.AliasName,
@@ -2074,12 +2129,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Dim mb = DirectCast(declaration, MethodBlockSyntax)
                     Return SyntaxFactory.MethodBlock(
                         SyntaxKind.SubBlock,
-                        DirectCast(AsSub(mb.Begin), MethodStatementSyntax),
+                        DirectCast(AsSub(mb.BlockStatement), MethodStatementSyntax),
                         mb.Statements,
                         SyntaxFactory.EndBlockStatement(
                             SyntaxKind.EndSubStatement,
-                            mb.End.EndKeyword,
-                            SyntaxFactory.Token(mb.End.BlockKeyword.LeadingTrivia, SyntaxKind.SubKeyword, mb.End.BlockKeyword.TrailingTrivia)
+                            mb.EndBlockStatement.EndKeyword,
+                            SyntaxFactory.Token(mb.EndBlockStatement.BlockKeyword.LeadingTrivia, SyntaxKind.SubKeyword, mb.EndBlockStatement.BlockKeyword.TrailingTrivia)
                             ))
                 Case SyntaxKind.FunctionStatement
                     Dim ms = DirectCast(declaration, MethodStatementSyntax)
@@ -2087,7 +2142,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         SyntaxKind.SubStatement,
                         ms.AttributeLists,
                         ms.Modifiers,
-                        SyntaxFactory.Token(ms.Keyword.LeadingTrivia, SyntaxKind.SubKeyword, ms.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(ms.DeclarationKeyword.LeadingTrivia, SyntaxKind.SubKeyword, ms.DeclarationKeyword.TrailingTrivia),
                         ms.Identifier,
                         ms.TypeParameterList,
                         ms.ParameterList,
@@ -2100,7 +2155,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         SyntaxKind.DelegateSubStatement,
                         ds.AttributeLists,
                         ds.Modifiers,
-                        SyntaxFactory.Token(ds.Keyword.LeadingTrivia, SyntaxKind.SubKeyword, ds.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(ds.DeclarationKeyword.LeadingTrivia, SyntaxKind.SubKeyword, ds.DeclarationKeyword.TrailingTrivia),
                         ds.Identifier,
                         ds.TypeParameterList,
                         ds.ParameterList,
@@ -2109,18 +2164,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Dim ml = DirectCast(declaration, MultiLineLambdaExpressionSyntax)
                     Return SyntaxFactory.MultiLineLambdaExpression(
                         SyntaxKind.MultiLineSubLambdaExpression,
-                        DirectCast(AsSub(ml.Begin), LambdaHeaderSyntax),
+                        DirectCast(AsSub(ml.SubOrFunctionHeader), LambdaHeaderSyntax),
                         ml.Statements,
                         SyntaxFactory.EndBlockStatement(
                             SyntaxKind.EndSubStatement,
-                            ml.End.EndKeyword,
-                            SyntaxFactory.Token(ml.End.BlockKeyword.LeadingTrivia, SyntaxKind.SubKeyword, ml.End.BlockKeyword.TrailingTrivia)
+                            ml.EndSubOrFunctionStatement.EndKeyword,
+                            SyntaxFactory.Token(ml.EndSubOrFunctionStatement.BlockKeyword.LeadingTrivia, SyntaxKind.SubKeyword, ml.EndSubOrFunctionStatement.BlockKeyword.TrailingTrivia)
                             ))
                 Case SyntaxKind.SingleLineFunctionLambdaExpression
                     Dim sl = DirectCast(declaration, SingleLineLambdaExpressionSyntax)
                     Return SyntaxFactory.SingleLineLambdaExpression(
                         SyntaxKind.SingleLineSubLambdaExpression,
-                        DirectCast(AsSub(sl.Begin), LambdaHeaderSyntax),
+                        DirectCast(AsSub(sl.SubOrFunctionHeader), LambdaHeaderSyntax),
                         sl.Body)
                 Case SyntaxKind.FunctionLambdaHeader
                     Dim lh = DirectCast(declaration, LambdaHeaderSyntax)
@@ -2128,7 +2183,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         SyntaxKind.SubLambdaHeader,
                         lh.AttributeLists,
                         lh.Modifiers,
-                        SyntaxFactory.Token(lh.Keyword.LeadingTrivia, SyntaxKind.SubKeyword, lh.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(lh.DeclarationKeyword.LeadingTrivia, SyntaxKind.SubKeyword, lh.DeclarationKeyword.TrailingTrivia),
                         lh.ParameterList,
                         asClause:=Nothing)
                 Case SyntaxKind.DeclareFunctionStatement
@@ -2138,7 +2193,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         ds.AttributeLists,
                         ds.Modifiers,
                         ds.CharsetKeyword,
-                        SyntaxFactory.Token(ds.Keyword.LeadingTrivia, SyntaxKind.SubKeyword, ds.Keyword.TrailingTrivia),
+                        SyntaxFactory.Token(ds.DeclarationKeyword.LeadingTrivia, SyntaxKind.SubKeyword, ds.DeclarationKeyword.TrailingTrivia),
                         ds.Identifier,
                         ds.LibraryName,
                         ds.AliasName,
@@ -2186,15 +2241,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         Private Function GetModifierTokens(declaration As SyntaxNode) As SyntaxTokenList
             Select Case declaration.Kind
                 Case SyntaxKind.ClassBlock
-                    Return DirectCast(declaration, ClassBlockSyntax).Begin.Modifiers
+                    Return DirectCast(declaration, ClassBlockSyntax).BlockStatement.Modifiers
                 Case SyntaxKind.ClassStatement
                     Return DirectCast(declaration, ClassStatementSyntax).Modifiers
                 Case SyntaxKind.StructureBlock
-                    Return DirectCast(declaration, StructureBlockSyntax).Begin.Modifiers
+                    Return DirectCast(declaration, StructureBlockSyntax).BlockStatement.Modifiers
                 Case SyntaxKind.StructureStatement
                     Return DirectCast(declaration, StructureStatementSyntax).Modifiers
                 Case SyntaxKind.InterfaceBlock
-                    Return DirectCast(declaration, InterfaceBlockSyntax).Begin.Modifiers
+                    Return DirectCast(declaration, InterfaceBlockSyntax).BlockStatement.Modifiers
                 Case SyntaxKind.InterfaceStatement
                     Return DirectCast(declaration, InterfaceStatementSyntax).Modifiers
                 Case SyntaxKind.EnumBlock
@@ -2208,9 +2263,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, FieldDeclarationSyntax).Modifiers
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).Begin.Modifiers
+                    Return DirectCast(declaration, MethodBlockSyntax).BlockStatement.Modifiers
                 Case SyntaxKind.ConstructorBlock
-                    Return DirectCast(declaration, ConstructorBlockSyntax).Begin.Modifiers
+                    Return DirectCast(declaration, ConstructorBlockSyntax).BlockStatement.Modifiers
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return DirectCast(declaration, MethodStatementSyntax).Modifiers
@@ -2221,7 +2276,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.PropertyStatement
                     Return DirectCast(declaration, PropertyStatementSyntax).Modifiers
                 Case SyntaxKind.OperatorBlock
-                    Return DirectCast(declaration, OperatorBlockSyntax).Begin.Modifiers
+                    Return DirectCast(declaration, OperatorBlockSyntax).BlockStatement.Modifiers
                 Case SyntaxKind.OperatorStatement
                     Return DirectCast(declaration, OperatorStatementSyntax).Modifiers
                 Case SyntaxKind.EventBlock
@@ -2236,6 +2291,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     If IsChildOfVariableDeclaration(declaration) Then
                         Return GetModifierTokens(declaration.Parent)
                     End If
+                Case SyntaxKind.GetAccessorBlock,
+                     SyntaxKind.SetAccessorBlock,
+                     SyntaxKind.AddHandlerAccessorBlock,
+                     SyntaxKind.RemoveHandlerAccessorBlock,
+                    SyntaxKind.RaiseEventAccessorBlock
+                    Return GetModifierTokens(DirectCast(declaration, AccessorBlockSyntax).AccessorStatement)
+                Case SyntaxKind.GetAccessorStatement,
+                     SyntaxKind.SetAccessorStatement,
+                     SyntaxKind.AddHandlerAccessorStatement,
+                     SyntaxKind.RemoveHandlerAccessorStatement,
+                     SyntaxKind.RaiseEventAccessorStatement
+                    Return DirectCast(declaration, AccessorStatementSyntax).Modifiers
                 Case Else
                     Return Nothing
             End Select
@@ -2244,15 +2311,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         Private Function WithModifierTokens(declaration As SyntaxNode, tokens As SyntaxTokenList) As SyntaxNode
             Select Case declaration.Kind
                 Case SyntaxKind.ClassBlock
-                    Return DirectCast(declaration, ClassBlockSyntax).WithBegin(DirectCast(declaration, ClassBlockSyntax).Begin.WithModifiers(tokens))
+                    Return DirectCast(declaration, ClassBlockSyntax).WithClassStatement(DirectCast(declaration, ClassBlockSyntax).ClassStatement.WithModifiers(tokens))
                 Case SyntaxKind.ClassStatement
                     Return DirectCast(declaration, ClassStatementSyntax).WithModifiers(tokens)
                 Case SyntaxKind.StructureBlock
-                    Return DirectCast(declaration, StructureBlockSyntax).WithBegin(DirectCast(declaration, StructureBlockSyntax).Begin.WithModifiers(tokens))
+                    Return DirectCast(declaration, StructureBlockSyntax).WithStructureStatement(DirectCast(declaration, StructureBlockSyntax).StructureStatement.WithModifiers(tokens))
                 Case SyntaxKind.StructureStatement
                     Return DirectCast(declaration, StructureStatementSyntax).WithModifiers(tokens)
                 Case SyntaxKind.InterfaceBlock
-                    Return DirectCast(declaration, InterfaceBlockSyntax).WithBegin(DirectCast(declaration, InterfaceBlockSyntax).Begin.WithModifiers(tokens))
+                    Return DirectCast(declaration, InterfaceBlockSyntax).WithInterfaceStatement(DirectCast(declaration, InterfaceBlockSyntax).InterfaceStatement.WithModifiers(tokens))
                 Case SyntaxKind.InterfaceStatement
                     Return DirectCast(declaration, InterfaceStatementSyntax).WithModifiers(tokens)
                 Case SyntaxKind.EnumBlock
@@ -2266,9 +2333,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, FieldDeclarationSyntax).WithModifiers(tokens)
                 Case SyntaxKind.FunctionBlock,
                      SyntaxKind.SubBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).WithBegin(DirectCast(declaration, MethodBlockSyntax).Begin.WithModifiers(tokens))
+                    Return DirectCast(declaration, MethodBlockSyntax).WithSubOrFunctionStatement(DirectCast(declaration, MethodBlockSyntax).SubOrFunctionStatement.WithModifiers(tokens))
                 Case SyntaxKind.ConstructorBlock
-                    Return DirectCast(declaration, ConstructorBlockSyntax).WithBegin(DirectCast(declaration, ConstructorBlockSyntax).Begin.WithModifiers(tokens))
+                    Return DirectCast(declaration, ConstructorBlockSyntax).WithSubNewStatement(DirectCast(declaration, ConstructorBlockSyntax).SubNewStatement.WithModifiers(tokens))
                 Case SyntaxKind.FunctionStatement,
                      SyntaxKind.SubStatement
                     Return DirectCast(declaration, MethodStatementSyntax).WithModifiers(tokens)
@@ -2279,13 +2346,26 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.PropertyStatement
                     Return DirectCast(declaration, PropertyStatementSyntax).WithModifiers(tokens)
                 Case SyntaxKind.OperatorBlock
-                    Return DirectCast(declaration, OperatorBlockSyntax).WithBegin(DirectCast(declaration, OperatorBlockSyntax).Begin.WithModifiers(tokens))
+                    Return DirectCast(declaration, OperatorBlockSyntax).WithOperatorStatement(DirectCast(declaration, OperatorBlockSyntax).OperatorStatement.WithModifiers(tokens))
                 Case SyntaxKind.OperatorStatement
                     Return DirectCast(declaration, OperatorStatementSyntax).WithModifiers(tokens)
                 Case SyntaxKind.EventBlock
                     Return DirectCast(declaration, EventBlockSyntax).WithEventStatement(DirectCast(declaration, EventBlockSyntax).EventStatement.WithModifiers(tokens))
                 Case SyntaxKind.EventStatement
                     Return DirectCast(declaration, EventStatementSyntax).WithModifiers(tokens)
+                Case SyntaxKind.GetAccessorBlock,
+                     SyntaxKind.SetAccessorBlock,
+                     SyntaxKind.AddHandlerAccessorBlock,
+                     SyntaxKind.RemoveHandlerAccessorBlock,
+                    SyntaxKind.RaiseEventAccessorBlock
+                    Return DirectCast(declaration, AccessorBlockSyntax).WithAccessorStatement(
+                        DirectCast(Me.WithModifierTokens(DirectCast(declaration, AccessorBlockSyntax).AccessorStatement, tokens), AccessorStatementSyntax))
+                Case SyntaxKind.GetAccessorStatement,
+                     SyntaxKind.SetAccessorStatement,
+                     SyntaxKind.AddHandlerAccessorStatement,
+                     SyntaxKind.RemoveHandlerAccessorStatement,
+                     SyntaxKind.RaiseEventAccessorStatement
+                    Return DirectCast(declaration, AccessorStatementSyntax).WithModifiers(tokens)
                 Case Else
                     Return declaration
             End Select
@@ -2347,7 +2427,17 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     SyntaxKind.OperatorBlock,
                     SyntaxKind.OperatorStatement,
                     SyntaxKind.EventBlock,
-                    SyntaxKind.EventStatement
+                    SyntaxKind.EventStatement,
+                    SyntaxKind.GetAccessorBlock,
+                    SyntaxKind.GetAccessorStatement,
+                    SyntaxKind.SetAccessorBlock,
+                    SyntaxKind.SetAccessorStatement,
+                    SyntaxKind.AddHandlerAccessorBlock,
+                    SyntaxKind.AddHandlerAccessorStatement,
+                    SyntaxKind.RemoveHandlerAccessorBlock,
+                    SyntaxKind.RemoveHandlerAccessorStatement,
+                    SyntaxKind.RaiseEventAccessorBlock,
+                    SyntaxKind.RaiseEventAccessorStatement
                     Return True
                 Case Else
                     Return False
@@ -2412,6 +2502,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             If modifiers.IsReadOnly Then
                 _list = _list.Add(SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword))
+            End If
+
+            If modifiers.IsWriteOnly Then
+                _list = _list.Add(SyntaxFactory.Token(SyntaxKind.WriteOnlyKeyword))
             End If
 
             If modifiers.IsSealed Then
@@ -2480,6 +2574,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                         modifiers = modifiers Or DeclarationModifiers.Const
                     Case SyntaxKind.ReadOnlyKeyword
                         modifiers = modifiers Or DeclarationModifiers.ReadOnly
+                    Case SyntaxKind.WriteOnlyKeyword
+                        modifiers = modifiers Or DeclarationModifiers.WriteOnly
                     Case SyntaxKind.NotInheritableKeyword
                         modifiers = modifiers Or DeclarationModifiers.Sealed
                     Case SyntaxKind.WithEventsKeyword
@@ -2517,22 +2613,22 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
             Dim methodBlock = TryCast(declaration, MethodBlockSyntax)
             If methodBlock IsNot Nothing Then
-                Return methodBlock.WithBegin(methodBlock.Begin.WithTypeParameterList(replacer(methodBlock.Begin.TypeParameterList)))
+                Return methodBlock.WithSubOrFunctionStatement(methodBlock.SubOrFunctionStatement.WithTypeParameterList(replacer(methodBlock.SubOrFunctionStatement.TypeParameterList)))
             End If
 
             Dim classBlock = TryCast(declaration, ClassBlockSyntax)
             If classBlock IsNot Nothing Then
-                Return classBlock.WithBegin(classBlock.Begin.WithTypeParameterList(replacer(classBlock.Begin.TypeParameterList)))
+                Return classBlock.WithClassStatement(classBlock.ClassStatement.WithTypeParameterList(replacer(classBlock.ClassStatement.TypeParameterList)))
             End If
 
             Dim structureBlock = TryCast(declaration, StructureBlockSyntax)
             If structureBlock IsNot Nothing Then
-                Return structureBlock.WithBegin(structureBlock.Begin.WithTypeParameterList(replacer(structureBlock.Begin.TypeParameterList)))
+                Return structureBlock.WithStructureStatement(structureBlock.StructureStatement.WithTypeParameterList(replacer(structureBlock.StructureStatement.TypeParameterList)))
             End If
 
             Dim interfaceBlock = TryCast(declaration, InterfaceBlockSyntax)
             If interfaceBlock IsNot Nothing Then
-                Return interfaceBlock.WithBegin(interfaceBlock.Begin.WithTypeParameterList(replacer(interfaceBlock.Begin.TypeParameterList)))
+                Return interfaceBlock.WithInterfaceStatement(interfaceBlock.InterfaceStatement.WithTypeParameterList(replacer(interfaceBlock.InterfaceStatement.TypeParameterList)))
             End If
 
             Return declaration
@@ -2591,7 +2687,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
 
         Public Overrides Function InsertParameters(declaration As SyntaxNode, index As Integer, parameters As IEnumerable(Of SyntaxNode)) As SyntaxNode
             Dim currentList = GetParameterList(declaration)
-            Dim newList = GetParameterList(MyBase.ClearTrivia(parameters))
+            Dim newList = GetParameterList(parameters)
             If currentList IsNot Nothing Then
                 Return WithParameterList(declaration, currentList.WithParameters(currentList.Parameters.InsertRange(index, newList.Parameters)))
             Else
@@ -2603,11 +2699,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
             Select Case declaration.Kind
                 Case SyntaxKind.SubBlock,
                     SyntaxKind.FunctionBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).Begin.ParameterList
+                    Return DirectCast(declaration, MethodBlockSyntax).BlockStatement.ParameterList
                 Case SyntaxKind.ConstructorBlock
-                    Return DirectCast(declaration, ConstructorBlockSyntax).Begin.ParameterList
+                    Return DirectCast(declaration, ConstructorBlockSyntax).BlockStatement.ParameterList
                 Case SyntaxKind.OperatorBlock
-                    Return DirectCast(declaration, OperatorBlockSyntax).Begin.ParameterList
+                    Return DirectCast(declaration, OperatorBlockSyntax).BlockStatement.ParameterList
                 Case SyntaxKind.SubStatement,
                     SyntaxKind.FunctionStatement
                     Return DirectCast(declaration, MethodStatementSyntax).ParameterList
@@ -2631,10 +2727,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, EventStatementSyntax).ParameterList
                 Case SyntaxKind.MultiLineFunctionLambdaExpression,
                      SyntaxKind.MultiLineSubLambdaExpression
-                    Return DirectCast(declaration, MultiLineLambdaExpressionSyntax).Begin.ParameterList
+                    Return DirectCast(declaration, MultiLineLambdaExpressionSyntax).SubOrFunctionHeader.ParameterList
                 Case SyntaxKind.SingleLineFunctionLambdaExpression,
                      SyntaxKind.SingleLineSubLambdaExpression
-                    Return DirectCast(declaration, SingleLineLambdaExpressionSyntax).Begin.ParameterList
+                    Return DirectCast(declaration, SingleLineLambdaExpressionSyntax).SubOrFunctionHeader.ParameterList
                 Case Else
                     Return Nothing
             End Select
@@ -2647,11 +2743,11 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, DelegateStatementSyntax).WithParameterList(list)
                 Case SyntaxKind.SubBlock,
                     SyntaxKind.FunctionBlock
-                    Return DirectCast(declaration, MethodBlockSyntax).WithBegin(DirectCast(declaration, MethodBlockSyntax).Begin.WithParameterList(list))
+                    Return DirectCast(declaration, MethodBlockSyntax).WithBlockStatement(DirectCast(declaration, MethodBlockSyntax).BlockStatement.WithParameterList(list))
                 Case SyntaxKind.ConstructorBlock
-                    Return DirectCast(declaration, ConstructorBlockSyntax).WithBegin(DirectCast(declaration, ConstructorBlockSyntax).Begin.WithParameterList(list))
+                    Return DirectCast(declaration, ConstructorBlockSyntax).WithBlockStatement(DirectCast(declaration, ConstructorBlockSyntax).BlockStatement.WithParameterList(list))
                 Case SyntaxKind.OperatorBlock
-                    Return DirectCast(declaration, OperatorBlockSyntax).WithBegin(DirectCast(declaration, OperatorBlockSyntax).Begin.WithParameterList(list))
+                    Return DirectCast(declaration, OperatorBlockSyntax).WithBlockStatement(DirectCast(declaration, OperatorBlockSyntax).BlockStatement.WithParameterList(list))
                 Case SyntaxKind.SubStatement,
                     SyntaxKind.FunctionStatement
                     Return DirectCast(declaration, MethodStatementSyntax).WithParameterList(list)
@@ -2679,10 +2775,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, EventStatementSyntax).WithParameterList(list)
                 Case SyntaxKind.MultiLineFunctionLambdaExpression,
                      SyntaxKind.MultiLineSubLambdaExpression
-                    Return DirectCast(declaration, MultiLineLambdaExpressionSyntax).WithBegin(DirectCast(declaration, MultiLineLambdaExpressionSyntax).Begin.WithParameterList(list))
+                    Return DirectCast(declaration, MultiLineLambdaExpressionSyntax).WithSubOrFunctionHeader(DirectCast(declaration, MultiLineLambdaExpressionSyntax).SubOrFunctionHeader.WithParameterList(list))
                 Case SyntaxKind.SingleLineFunctionLambdaExpression,
                      SyntaxKind.SingleLineSubLambdaExpression
-                    Return DirectCast(declaration, SingleLineLambdaExpressionSyntax).WithBegin(DirectCast(declaration, SingleLineLambdaExpressionSyntax).Begin.WithParameterList(list))
+                    Return DirectCast(declaration, SingleLineLambdaExpressionSyntax).WithSubOrFunctionHeader(DirectCast(declaration, SingleLineLambdaExpressionSyntax).SubOrFunctionHeader.WithParameterList(list))
             End Select
 
             Return declaration
@@ -2711,7 +2807,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Public Overrides Function WithExpression(declaration As SyntaxNode, expression As SyntaxNode) As SyntaxNode
-            Return Isolate(declaration, Function(d) WithExpressionInternal(d, ClearTrivia(expression)))
+            Return Isolate(declaration, Function(d) WithExpressionInternal(d, expression))
         End Function
 
         Private Function WithExpressionInternal(declaration As SyntaxNode, expression As SyntaxNode) As SyntaxNode
@@ -2723,24 +2819,24 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     If expression IsNot Nothing Then
                         Return sll.WithBody(expr)
                     Else
-                        Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineFunctionLambdaExpression, sll.Begin, SyntaxFactory.EndFunctionStatement())
+                        Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineFunctionLambdaExpression, sll.SubOrFunctionHeader, SyntaxFactory.EndFunctionStatement())
                     End If
                 Case SyntaxKind.MultiLineFunctionLambdaExpression
                     Dim mll = DirectCast(declaration, MultiLineLambdaExpressionSyntax)
                     If expression IsNot Nothing Then
-                        Return SyntaxFactory.SingleLineLambdaExpression(SyntaxKind.SingleLineFunctionLambdaExpression, mll.Begin, expr)
+                        Return SyntaxFactory.SingleLineLambdaExpression(SyntaxKind.SingleLineFunctionLambdaExpression, mll.SubOrFunctionHeader, expr)
                     End If
                 Case SyntaxKind.SingleLineSubLambdaExpression
                     Dim sll = DirectCast(declaration, SingleLineLambdaExpressionSyntax)
                     If expression IsNot Nothing Then
                         Return sll.WithBody(AsStatement(expr))
                     Else
-                        Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineSubLambdaExpression, sll.Begin, SyntaxFactory.EndSubStatement())
+                        Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineSubLambdaExpression, sll.SubOrFunctionHeader, SyntaxFactory.EndSubStatement())
                     End If
                 Case SyntaxKind.MultiLineSubLambdaExpression
                     Dim mll = DirectCast(declaration, MultiLineLambdaExpressionSyntax)
                     If expression IsNot Nothing Then
-                        Return SyntaxFactory.SingleLineLambdaExpression(SyntaxKind.SingleLineSubLambdaExpression, mll.Begin, AsStatement(expr))
+                        Return SyntaxFactory.SingleLineLambdaExpression(SyntaxKind.SingleLineSubLambdaExpression, mll.SubOrFunctionHeader, AsStatement(expr))
                     End If
                 Case Else
                     Dim currentEV = GetEqualsValue(declaration)
@@ -2809,7 +2905,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Private Function InsertNamespaceImportsInternal(declaration As SyntaxNode, index As Integer, [imports] As IEnumerable(Of SyntaxNode)) As SyntaxNode
-            Dim newImports = AsImports(MyBase.ClearTrivia([imports]))
+            Dim newImports = AsImports([imports])
             Dim existingImports = Me.GetNamespaceImports(declaration)
 
             If index >= 0 AndAlso index < existingImports.Count Then
@@ -2875,7 +2971,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Private Function InsertMembersInternal(declaration As SyntaxNode, index As Integer, members As IEnumerable(Of SyntaxNode)) As SyntaxNode
-            Dim newMembers = Me.AsMembersOf(declaration, MyBase.ClearTrivia(members))
+            Dim newMembers = Me.AsMembersOf(declaration, members)
             Dim existingMembers = Me.GetMembers(declaration)
 
             If index >= 0 AndAlso index < existingMembers.Count Then
@@ -2918,6 +3014,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 Case SyntaxKind.MultiLineFunctionLambdaExpression,
                      SyntaxKind.MultiLineSubLambdaExpression
                     Return DirectCast(declaration, MultiLineLambdaExpressionSyntax).Statements
+                Case SyntaxKind.GetAccessorBlock,
+                     SyntaxKind.SetAccessorBlock,
+                     SyntaxKind.AddHandlerAccessorBlock,
+                     SyntaxKind.RemoveHandlerAccessorBlock,
+                     SyntaxKind.RaiseEventAccessorBlock
+                    Return DirectCast(declaration, AccessorBlockSyntax).Statements
                 Case Else
                     Return SpecializedCollections.EmptyReadOnlyList(Of SyntaxNode)
             End Select
@@ -2942,12 +3044,97 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                     Return DirectCast(declaration, MultiLineLambdaExpressionSyntax).WithStatements(list)
                 Case SyntaxKind.SingleLineFunctionLambdaExpression
                     Dim sll = DirectCast(declaration, SingleLineLambdaExpressionSyntax)
-                    Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineFunctionLambdaExpression, sll.Begin, list, SyntaxFactory.EndFunctionStatement())
+                    Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineFunctionLambdaExpression, sll.SubOrFunctionHeader, list, SyntaxFactory.EndFunctionStatement())
                 Case SyntaxKind.SingleLineSubLambdaExpression
                     Dim sll = DirectCast(declaration, SingleLineLambdaExpressionSyntax)
-                    Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineSubLambdaExpression, sll.Begin, list, SyntaxFactory.EndSubStatement())
+                    Return SyntaxFactory.MultiLineLambdaExpression(SyntaxKind.MultiLineSubLambdaExpression, sll.SubOrFunctionHeader, list, SyntaxFactory.EndSubStatement())
+                Case SyntaxKind.GetAccessorBlock,
+                     SyntaxKind.SetAccessorBlock,
+                     SyntaxKind.AddHandlerAccessorBlock,
+                     SyntaxKind.RemoveHandlerAccessorBlock,
+                     SyntaxKind.RaiseEventAccessorBlock
+                    Return DirectCast(declaration, AccessorBlockSyntax).WithStatements(list)
                 Case Else
                     Return declaration
+            End Select
+        End Function
+
+        Public Overrides Function GetAccessors(declaration As SyntaxNode) As IReadOnlyList(Of SyntaxNode)
+            Select Case declaration.Kind
+                Case SyntaxKind.PropertyBlock
+                    Return DirectCast(declaration, PropertyBlockSyntax).Accessors
+                Case SyntaxKind.EventBlock
+                    Return DirectCast(declaration, EventBlockSyntax).Accessors
+                Case Else
+                    Return SpecializedCollections.EmptyReadOnlyList(Of SyntaxNode)()
+            End Select
+        End Function
+
+        Public Overrides Function InsertAccessors(declaration As SyntaxNode, index As Integer, accessors As IEnumerable(Of SyntaxNode)) As SyntaxNode
+
+            Dim currentList = GetAccessorList(declaration)
+            Dim newList = AsAccessorList(accessors, declaration.Kind)
+
+            If Not currentList.IsEmpty Then
+                Return WithAccessorList(declaration, currentList.InsertRange(index, newList))
+            Else
+                Return WithAccessorList(declaration, newList)
+            End If
+        End Function
+
+        Private Function GetAccessorList(declaration As SyntaxNode) As SyntaxList(Of AccessorBlockSyntax)
+            Select Case declaration.Kind
+                Case SyntaxKind.PropertyBlock
+                    Return DirectCast(declaration, PropertyBlockSyntax).Accessors
+                Case SyntaxKind.EventBlock
+                    Return DirectCast(declaration, EventBlockSyntax).Accessors
+                Case Else
+                    Return Nothing
+            End Select
+        End Function
+
+        Private Function WithAccessorList(declaration As SyntaxNode, accessorList As SyntaxList(Of AccessorBlockSyntax)) As SyntaxNode
+            Select Case declaration.Kind
+                Case SyntaxKind.PropertyBlock
+                    Return DirectCast(declaration, PropertyBlockSyntax).WithAccessors(accessorList)
+                Case SyntaxKind.EventBlock
+                    Return DirectCast(declaration, EventBlockSyntax).WithAccessors(accessorList)
+                Case Else
+                    Return declaration
+            End Select
+        End Function
+
+        Private Function AsAccessorList(nodes As IEnumerable(Of SyntaxNode), parentKind As SyntaxKind) As SyntaxList(Of AccessorBlockSyntax)
+            Return SyntaxFactory.List(nodes.Select(Function(n) AsAccessor(n, parentKind)).Where(Function(n) n IsNot Nothing))
+        End Function
+
+        Private Function AsAccessor(node As SyntaxNode, parentKind As SyntaxKind) As AccessorBlockSyntax
+            Select Case parentKind
+                Case SyntaxKind.PropertyBlock
+                    Select Case node.Kind
+                        Case SyntaxKind.GetAccessorBlock,
+                             SyntaxKind.SetAccessorBlock
+                            Return DirectCast(node, AccessorBlockSyntax)
+                    End Select
+                Case SyntaxKind.EventBlock
+                    Select Case node.Kind
+                        Case SyntaxKind.AddHandlerAccessorBlock,
+                             SyntaxKind.RemoveHandlerAccessorBlock,
+                             SyntaxKind.RaiseEventAccessorBlock
+                            Return DirectCast(node, AccessorBlockSyntax)
+                    End Select
+            End Select
+
+            Return Nothing
+        End Function
+
+        Private Function CanHaveAccessors(kind As SyntaxKind) As Boolean
+            Select Case kind
+                Case SyntaxKind.PropertyBlock,
+                     SyntaxKind.EventBlock
+                    Return True
+                Case Else
+                    Return False
             End Select
         End Function
 
@@ -2968,43 +3155,53 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
         End Function
 
         Private Function GetAccessorStatements(declaration As SyntaxNode, kind As SyntaxKind) As IReadOnlyList(Of SyntaxNode)
-            Select Case declaration.Kind
-                Case SyntaxKind.PropertyBlock
-                    Dim accessor = DirectCast(declaration, PropertyBlockSyntax).Accessors.FirstOrDefault(Function(a) a.IsKind(kind))
-                    If accessor IsNot Nothing Then
-                        Return accessor.Statements
-                    End If
-                Case SyntaxKind.EventBlock
-                    Dim accessor = DirectCast(declaration, EventBlockSyntax).Accessors.FirstOrDefault(Function(a) a.IsKind(kind))
-                    If accessor IsNot Nothing Then
-                        Return accessor.Statements
-                    End If
-            End Select
-            Return SpecializedCollections.EmptyReadOnlyList(Of SyntaxNode)()
+            Dim accessor = Me.GetAccessorBlock(declaration, kind)
+            If accessor IsNot Nothing Then
+                Return Me.GetStatements(accessor)
+            Else
+                Return SpecializedCollections.EmptyReadOnlyList(Of SyntaxNode)()
+            End If
         End Function
 
         Private Function WithAccessorStatements(declaration As SyntaxNode, statements As IEnumerable(Of SyntaxNode), kind As SyntaxKind) As SyntaxNode
+            Dim accessor = Me.GetAccessorBlock(declaration, kind)
+            If accessor IsNot Nothing Then
+                accessor = DirectCast(Me.WithStatements(accessor, statements), AccessorBlockSyntax)
+                Return Me.WithAccessorBlock(declaration, kind, accessor)
+            ElseIf Me.CanHaveAccessors(declaration.Kind)
+                accessor = Me.AccessorBlock(kind, statements, Me.ClearTrivia(Me.GetType(declaration)))
+                Return Me.WithAccessorBlock(declaration, kind, accessor)
+            Else
+                Return declaration
+            End If
+        End Function
+
+        Private Function GetAccessorBlock(declaration As SyntaxNode, kind As SyntaxKind) As AccessorBlockSyntax
             Select Case declaration.Kind
                 Case SyntaxKind.PropertyBlock
-                    Dim pb = DirectCast(declaration, PropertyBlockSyntax)
-                    Dim accessor = AccessorBlock(kind, statements, pb.PropertyStatement.AsClause?.Type)
-                    Return pb.WithAccessors(SyntaxFactory.List(WithAccessorBlock(pb.Accessors, accessor)))
-                Case SyntaxKind.PropertyBlock
-                    Dim eb = DirectCast(declaration, EventBlockSyntax)
-                    Dim accessor = AccessorBlock(kind, statements, eb.EventStatement.AsClause?.Type)
-                    Return eb.WithAccessors(SyntaxFactory.List(WithAccessorBlock(eb.Accessors, accessor)))
+                    Return DirectCast(declaration, PropertyBlockSyntax).Accessors.FirstOrDefault(Function(a) a.IsKind(kind))
+                Case SyntaxKind.EventBlock
+                    Return DirectCast(declaration, EventBlockSyntax).Accessors.FirstOrDefault(Function(a) a.IsKind(kind))
                 Case Else
-                    Return declaration
+                    Return Nothing
             End Select
         End Function
 
-        Private Function WithAccessorBlock(accessors As SyntaxList(Of AccessorBlockSyntax), accessor As AccessorBlockSyntax) As SyntaxList(Of AccessorBlockSyntax)
-            Dim currentAccessor = accessors.FirstOrDefault(Function(a) a.IsKind(accessor.Kind))
+        Private Function WithAccessorBlock(declaration As SyntaxNode, kind As SyntaxKind, accessor As AccessorBlockSyntax) As SyntaxNode
+            Dim currentAccessor = Me.GetAccessorBlock(declaration, kind)
             If currentAccessor IsNot Nothing Then
-                Return accessors.Replace(currentAccessor, currentAccessor.WithStatements(accessor.Statements))
-            Else
-                Return accessors.Add(accessor)
+                Return Me.ReplaceNode(declaration, currentAccessor, accessor)
+            ElseIf accessor IsNot Nothing
+                Select Case declaration.Kind
+                    Case SyntaxKind.PropertyBlock
+                        Dim pb = DirectCast(declaration, PropertyBlockSyntax)
+                        Return pb.WithAccessors(pb.Accessors.Add(accessor))
+                    Case SyntaxKind.EventBlock
+                        Dim eb = DirectCast(declaration, EventBlockSyntax)
+                        Return eb.WithAccessors(eb.Accessors.Add(accessor))
+                End Select
             End If
+            Return declaration
         End Function
 
         Public Overrides Function EventDeclaration(name As String, type As SyntaxNode, Optional accessibility As Accessibility = Accessibility.NotApplicable, Optional modifiers As DeclarationModifiers = Nothing) As SyntaxNode
@@ -3012,7 +3209,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 attributeLists:=Nothing,
                 modifiers:=GetModifierList(accessibility, modifiers, SyntaxKind.EventStatement),
                 customKeyword:=Nothing,
-                keyword:=SyntaxFactory.Token(SyntaxKind.EventKeyword),
+                eventKeyword:=SyntaxFactory.Token(SyntaxKind.EventKeyword),
                 identifier:=name.ToIdentifierToken(),
                 parameterList:=Nothing,
                 asClause:=SyntaxFactory.SimpleAsClause(DirectCast(type, TypeSyntax)),
@@ -3055,7 +3252,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGeneration
                 attributeLists:=Nothing,
                 modifiers:=GetModifierList(accessibility, modifiers, SyntaxKind.EventStatement),
                 customKeyword:=SyntaxFactory.Token(SyntaxKind.CustomKeyword),
-                keyword:=SyntaxFactory.Token(SyntaxKind.EventKeyword),
+                eventKeyword:=SyntaxFactory.Token(SyntaxKind.EventKeyword),
                 identifier:=name.ToIdentifierToken(),
                 parameterList:=Nothing,
                 asClause:=SyntaxFactory.SimpleAsClause(DirectCast(type, TypeSyntax)),

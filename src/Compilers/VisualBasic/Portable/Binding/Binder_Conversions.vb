@@ -593,39 +593,39 @@ DoneWithDiagnostics:
         End Function
 
         Private Structure VarianceSuggestionTypeParameterInfo
-            Private m_IsViable As Boolean
-            Private m_TypeParameter As TypeParameterSymbol
-            Private m_DerivedArgument As TypeSymbol
-            Private m_BaseArgument As TypeSymbol
+            Private _isViable As Boolean
+            Private _typeParameter As TypeParameterSymbol
+            Private _derivedArgument As TypeSymbol
+            Private _baseArgument As TypeSymbol
 
             Public Sub [Set](parameter As TypeParameterSymbol, derived As TypeSymbol, base As TypeSymbol)
-                m_TypeParameter = parameter
-                m_DerivedArgument = derived
-                m_BaseArgument = base
-                m_IsViable = True
+                _typeParameter = parameter
+                _derivedArgument = derived
+                _baseArgument = base
+                _isViable = True
             End Sub
 
             Public ReadOnly Property IsViable As Boolean
                 Get
-                    Return m_IsViable
+                    Return _isViable
                 End Get
             End Property
 
             Public ReadOnly Property TypeParameter As TypeParameterSymbol
                 Get
-                    Return m_TypeParameter
+                    Return _typeParameter
                 End Get
             End Property
 
             Public ReadOnly Property DerivedArgument As TypeSymbol
                 Get
-                    Return m_DerivedArgument
+                    Return _derivedArgument
                 End Get
             End Property
 
             Public ReadOnly Property BaseArgument As TypeSymbol
                 Get
-                    Return m_BaseArgument
+                    Return _baseArgument
                 End Get
             End Property
         End Structure
@@ -1224,8 +1224,13 @@ DoneWithDiagnostics:
                 Case BoundKind.ArrayLiteral
                     argument = ReclassifyArrayLiteralExpression(conversionSemantics, tree, convKind, isExplicit, DirectCast(argument, BoundArrayLiteral), targetType, diagnostics)
                     Return True
-            End Select
 
+                Case BoundKind.InterpolatedStringExpression
+
+                    argument = ReclassifyInterpolatedStringExpression(conversionSemantics, tree, convKind, isExplicit, DirectCast(argument, BoundInterpolatedStringExpression), targetType, diagnostics)
+                    Return argument.Kind = BoundKind.Conversion
+
+            End Select
 
             Return False
         End Function
@@ -1545,6 +1550,17 @@ DoneWithDiagnostics:
             End If
 
             Throw ExceptionUtilities.UnexpectedValue(conversionSemantics)
+        End Function
+
+        Private Function ReclassifyInterpolatedStringExpression(conversionSemantics As SyntaxKind, tree As VisualBasicSyntaxNode, convKind As ConversionKind, isExplicit As Boolean, node As BoundInterpolatedStringExpression, targetType As TypeSymbol, diagnostics As DiagnosticBag) As BoundExpression
+
+            If convKind = ConversionKind.InterpolatedString Then
+                Debug.Assert(targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_IFormattable)) OrElse targetType.Equals(Compilation.GetWellKnownType(WellKnownType.System_FormattableString)))
+                Return New BoundConversion(tree, node, ConversionKind.InterpolatedString, False, isExplicit, targetType)
+            End If
+
+            Return node
+
         End Function
 
         Private Sub WarnOnNarrowingConversionBetweenSealedClassAndAnInterface(
