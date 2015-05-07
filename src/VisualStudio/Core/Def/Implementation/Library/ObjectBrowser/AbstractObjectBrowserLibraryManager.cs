@@ -5,6 +5,10 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Editor;
+using Microsoft.CodeAnalysis.Editor.Host;
+using Microsoft.CodeAnalysis.Editor.Undo;
+using Microsoft.CodeAnalysis.Rename;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectBrowser.Lists;
 using Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectBrowser.NavInfos;
@@ -21,6 +25,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
         internal readonly VisualStudioWorkspace Workspace;
 
         private readonly string _languageName;
+        private readonly IWaitIndicator _waitIndicator;
 
         private uint _classVersion;
         private uint _membersVersion;
@@ -37,6 +42,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
             var componentModel = (IComponentModel)serviceProvider.GetService(typeof(SComponentModel));
             this.Workspace = componentModel.GetService<VisualStudioWorkspace>();
             this.Workspace.WorkspaceChanged += OnWorkspaceChanged;
+
+            _waitIndicator = componentModel.GetService<IWaitIndicator>();
         }
 
         public abstract __SymbolToolLanguage SymbolToolLanguage { get; }
@@ -144,6 +151,16 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
             }
 
             return _activeListItem.SupportsFindAllReferences;
+        }
+
+        private bool IsRenameSupported()
+        {
+            if (_activeListItem == null)
+            {
+                return false;
+            }
+
+            return _activeListItem.SupportsRename;
         }
 
         internal Project GetProject(ProjectId projectId)
@@ -388,20 +405,31 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
                 switch (commandId)
                 {
                     case (uint)VSConstants.VSStd97CmdID.FindReferences:
-                        if (IsFindAllReferencesSupported())
-                        {
-                            commandFlags = OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED;
-                        }
-                        else
-                        {
-                            commandFlags = OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_INVISIBLE;
-                        }
+                        commandFlags = SetSupported(this.IsFindAllReferencesSupported());
+                        return true;
 
+                    case (uint)VSConstants.VSStd97CmdID.Rename:
+                        commandFlags = SetSupported(this.IsRenameSupported());
                         return true;
                 }
             }
 
             return false;
+        }
+
+        private static OLECMDF SetSupported(bool supported)
+        {
+            OLECMDF commandFlags;
+            if (supported)
+            {
+                commandFlags = OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED;
+            }
+            else
+            {
+                commandFlags = OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_INVISIBLE;
+            }
+
+            return commandFlags;
         }
 
         protected override bool TryExec(Guid commandGroup, uint commandId)
@@ -411,32 +439,83 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
                 switch (commandId)
                 {
                     case (uint)VSConstants.VSStd97CmdID.FindReferences:
-                        var symbolListItem = _activeListItem as SymbolListItem;
-                        if (symbolListItem != null)
+                        return ExecuteCommandWithWait(
+                            EditorFeaturesResources.FindReferences, EditorFeaturesResources.FindingReferences,
+                            (symbol, project, context) => this.Workspace.TryFindAllReferences(symbol, project, context.CancellationToken));
+
+                    case (uint)VSConstants.VSStd97CmdID.Rename:
                         {
-                            var projectId = symbolListItem.ProjectId;
-                            if (projectId != null)
-                            {
-                                var project = this.Workspace.CurrentSolution.GetProject(projectId);
-                                if (project != null)
+                            // TODO: Implement a dialog to get a new name.
+                            var newName = "MyNewName";
+
+                            return ExecuteCommandWithWait(
+                                EditorFeaturesResources.Rename, EditorFeaturesResources.RenameSymbol,
+                                (symbol, project, context) =>
                                 {
-                                    var compilation = project
-                                        .GetCompilationAsync(CancellationToken.None)
-                                        .WaitAndGetResult(CancellationToken.None);
+                                    var newSolution = Renamer.RenameSymbolAsync(
+                                        this.Workspace.CurrentSolution,
+                                        symbol,
+                                        newName,
+                                        this.Workspace.Options,
+                                        context.CancellationToken).WaitAndGetResult(context.CancellationToken);
 
-                                    var symbol = symbolListItem.ResolveSymbol(compilation);
+                                    var message = string.Format(EditorFeaturesResources.RenameTo, symbol.Name, newName);
+                                    using (var undoTransaction = Workspace.OpenGlobalUndoTransaction(message))
+                                    {
+                                        context.AllowCancel = false;
 
-                                    this.Workspace.TryFindAllReferences(symbol, project, CancellationToken.None);
-                                    return true;
-                                }
-                            }
+                                        if (Workspace.TryApplyChanges(newSolution))
+                                        {
+                                            undoTransaction.Commit();
+                                            return true;
+                                        }
+
+                                        return false;
+                                    }
+                                });
                         }
-
-                        break;
                 }
             }
 
             return false;
+        }
+
+        private bool ExecuteCommandWithWait(string waitTitle, string waitMessage, Func<ISymbol, Project, IWaitContext, bool> command)
+        {
+            var symbolListItem = _activeListItem as SymbolListItem;
+            if (symbolListItem == null)
+            {
+                return false;
+            }
+
+            var projectId = symbolListItem.ProjectId;
+            if (projectId == null)
+            {
+                return false;
+            }
+
+            var project = this.Workspace.CurrentSolution.GetProject(projectId);
+            if (project == null)
+            {
+                return false;
+            }
+
+            var completed = false;
+            _waitIndicator.Wait(
+                waitTitle,
+                waitMessage,
+                allowCancel: true,
+                action: context =>
+                {
+                    var compilation = project
+                        .GetCompilationAsync(context.CancellationToken)
+                        .WaitAndGetResult(context.CancellationToken);
+
+                    var symbol = symbolListItem.ResolveSymbol(compilation);
+                    completed = command(symbol, project, context);
+                });
+
+            return completed;
         }
     }
 }

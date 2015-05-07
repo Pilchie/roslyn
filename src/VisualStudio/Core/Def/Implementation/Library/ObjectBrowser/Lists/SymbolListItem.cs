@@ -16,6 +16,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
 
         private readonly bool _supportsGoToDefinition;
         private readonly bool _supportsFindAllReferences;
+        private readonly bool _supportsRename;
 
         protected SymbolListItem(ProjectId projectId, ISymbol symbol, string displayText, string fullNameText, string searchText, bool isHidden)
             : base(projectId, symbol.GetStandardGlyphGroup(), symbol.GetStandardGlyphItem(), isHidden)
@@ -31,6 +32,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
                 : false;
 
             _supportsFindAllReferences = symbol.Kind != SymbolKind.Namespace;
+
+            _supportsRename = symbol.Locations.All(loc => loc.IsInSource);
         }
 
         public Accessibility Accessibility
@@ -61,6 +64,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
         public override bool SupportsFindAllReferences
         {
             get { return _supportsFindAllReferences; }
+        }
+
+        public override bool SupportsRename
+        {
+            get { return _supportsRename; }
         }
 
         public ISymbol ResolveSymbol(Compilation compilation)

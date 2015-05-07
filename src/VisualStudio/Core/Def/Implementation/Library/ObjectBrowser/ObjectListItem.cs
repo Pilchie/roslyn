@@ -46,6 +46,11 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.Library.ObjectB
             get { return false; }
         }
 
+        public virtual bool SupportsRename
+        {
+            get { return false; }
+        }
+
         public abstract string DisplayText { get; }
 
         public abstract string FullNameText { get; }
