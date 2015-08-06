@@ -33,6 +33,10 @@
     <PlatformTarget>ARM</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Test\Utilities\TestUtilities.csproj"> 
+      <Project>{76C6F005-C89D-4348-BB4A-391898DBEB52}</Project> 
+      <Name>TestUtilities</Name> 
+    </ProjectReference> 
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="ReachFramework" />
@@ -53,6 +57,10 @@
       <HintPath>..\..\..\packages\xunit.extensibility.core.2.1.0-beta4-build3109\lib\portable-net45+netcore45+wp8+wpa81\xunit.core.dll</HintPath>
       <Private>True</Private>
     </Reference>
+	<Reference Include="xunit.execution.desktop, Culture=neutral, PublicKeyToken=8d05b1bb7a6fdb6c, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\xunit.extensibility.execution.2.1.0-beta4-build3109\lib\net45\xunit.execution.desktop.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xaml" />
@@ -65,11 +73,17 @@
     <Compile Include="Async\Checkpoint.cs" />
     <Compile Include="Async\WaitHelper.cs" />
     <Compile Include="BlindAggregatorFactory.cs" />
+    <Compile Include="ConditionalWpfFactAttribute.cs" /> 
     <Compile Include="DispatcherExtensions.cs" />
     <Compile Include="DirectoryExtensions.cs" />
     <Compile Include="ExceptionUtilities.cs" />
     <Compile Include="Traits.cs" />
     <Compile Include="VisualStudioSendKeys.cs" />
+    <Compile Include="WpfFactAttribute.cs" />
+    <Compile Include="WpfFactDiscoverer.cs" />
+    <Compile Include="WpfTestCase.cs" />
+    <Compile Include="WpfTheoryAttribute.cs" />
+    <Compile Include="WpfTheoryDiscoverer.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleToTest Include="Roslyn.Compilers.CSharp.CommandLine.UnitTests" />
