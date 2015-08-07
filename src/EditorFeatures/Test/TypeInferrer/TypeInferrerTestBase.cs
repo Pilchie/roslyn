@@ -19,23 +19,10 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.TypeInferrer
             this.fixture = fixture;
         }
 
-        ~TypeInferrerTestBase()
+        public override void Dispose()
         {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                fixture?.Dispose();
-            }
+            fixture?.Dispose();
+            fixture = null;
         }
 
         private static bool CanUseSpeculativeSemanticModel(Document document, int position)

@@ -7,7 +7,7 @@ Imports Roslyn.Test.Utilities
 Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Progression
 
     Public Class InheritedByGraphQueryTests
-        <Fact, Trait(Traits.Feature, Traits.Features.Progression)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Progression)>
         Public Sub TestInheritedByClassesCSharp()
             Using testState = New ProgressionTestState(
                     <Workspace>
@@ -68,7 +68,7 @@ class ReallyDerived : Foo // should not be shown as inherited by Base
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Progression)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Progression)>
         Public Sub TestInheritedByInterfacesCSharp()
             Using testState = New ProgressionTestState(
                     <Workspace>

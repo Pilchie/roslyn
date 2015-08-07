@@ -13,12 +13,13 @@ Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.VisualStudio.Language.Intellisense
 Imports Microsoft.VisualStudio.Text.Operations
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletion
     Public Class AutomaticLineEnderTests
         Inherits AbstractAutomaticLineEnderTests
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Creation()
             Test(<code>
 $$</code>, <code>$$</code>)
@@ -48,7 +49,7 @@ End Namespace</code>, <code>Namespace NS$$</code>)
 End Class</code>, <code>Class C$$</code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Method()
             Test(<code>Class C
     Sub Method()
@@ -73,7 +74,7 @@ End Class</code>, <code>Class C
 End Class</code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Dim1()
             Test(<code>Class C
     Sub Method()
@@ -87,7 +88,7 @@ End Class</code>, <code>Class C
 End Class</code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Dim2()
             Test(<code>Class C
     Sub Method()
@@ -102,7 +103,7 @@ End Class</code>)
         End Sub
 
         <WorkItem(712977)>
-        <Fact(), Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact(), Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Dim3()
             Test(<code>Class C
     Sub Method()
@@ -119,7 +120,7 @@ End Class</code>)
         End Sub
 
         <WorkItem(530591)>
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Dim_After_MalformedStatement()
             Test(<code>Class C
     Sub Method()
@@ -157,7 +158,7 @@ End Class
         End Sub
 
         <WorkItem(530591)>
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub If_Trivia()
             Test(
 <code>
@@ -179,7 +180,7 @@ End Class
         End Sub
 
         <WorkItem(530591)>
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub If_Trivia2()
             Test(
 <code>
@@ -201,7 +202,7 @@ End Class
         End Sub
 
         <WorkItem(577920)>
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub EndOfFile_SkippedToken()
             Test(
 <code>
@@ -221,7 +222,7 @@ End Module
 </code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub WithLineContinuation()
             Test(
 <code>

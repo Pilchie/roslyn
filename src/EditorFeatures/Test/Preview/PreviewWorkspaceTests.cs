@@ -179,7 +179,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Preview
             }
         }
 
-        [Fact]
+        [WpfFact]
         public void TestPreviewDiagnosticTagger()
         {
             using (var workspace = CSharpWorkspaceFactory.CreateWorkspaceFromLines("class { }"))
@@ -196,7 +196,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Preview
             }
         }
 
-        [Fact]
+        [WpfFact]
         public void TestPreviewDiagnosticTaggerInPreviewPane()
         {
             using (var workspace = CSharpWorkspaceFactory.CreateWorkspaceFromLines("class { }"))

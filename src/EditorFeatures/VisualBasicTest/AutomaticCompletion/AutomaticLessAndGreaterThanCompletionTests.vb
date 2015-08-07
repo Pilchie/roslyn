@@ -8,19 +8,20 @@ Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Editor.VisualBasic.AutomaticCompletion
 Imports Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletion
     Public Class AutomaticLessAndGreaterThanCompletionTests
         Inherits AbstractAutomaticBraceCompletionTests
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Creation()
             Using session = CreateSession("$$")
                 Assert.NotNull(session)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Attribute_LessThan()
             Using session = CreateSession("$$")
                 Assert.NotNull(session)
@@ -28,7 +29,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub InvalidLocation_LessThan()
             Using session = CreateSession("Imports System$$")
                 Assert.NotNull(session)
@@ -36,7 +37,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub InvalidLocation_String()
             Dim code = <code>Class C
     Dim s As String = "$$
@@ -47,7 +48,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub InvalidLocation_Comment()
             Dim code = <code>Class C
     ' $$
@@ -58,7 +59,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub InvalidLocation_DocComment()
             Dim code = <code>Class C
     ''' $$
@@ -69,7 +70,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub Attribute_LessThan_Method()
             Dim code = <code>Class C
     Sub Method($$
@@ -82,7 +83,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub XmlNamespaceImport_LessThan()
             Dim code = <code>Imports $$</code>
 
@@ -93,7 +94,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub BracketName_Member()
             Dim code = <code>Class C
     Sub Method()

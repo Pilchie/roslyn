@@ -10,6 +10,7 @@ Imports Microsoft.CodeAnalysis.Text.Shared.Extensions
 Imports Microsoft.VisualStudio.Text
 Imports Microsoft.VisualStudio.Text.Editor
 Imports Microsoft.VisualStudio.Text.Operations
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
     Public Class RenameCommandHandlerTests
@@ -19,7 +20,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
                                             workspace.GetService(Of IWaitIndicator))
         End Function
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameCommandInvokesInlineRename()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -43,7 +44,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameCommandWithSelectionDoesNotSelect()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -69,7 +70,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameCommandWithReversedSelectionDoesNotSelectOrCrash()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -96,7 +97,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
         End Sub
 
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingOutsideRenameSpanCommitsAndPreservesVirtualSelection()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -127,7 +128,7 @@ End Class
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameCommandNotActiveWhenNotTouchingIdentifier()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -152,7 +153,7 @@ End Class
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingSpaceDuringRename()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -183,7 +184,7 @@ End Class
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingTabDuringRename()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -225,7 +226,7 @@ End Class
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub SelectAllDuringRename()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -271,7 +272,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(851629)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub WordDeleteDuringRename()
@@ -318,7 +319,7 @@ class [|$$Foo|] // comment
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub NavigationDuringRename()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -407,7 +408,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingTypeCharacterDuringRename()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -438,7 +439,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingInOtherPartsOfFileTriggersCommit()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -486,7 +487,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact()>
+        <WpfFact()>
         <WorkItem(820248)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub DeletingInEditSpanPropagatesEdit()
@@ -524,7 +525,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(820248)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub BackspacingInEditSpanPropagatesEdit()
@@ -562,7 +563,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub DeletingInOtherPartsOfFileTriggersCommit()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -608,7 +609,7 @@ Foo f;
         End Sub
 
         <WorkItem(577178)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingInOtherFileTriggersCommit()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -664,7 +665,7 @@ Foo f;
         End Sub
 
         <WorkItem(577178)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingInOtherFileWithConflictTriggersCommit()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -726,7 +727,7 @@ Foo f;
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Rename)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Rename)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameMemberFromCref()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -761,7 +762,7 @@ class Program
             End Using
         End Sub
 
-        <Fact, WorkItem(878173), Trait(Traits.Feature, Traits.Features.Rename)>
+        <WpfFact, WorkItem(878173), Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RenameInDocumentsWithoutOpenTextViews()
             Using workspace = CreateWorkspaceWithWaiter(
                 <Workspace>
@@ -802,7 +803,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(942811)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingCtrlEnterDuringRenameCSharp()
@@ -841,7 +842,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(942811)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingCtrlEnterOutsideSpansDuringRenameCSharp()
@@ -883,7 +884,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(942811)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingCtrlShiftEnterDuringRenameCSharp()
@@ -922,7 +923,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(942811)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingCtrlEnterDuringRenameBasic()
@@ -958,7 +959,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(942811)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub TypingCtrlShiftEnterDuringRenameBasic()
@@ -994,7 +995,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(1142095)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub SaveDuringRenameCommits()
@@ -1035,7 +1036,7 @@ partial class [|Program|]
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(1142701)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub MoveSelectedLinesUpDuringRename()
@@ -1045,7 +1046,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(1142701)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub MoveSelectedLinesDownDuringRename()
@@ -1055,7 +1056,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(991517)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ReorderParametersDuringRename()
@@ -1065,7 +1066,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(991517)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub RemoveParametersDuringRename()
@@ -1075,7 +1076,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(991517)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub ExtractInterfaceDuringRename()
@@ -1085,7 +1086,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(991517)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub EncapsulateFieldDuringRename()
@@ -1095,7 +1096,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CutDuringRename_InsideIdentifier()
             VerifySessionActiveAfterCutPasteInsideIdentifier(
@@ -1104,7 +1105,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub PasteDuringRename_InsideIdentifier()
             VerifySessionActiveAfterCutPasteInsideIdentifier(
@@ -1113,7 +1114,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CutDuringRename_OutsideIdentifier()
             VerifySessionCommittedAfterCutPasteOutsideIdentifier(
@@ -1122,7 +1123,7 @@ partial class [|Program|]
                 End Sub)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub PasteDuringRename_OutsideIdentifier()
             VerifySessionCommittedAfterCutPasteOutsideIdentifier(

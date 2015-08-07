@@ -8,6 +8,7 @@ Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Editor.VisualBasic.AutomaticCompletion
 Imports Microsoft.CodeAnalysis.Editor.Implementation.AutomaticCompletion
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletion
     Public Class AutomaticParenthesesCompletionTests
@@ -20,7 +21,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub InvalidLocation_TopLevel()
             Using session = CreateSession("$$")
                 Assert.NotNull(session)
@@ -28,7 +29,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub InvalidLocation_TopLevel2()
             Using session = CreateSession("Imports System$$")
                 Assert.NotNull(session)
@@ -69,7 +70,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub RightAfterStringLiteral()
             Dim code = <code>Class C
     Sub Method()
@@ -83,7 +84,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub TypeParameterListSyntax()
             Dim code = <code>Class C$$
 End Class</code>
@@ -94,7 +95,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub ParameterListSyntax()
             Dim code = <code>Class C
     Sub Method$$
@@ -106,7 +107,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub ArrayRankSpecifierSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -120,7 +121,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub ParenthesizedExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -134,7 +135,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub GetTypeExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -148,7 +149,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub GetXmlNamespaceExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -162,7 +163,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub CTypeExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -176,7 +177,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub DirectCastExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -190,7 +191,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub TryCastExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -204,7 +205,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub PredefinedCastExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -218,7 +219,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub BinaryConditionalExpressionSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -232,7 +233,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub ArgumentListSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -246,7 +247,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub FunctionAggregationSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -260,7 +261,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub TypeArgumentListSyntax()
             Dim code = <code>Class C
     Sub Method()
@@ -274,7 +275,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub ExternalSourceDirectiveSyntax()
             Dim code = <code>Imports System
 
@@ -291,7 +292,7 @@ End Class</code>
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub ExternalChecksumDirectiveSyntax()
             Dim code = "#ExternalChecksum$$"
             Using session = CreateSession(code)

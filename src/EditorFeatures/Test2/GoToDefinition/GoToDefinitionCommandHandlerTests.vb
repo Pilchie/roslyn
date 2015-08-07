@@ -12,6 +12,7 @@ Imports Microsoft.CodeAnalysis.Host
 Imports Microsoft.CodeAnalysis.Navigation
 Imports Microsoft.CodeAnalysis.Notification
 Imports Microsoft.CodeAnalysis.Text
+Imports Roslyn.Test.Utilities
 Imports Roslyn.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.GoToDefinition
@@ -30,7 +31,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.GoToDefinition
             End While
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.GoToDefinition)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.GoToDefinition)>
         Public Sub TestInLinkedFiles()
             Dim definition =
 <Workspace>

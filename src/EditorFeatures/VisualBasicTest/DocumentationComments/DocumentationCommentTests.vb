@@ -6,12 +6,13 @@ Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Editor.VisualBasic.DocumentationComments
 Imports Microsoft.VisualStudio.Text.Editor
 Imports Microsoft.VisualStudio.Text.Operations
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComments
     Public Class DocumentationCommentTests
         Inherits AbstractDocumentationCommentTests
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_Class()
             Dim code =
                 StringFromLines("''$$",
@@ -28,7 +29,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyTypingCharacter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_Method()
             Dim code =
                 StringFromLines("Class C",
@@ -56,7 +57,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538715)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NoReturnType()
             Dim code =
                 StringFromLines("Class C",
@@ -77,7 +78,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyTypingCharacter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotWhenDocCommentExists1()
             Dim code =
                 StringFromLines("''$$",
@@ -94,7 +95,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyTypingCharacter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotWhenDocCommentExists2()
             Dim code =
                 StringFromLines("Class C",
@@ -118,7 +119,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537506)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotAfterClassName()
             Dim code =
                 StringFromLines("Class C''$$",
@@ -132,7 +133,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537508)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotInsideClass()
             Dim code =
                 StringFromLines("Class C",
@@ -148,7 +149,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537510)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotAfterConstructorName()
             Dim code =
                 StringFromLines("Class C",
@@ -164,7 +165,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537511)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotInsideConstructor()
             Dim code =
                 StringFromLines("Class C",
@@ -184,7 +185,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537512)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NotInsideMethodBody()
             Dim code =
                 StringFromLines("Class C",
@@ -204,7 +205,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(540004)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub TypingCharacter_NoReturnsOnWriteOnlyProperty()
             Dim code =
                 StringFromLines("Class C",
@@ -229,7 +230,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyTypingCharacter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_Class1()
             Dim code =
                 StringFromLines("'''$$",
@@ -246,7 +247,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_Class2()
             Dim code =
                 StringFromLines("'''$$Class C",
@@ -262,7 +263,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_Class3()
             Dim code =
                 StringFromLines("'''$$<Foo()> Class C",
@@ -279,7 +280,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538717)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_Module()
             Dim code =
                 StringFromLines("'''$$Module M",
@@ -296,7 +297,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_Method1()
             Dim code =
                 StringFromLines("Class C",
@@ -322,7 +323,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_Method2()
             Dim code =
                 StringFromLines("Class C",
@@ -347,7 +348,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes1()
             Dim code =
                 StringFromLines("'''$$",
@@ -365,7 +366,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes2()
             Dim code =
                 StringFromLines("''' <summary>",
@@ -385,7 +386,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes3()
             Dim code =
                 StringFromLines("''' <summary>$$</summary>",
@@ -401,7 +402,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes4()
             Dim code =
                 StringFromLines("    '''$$",
@@ -419,7 +420,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes5()
             Dim code =
                 StringFromLines("    ''' <summary>",
@@ -439,7 +440,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes6()
             Dim code =
                 StringFromLines("    ''' <summary>$$</summary>",
@@ -455,7 +456,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes7()
             Dim code =
                 StringFromLines("Class C",
@@ -480,7 +481,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(540017)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_InsertApostrophes8()
             Dim code =
                 StringFromLines("''' <summary></summary>$$",
@@ -497,7 +498,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(540017)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_DontInsertApostrophes1()
             Dim code =
                 StringFromLines("''' <summary></summary>",
@@ -515,7 +516,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_NotInsideConstructor()
             Dim code =
                 StringFromLines("Class C",
@@ -536,7 +537,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537534)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_NotInsideMethodBody()
             Dim code =
                 StringFromLines("Class C",
@@ -557,7 +558,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(537550)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub PressingEnter_NotBeforeDocComment()
             Dim code =
                 StringFromLines("    Class c1",
@@ -585,7 +586,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyPressingEnter(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_Class()
             Dim code =
                 StringFromLines("Class C",
@@ -603,7 +604,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyInsertCommentCommand(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_Class_NotIfCommentExists()
             Dim code =
                 StringFromLines("''' <summary></summary>",
@@ -621,7 +622,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538715)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_Method1()
             Dim code =
                 StringFromLines("Class C",
@@ -640,7 +641,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyInsertCommentCommand(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_Method2()
             Dim code =
                 StringFromLines("Class C",
@@ -665,7 +666,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
             VerifyInsertCommentCommand(code, expected)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_Method_NotIfCommentExists()
             Dim code =
                 StringFromLines("Class C",
@@ -687,7 +688,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538482)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_FirstModuleOnLine()
             Dim code = "$$Module M : End Module : Module N : End Module"
 
@@ -701,7 +702,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538482)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_NotOnSecondModuleOnLine()
             Dim code = "Module M : End Module : $$Module N : End Module"
             Dim expected = "Module M : End Module : $$Module N : End Module"
@@ -710,7 +711,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538482)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_FirstPropertyOnLine()
             Dim code =
                 StringFromLines("Module M",
@@ -730,7 +731,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.DocumentationComme
         End Sub
 
         <WorkItem(538482)>
-        <Fact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.DocumentationComments)>
         Public Sub Command_NotOnSecondPropertyOnLine()
             Dim code =
                 StringFromLines("Module M",

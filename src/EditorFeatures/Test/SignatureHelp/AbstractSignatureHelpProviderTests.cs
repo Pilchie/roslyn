@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.SignatureHelp
 {
-    public abstract class AbstractSignatureHelpProviderTests<TWorkspaceFixture> : TestBase, IDisposable
+    public abstract class AbstractSignatureHelpProviderTests<TWorkspaceFixture> : TestBase
         where TWorkspaceFixture : TestWorkspaceFixture, new()
     {
         protected TWorkspaceFixture workspaceFixture;
@@ -32,23 +32,10 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.SignatureHelp
             this.workspaceFixture = workspaceFixture;
         }
 
-        ~AbstractSignatureHelpProviderTests()
+        public override void Dispose()
         {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                workspaceFixture?.Dispose();
-            }
+            workspaceFixture?.Dispose();
+            workspaceFixture = null;
         }
 
     /// <summary>

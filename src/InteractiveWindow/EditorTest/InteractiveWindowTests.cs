@@ -62,7 +62,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
 
         #endregion
 
-        [Fact]
+        [WpfFact]
         public void InteractiveWindow__CommandParsing()
         {
             var commandList = MockCommands("foo", "bar", "bz", "command1").ToArray();
@@ -159,7 +159,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.Equal(15, argsSpan.End);
         }
 
-        [Fact]
+        [WpfFact]
         public void InteractiveWindow_GetCommands()
         {
             var interactiveCommands = new InteractiveCommandsFactory(null, null).CreateInteractiveCommands(
@@ -177,7 +177,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
         }
 
         [WorkItem(3970, "https://github.com/dotnet/roslyn/issues/3970")]
-        [Fact]
+        [WpfFact]
         public void ResetStateTransitions()
         {
             Window.Operations.ResetAsync().PumpingWait();
@@ -189,7 +189,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             });
         }
 
-        [Fact]
+        [WpfFact]
         public void DoubleInitialize()
         {
             try
@@ -203,7 +203,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             }
         }
 
-        [Fact]
+        [WpfFact]
         public void AccessPropertiesOnUIThread()
         {
             foreach (var property in typeof(IInteractiveWindow).GetProperties())
@@ -215,7 +215,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.Empty(typeof(IInteractiveWindowOperations).GetProperties());
         }
 
-        [Fact]
+        [WpfFact]
         public void AccessPropertiesOnNonUIThread()
         {
             foreach (var property in typeof(IInteractiveWindow).GetProperties())
@@ -230,32 +230,32 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
         /// <remarks>
         /// Confirm that we are, in fact, running on a non-UI thread.
         /// </remarks>
-        [Fact]
+        [WpfFact]
         public void NonUIThread()
         {
             Task.Run(() => Assert.False(((InteractiveWindow)Window).OnUIThread())).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallCloseOnNonUIThread()
         {
             Task.Run(() => Window.Close()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallInsertCodeOnNonUIThread()
         {
             // TODO (https://github.com/dotnet/roslyn/issues/3984): InsertCode is a no-op unless standard input is being collected.
             Task.Run(() => Window.InsertCode("1")).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallSubmitAsyncOnNonUIThread()
         {
             Task.Run(() => Window.SubmitAsync(Array.Empty<string>()).GetAwaiter().GetResult()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallWriteOnNonUIThread()
         {
             Task.Run(() => Window.WriteLine("1")).PumpingWait();
@@ -264,14 +264,14 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Task.Run(() => Window.WriteError("1")).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallFlushOutputOnNonUIThread()
         {
             Window.Write("1"); // Something to flush.
             Task.Run(() => Window.FlushOutput()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallAddInputOnNonUIThread()
         {
             Task.Run(() => Window.AddInput("1")).PumpingWait();
@@ -280,131 +280,131 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
         /// <remarks>
         /// Call is blocking, so we can't write a simple non-failing test.
         /// </remarks>
-        [Fact]
+        [WpfFact]
         public void CallReadStandardInputOnUIThread()
         {
             Assert.Throws<InvalidOperationException>(() => Window.ReadStandardInput());
         }
 
-        [Fact]
+        [WpfFact]
         public void CallBackspaceOnNonUIThread()
         {
             Window.InsertCode("1"); // Something to backspace.
             Task.Run(() => Window.Operations.Backspace()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallBreakLineOnNonUIThread()
         {
             Task.Run(() => Window.Operations.BreakLine()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallClearHistoryOnNonUIThread()
         {
             Window.AddInput("1"); // Need a history entry.
             Task.Run(() => Window.Operations.ClearHistory()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallClearViewOnNonUIThread()
         {
             Window.InsertCode("1"); // Something to clear.
             Task.Run(() => Window.Operations.ClearView()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallHistoryNextOnNonUIThread()
         {
             Window.AddInput("1"); // Need a history entry.
             Task.Run(() => Window.Operations.HistoryNext()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallHistoryPreviousOnNonUIThread()
         {
             Window.AddInput("1"); // Need a history entry.
             Task.Run(() => Window.Operations.HistoryPrevious()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallHistorySearchNextOnNonUIThread()
         {
             Window.AddInput("1"); // Need a history entry.
             Task.Run(() => Window.Operations.HistorySearchNext()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallHistorySearchPreviousOnNonUIThread()
         {
             Window.AddInput("1"); // Need a history entry.
             Task.Run(() => Window.Operations.HistorySearchPrevious()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallHomeOnNonUIThread()
         {
             Window.Operations.BreakLine(); // Distinguish Home from End.
             Task.Run(() => Window.Operations.Home(true)).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallEndOnNonUIThread()
         {
             Window.Operations.BreakLine(); // Distinguish Home from End.
             Task.Run(() => Window.Operations.End(true)).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallSelectAllOnNonUIThread()
         {
             Window.InsertCode("1"); // Something to select.
             Task.Run(() => Window.Operations.SelectAll()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallPasteOnNonUIThread()
         {
             Task.Run(() => Window.Operations.Paste()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallCutOnNonUIThread()
         {
             Task.Run(() => Window.Operations.Cut()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallDeleteOnNonUIThread()
         {
             Task.Run(() => Window.Operations.Delete()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallReturnOnNonUIThread()
         {
             Task.Run(() => Window.Operations.Return()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallTrySubmitStandardInputOnNonUIThread()
         {
             Task.Run(() => Window.Operations.TrySubmitStandardInput()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallResetAsyncOnNonUIThread()
         {
             Task.Run(() => Window.Operations.ResetAsync()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallExecuteInputOnNonUIThread()
         {
             Task.Run(() => Window.Operations.ExecuteInput()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void CallCancelOnNonUIThread()
         {
             Task.Run(() => Window.Operations.Cancel()).PumpingWait();
@@ -557,28 +557,28 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
         }
 
         [WorkItem(4235, "https://github.com/dotnet/roslyn/issues/4235")]
-        [Fact]
+        [WpfFact]
         public void TestIndentation1()
         {
             TestIndentation(indentSize: 1);
         }
 
         [WorkItem(4235, "https://github.com/dotnet/roslyn/issues/4235")]
-        [Fact]
+        [WpfFact]
         public void TestIndentation2()
         {
             TestIndentation(indentSize: 2);
         }
 
         [WorkItem(4235, "https://github.com/dotnet/roslyn/issues/4235")]
-        [Fact]
+        [WpfFact]
         public void TestIndentation3()
         {
             TestIndentation(indentSize: 3);
         }
 
         [WorkItem(4235, "https://github.com/dotnet/roslyn/issues/4235")]
-        [Fact]
+        [WpfFact]
         public void TestIndentation4()
         {
             TestIndentation(indentSize: 4);

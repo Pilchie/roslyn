@@ -8,6 +8,7 @@ Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Simplification
 Imports Microsoft.CodeAnalysis.VisualBasic.CodeFixes.GenerateType
 Imports Microsoft.CodeAnalysis.VisualBasic.Diagnostics
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Diagnostics.GenerateType
     Public Class GenerateTypeTests
@@ -157,7 +158,7 @@ expectedContainers:={"Foo"},
 expectedDocumentName:="Bar.vb")
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestGenerateIntoGlobalNamespaceNewFile()
             TestAddDocument(
 NewLines("Imports System \n Imports System.Collections.Generic \n Imports System.Linq \n Module Program \n Sub Main(args As String()) \n Dim x As New [|Foo|] \n End Sub \n End Module"),
@@ -679,8 +680,8 @@ End Namespace</Text>.NormalizedValue
         <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestWithProperties1()
             Test(
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|](x:=1, y:=""Hello"") With {.Name = ""John"", .Age = Date.Today} \n End Sub \n End Module"),
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|](x:=1, y:=""Hello"") With {.Name = ""John"", .Age = Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Private x As Integer \n Private y As String \n Public Sub New(x As Integer, y As String) \n Me.x = x \n Me.y = y \n End Sub \n Public Property Age As Date \n Public Property Name As String \n End Class"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|](x:=1,Â y:=""Hello"")Â WithÂ {.NameÂ =Â ""John"",Â .AgeÂ =Â Date.Today} \n End Sub \n End Module"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|](x:=1,Â y:=""Hello"")Â WithÂ {.NameÂ =Â ""John"",Â .AgeÂ =Â Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Private x As Integer \n Private y As String \n Public Sub New(x As Integer, y As String) \n Me.x = x \n Me.y = y \n End Sub \n Public Property Age As Date \n Public Property Name As String \n End Class"),
 index:=1)
         End Sub
 
@@ -688,8 +689,8 @@ index:=1)
         <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestWithProperties2()
             Test(
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|](x:=1, y:=""Hello"") With {.Name = Nothing, .Age = Date.Today} \n End Sub \n End Module"),
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|](x:=1, y:=""Hello"") With {.Name = Nothing, .Age = Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Private x As Integer \n Private y As String \n Public Sub New(x As Integer, y As String) \n Me.x = x \n Me.y = y \n End Sub \n Public Property Age As Date \n Public Property Name As Object \n End Class"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|](x:=1,Â y:=""Hello"")Â WithÂ {.NameÂ =Â Nothing,Â .AgeÂ =Â Date.Today} \n End Sub \n End Module"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|](x:=1,Â y:=""Hello"")Â WithÂ {.NameÂ =Â Nothing,Â .AgeÂ =Â Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Private x As Integer \n Private y As String \n Public Sub New(x As Integer, y As String) \n Me.x = x \n Me.y = y \n End Sub \n Public Property Age As Date \n Public Property Name As Object \n End Class"),
 index:=1)
         End Sub
 
@@ -697,8 +698,8 @@ index:=1)
         <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestWithProperties3()
             Test(
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|](x:=1, y:=""Hello"") With {.Name = Foo, .Age = Date.Today} \n End Sub \n End Module"),
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|](x:=1, y:=""Hello"") With {.Name = Foo, .Age = Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Private x As Integer \n Private y As String \n Public Sub New(x As Integer, y As String) \n Me.x = x \n Me.y = y \n End Sub \n Public Property Age As Date \n Public Property Name As Object \n End Class"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|](x:=1,Â y:=""Hello"")Â WithÂ {.NameÂ =Â Foo,Â .AgeÂ =Â Date.Today} \n End Sub \n End Module"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|](x:=1,Â y:=""Hello"")Â WithÂ {.NameÂ =Â Foo,Â .AgeÂ =Â Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Private x As Integer \n Private y As String \n Public Sub New(x As Integer, y As String) \n Me.x = x \n Me.y = y \n End Sub \n Public Property Age As Date \n Public Property Name As Object \n End Class"),
 index:=1)
         End Sub
 
@@ -706,8 +707,8 @@ index:=1)
         <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestWithProperties4()
             Test(
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|] With {.Name = ""John"", .Age = Date.Today} \n End Sub \n End Module"),
-NewLines("Imports System \n Module Program \n Sub Main() \n  Dim c As New [|Customer|] With {.Name = ""John"", .Age = Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Public Property Age As Date \n Public Property Name As String \n End Class"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|]Â WithÂ {.NameÂ =Â ""John"",Â .AgeÂ =Â Date.Today} \n End Sub \n End Module"),
+NewLines("Imports System \n Module Program \n Sub Main() \n Â DimÂ cÂ AsÂ NewÂ [|Customer|]Â WithÂ {.NameÂ =Â ""John"",Â .AgeÂ =Â Date.Today} \n End Sub \n End Module \n Friend Class Customer \n Public Property Age As Date \n Public Property Name As String \n End Class"),
 index:=1)
         End Sub
 

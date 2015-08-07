@@ -4,6 +4,7 @@ using System;
 using Microsoft.CodeAnalysis.Editor.Commands;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.EditorUtilities;
+using Roslyn.Test.Utilities;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.Commands
@@ -19,7 +20,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Commands
                 new BackspaceKeyCommandArgs(null, buffer));
         }
 
-        [Fact]
+        [WpfFact]
         public void CreateBackspaceCommandArgsWithNullSubjectBuffer()
         {
             var view = EditorFactory.CreateView(TestExportProvider.ExportProviderWithCSharpAndVisualBasic, "class C { }");

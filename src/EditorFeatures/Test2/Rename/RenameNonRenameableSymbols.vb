@@ -4,6 +4,7 @@ Imports Microsoft.CodeAnalysis.Editor.UnitTests.GoToDefinition
 Imports Microsoft.CodeAnalysis.Navigation
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
 Imports Microsoft.VisualStudio.Text
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
     Public Class RenameNonRenameableSymbols
@@ -66,7 +67,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameSpecialNames()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -88,7 +89,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameTrivia()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -105,7 +106,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(883263)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameCandidateSymbol()
@@ -128,7 +129,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameSyntheticDefinition()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -150,7 +151,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameXmlLiteralProperty()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -168,7 +169,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameSymbolDefinedInMetaData()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -190,7 +191,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameSymbolInReadOnlyBuffer()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -219,7 +220,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameSymbolThatBindsToErrorType()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -241,7 +242,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         <WorkItem(543018)>
         Public Sub CannotRenameSynthesizedParameters()
@@ -265,7 +266,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(539554)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenamePredefinedType()
@@ -284,7 +285,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(542937)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameContextualKeyword()
@@ -312,7 +313,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(543714)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameOperator()
@@ -340,7 +341,7 @@ class Program
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         <WorkItem(529751)>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameExternAlias()
@@ -363,7 +364,7 @@ class Program
         End Sub
 
         <WorkItem(543969)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameElementFromPreviousSubmission()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -381,7 +382,7 @@ class Program
         End Sub
 
         <WorkItem(689002)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameHiddenElement()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -402,7 +403,7 @@ End Class
         End Sub
 
         <WorkItem(767187)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameConstructorInVb()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -431,7 +432,7 @@ End Class
         End Sub
 
         <WorkItem(767187)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameConstructorInVb2()
             Using workspace = CreateWorkspaceWithWaiter(
@@ -454,7 +455,7 @@ End Class
         End Sub
 
         <WorkItem(767187)>
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.Rename)>
         Public Sub CannotRenameConstructorInVb3()
             Using workspace = CreateWorkspaceWithWaiter(

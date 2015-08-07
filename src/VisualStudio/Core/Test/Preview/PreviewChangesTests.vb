@@ -115,7 +115,7 @@ Class C
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         Public Sub TestCheckedItems()
             Using workspace = CSharpWorkspaceFactory.CreateWorkspaceFromFile(<text>
 Class C
@@ -158,7 +158,7 @@ Class C
             End Using
         End Sub
 
-        <Fact, WorkItem(1036455)>
+        <WpfFact, WorkItem(1036455)>
         Public Sub TestCheckedItems_AddedDeletedDocuments()
             Dim workspaceXml =
                 <Workspace>

@@ -7,11 +7,12 @@ Imports Microsoft.CodeAnalysis.Editor.CSharp.Formatting
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Extensions
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Text
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
     Public Class CSharpCompletionCommandHandlerTests
         <WorkItem(541201)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TabCommitsWithoutAUniqueMatch()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -28,7 +29,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestAtEndOfFile()
             Using state = TestState.CreateCSharpTestState(
                               <Document>$$</Document>)
@@ -40,7 +41,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNotAtStartOfExistingWord()
             Using state = TestState.CreateCSharpTestState(
                               <Document>$$using</Document>)
@@ -51,7 +52,7 @@ Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestMSCorLibTypes()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -67,7 +68,7 @@ class c : $$
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestFiltering1()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -86,7 +87,7 @@ class c { $$
 
         ' NOTE(cyrusn): This should just be a unit test for SymbolCompletionProvider.  However, i'm
         ' just porting the integration tests to here for now.
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestMultipleTypes()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -101,7 +102,7 @@ class C { $$ } struct S { } enum E { } interface I { } delegate void D();
 
         ' NOTE(cyrusn): This should just be a unit test for KeywordCompletionProvider.  However, i'm
         ' just porting the integration tests to here for now.
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestInEmptyFile()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -114,7 +115,7 @@ $$
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNotAfterTypingDotAfterIntegerLiteral()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -126,7 +127,7 @@ class c { void M() { 3$$ } }
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestAfterExplicitInvokeAfterDotAfterIntegerLiteral()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -139,7 +140,7 @@ class c { void M() { 3.$$ } }
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestEnterIsConsumed()
             Using state = TestState.CreateCSharpTestState(
                   <Document>
@@ -164,7 +165,7 @@ class Class1
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestDescription1()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -182,7 +183,7 @@ class MyException : $$]]></Document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestObjectCreationPreselection1()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -212,7 +213,7 @@ class C
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         <WorkItem(543268)>
         Public Sub TestTypePreselection1()
             Using state = TestState.CreateCSharpTestState(
@@ -233,7 +234,7 @@ partial class C
         End Sub
 
         <WorkItem(543519)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNewPreselectionAfterVar()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -252,7 +253,7 @@ class C
 
         <WorkItem(543559)>
         <WorkItem(543561)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestEscapedIdentifiers()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -275,7 +276,7 @@ class @return
         End Sub
 
         <WorkItem(543771)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCommitUniqueItem1()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -296,7 +297,7 @@ class Program
         End Sub
 
         <WorkItem(543771)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCommitUniqueItem2()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -315,7 +316,7 @@ class Program
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForUsingDirective1()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -330,7 +331,7 @@ class Program
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForUsingDirective2()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -345,7 +346,7 @@ class Program
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForUsingDirective3()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -360,7 +361,7 @@ class Program
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForUsingDirective4()
             Using state = TestState.CreateCSharpTestState(
                             <Document>
@@ -375,7 +376,7 @@ class Program
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub KeywordsIncludedInObjectCreationCompletion()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -395,7 +396,7 @@ class C
         End Sub
 
         <WorkItem(544293)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NoKeywordsOrSymbolsAfterNamedParameter()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -422,7 +423,7 @@ class Foo
         End Sub
 
         <WorkItem(544017)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EnumCompletionTriggeredOnSpace()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -444,7 +445,7 @@ class Foo
         End Sub
 
         <WorkItem(479078)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EnumCompletionTriggeredOnSpaceForNullables()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -465,7 +466,7 @@ class Foo
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EnumCompletionTriggeredOnDot()
             Using state = TestState.CreateCSharpTestState(
                 <Document>
@@ -484,7 +485,7 @@ class Foo
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EnumCompletionNotTriggeredOnOtherCommitCharacters()
             EnumCompletionNotTriggeredOn("+"c)
             EnumCompletionNotTriggeredOn("{"c)
@@ -514,7 +515,7 @@ class Foo
         End Sub
 
         <WorkItem(544296)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestVerbatimNamedIdentifierFiltering()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -540,7 +541,7 @@ class Program
         End Sub
 
         <WorkItem(543687)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNoPreselectInInvalidObjectCreationLocation()
             Using state = TestState.CreateCSharpTestState(
                               <Document><![CDATA[
@@ -571,7 +572,7 @@ interface IFoo<T>
         End Sub
 
         <WorkItem(544925)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestQualifiedEnumSelection()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -593,7 +594,7 @@ class Program
         End Sub
 
         <WorkItem(545070)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestTextChangeSpanWithAtCharacter()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -611,7 +612,7 @@ public class @event
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestDoNotInsertColonSoThatUserCanCompleteOutAVariableNameThatDoesNotCurrentlyExist_IE_TheCyrusCase()
             Using state = TestState.CreateCSharpTestState(
                               <Document>
@@ -663,7 +664,7 @@ class Program
 #End If
 
         <WorkItem(544940)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub AttributeNamedPropertyCompletionCommitWithTab()
             Using state = TestState.CreateCSharpTestState(
                             <Document>
@@ -685,7 +686,7 @@ public class Foo
         End Sub
 
         <WorkItem(544940)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub AttributeNamedPropertyCompletionCommitWithEquals()
             Using state = TestState.CreateCSharpTestState(
                             <Document>
@@ -706,7 +707,7 @@ public class Foo
         End Sub
 
         <WorkItem(544940)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub AttributeNamedPropertyCompletionCommitWithSpace()
             Using state = TestState.CreateCSharpTestState(
                             <Document>
@@ -727,7 +728,7 @@ public class Foo
         End Sub
 
         <WorkItem(545590)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestOverrideDefaultParameter()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -751,7 +752,7 @@ class D : C
         End Sub
 
         <WorkItem(545664)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestArrayAfterOptionalParameter()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -778,7 +779,7 @@ class C : B
         End Sub
 
         <WorkItem(545967)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestVirtualSpaces()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -811,7 +812,7 @@ class C
         End Sub
 
         <WorkItem(546561)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNamedParameterAgainstMRU()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -847,7 +848,7 @@ class Program
         End Sub
 
         <WorkItem(546403)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestMissingOnObjectCreationAfterVar1()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -865,7 +866,7 @@ class A
         End Sub
 
         <WorkItem(546403)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestMissingOnObjectCreationAfterVar2()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -884,7 +885,7 @@ class A
         End Sub
 
         <WorkItem(546917)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestEnumInSwitch()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -909,7 +910,7 @@ class C
         End Sub
 
         <WorkItem(547016)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestAmbiguityInLocalDeclaration()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -930,7 +931,7 @@ class C
         End Sub
 
         <WorkItem(530835)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCompletionFilterSpanCaretBoundary()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -953,7 +954,7 @@ class C
         End Sub
 
         <WorkItem(622957)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestBangFiltersInDocComment()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -973,7 +974,7 @@ class TestException : Exception { }
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeCompletionDoesNotFilter()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -992,7 +993,7 @@ class C
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeBeforeWordDoesNotSelect()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1011,7 +1012,7 @@ class C
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeCompletionSelectsWithoutRegardToCaretPosition()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1030,7 +1031,7 @@ class C
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TabAfterQuestionMark()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1049,7 +1050,7 @@ class C
         End Sub
 
         <WorkItem(657658)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub PreselectionIgnoresBrackets()
             Using state = TestState.CreateCSharpTestState(
                   <Document><![CDATA[
@@ -1080,7 +1081,7 @@ class Program
         End Sub
 
         <WorkItem(672474)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestInvokeSnippetCommandDismissesCompletion()
             Using state = TestState.CreateCSharpTestState(
                               <Document>$$</Document>)
@@ -1093,7 +1094,7 @@ class Program
         End Sub
 
         <WorkItem(672474)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestSurroundWithCommandDismissesCompletion()
             Using state = TestState.CreateCSharpTestState(
                               <Document>$$</Document>)
@@ -1106,7 +1107,7 @@ class Program
         End Sub
 
         <WorkItem(737239)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub LetEditorHandleOpenParen()
             Dim expected = <Document><![CDATA[
 using System;
@@ -1147,7 +1148,7 @@ class Program
         End Sub
 
         <WorkItem(785637)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitMovesCaretToWordEnd()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1166,7 +1167,7 @@ class C
         End Sub
 
         <WorkItem(775370)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub MatchingConsidersAtSign()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1190,7 +1191,7 @@ class C
         End Sub
 
         <WorkItem(865089)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub AttributeFilterTextRemovesAttributeSuffix()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1203,7 +1204,7 @@ class AtAttribute : System.Attribute { }]]></Document>)
         End Sub
 
         <WorkItem(852578)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub PreselectExceptionOverSnippet()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1220,7 +1221,7 @@ class C
         End Sub
 
         <WorkItem(868286)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitNameAfterAlias()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1230,7 +1231,7 @@ using foo = System$$]]></Document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCompletionInLinkedFiles()
             Using state = TestState.CreateTestStateFromWorkspace(
                 <Workspace>
@@ -1284,7 +1285,7 @@ class C
         End Sub
 
         <WorkItem(951726)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DismissUponSave()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1301,7 +1302,7 @@ class C
         End Sub
 
         <WorkItem(930254)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NoCompletionWithBoxSelection()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1318,7 +1319,7 @@ class C
         End Sub
 
         <WorkItem(839555)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TriggeredOnHash()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1329,7 +1330,7 @@ $$]]></Document>)
         End Sub
 
         <WorkItem(771761)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub RegionCompletionCommitTriggersFormatting_1()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1345,7 +1346,7 @@ class C
         End Sub
 
         <WorkItem(771761)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub RegionCompletionCommitTriggersFormatting_2()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1361,7 +1362,7 @@ class C
         End Sub
 
         <WorkItem(771761)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EndRegionCompletionCommitTriggersFormatting_2()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1392,7 +1393,7 @@ class C
         End Class
 
         <WorkItem(1015893)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspaceDismissesIfComputationIsIncomplete()
             Dim slowProvider = New SlowProvider()
             Using state = TestState.CreateCSharpTestState(
@@ -1418,7 +1419,7 @@ class C
         End Sub
 
         <WorkItem(1065600)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitUniqueItemWithBoxSelection()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1437,7 +1438,7 @@ class C
         End Sub
 
         <WorkItem(1594, "https://github.com/dotnet/roslyn/issues/1594")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NoPreselectionOnSpaceWhenAbuttingWord()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1454,7 +1455,7 @@ class Program
         End Sub
 
         <WorkItem(1594, "https://github.com/dotnet/roslyn/issues/1594")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub SpacePreselectionAtEndOfFile()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1469,7 +1470,7 @@ class Program
         End Sub
 
         <WorkItem(1659, "https://github.com/dotnet/roslyn/issues/1659")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DismissOnSelectAllCommand()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[
@@ -1489,7 +1490,7 @@ class C
         End Sub
 
         <WorkItem(588, "https://github.com/dotnet/roslyn/issues/588")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionCommitAndFormatAreSeparateUndoTransactions()
             Using state = TestState.CreateCSharpTestState(
                 <Document><![CDATA[

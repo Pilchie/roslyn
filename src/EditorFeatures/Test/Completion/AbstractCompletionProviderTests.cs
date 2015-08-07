@@ -39,23 +39,10 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
             this.CompletionProvider = CreateCompletionProvider();
         }
 
-        ~AbstractCompletionProviderTests()
+        public override void Dispose()
         {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                WorkspaceFixture?.Dispose();
-            }
+            WorkspaceFixture?.Dispose();
+            WorkspaceFixture = null;
         }
 
         protected static bool CanUseSpeculativeSemanticModel(Document document, int position)

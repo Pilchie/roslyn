@@ -36,7 +36,7 @@ namespace Roslyn.VisualStudio.CSharp.UnitTests.Options
             return viewModel.TextViewHost.TextView.TextBuffer.CurrentSnapshot.GetText().ToString();
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Options)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Options)]
         public void TestCheckBox()
         {
             using (var workspace = CSharpWorkspaceFactory.CreateWorkspaceFromFile(""))
@@ -81,7 +81,7 @@ namespace Roslyn.VisualStudio.CSharp.UnitTests.Options
             }
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Options)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Options)]
         public void TestOptionSaving()
         {
             using (var workspace = CSharpWorkspaceFactory.CreateWorkspaceFromFile(""))

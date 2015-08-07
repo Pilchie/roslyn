@@ -12,6 +12,7 @@ Imports Microsoft.VisualStudio.Text
 Imports Microsoft.VisualStudio.Text.Editor
 Imports Microsoft.VisualStudio.Text.Projection
 Imports Microsoft.VisualStudio.Utilities
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.QuickInfo
     Public Class SemanticQuickInfoSourceTests
@@ -1072,14 +1073,14 @@ End Module
             MainDescription("Function Program.Foo() As Integer"))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub BinaryConditionalExpression()
             TestInMethod("Dim x = If$$(True, False)",
                 MainDescription($"If({Expression1}, {ExpressionIfNothing}) As Boolean"),
                 Documentation(ExpressionEvalReturns))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub TernaryConditionalExpression()
             TestInMethod("Dim x = If$$(True, ""Foo"", ""Bar"")",
                 MainDescription($"If({Condition} As Boolean, {ExpressionIfTrue}, {ExpressionIfFalse}) As String"),
@@ -1087,7 +1088,7 @@ End Module
         End Sub
 
         <WorkItem(957082)>
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub AddHandlerStatement()
             TestInMethod("$$AddHandler foo, bar",
                 MainDescription($"AddHandler {Event1}, {Handler}"),
@@ -1096,7 +1097,7 @@ End Module
         End Sub
 
         <WorkItem(957082)>
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub RemoveHandlerStatement()
             TestInMethod("$$RemoveHandler foo, bar",
                 MainDescription($"RemoveHandler {Event1}, {Handler}"),
@@ -1104,7 +1105,7 @@ End Module
                 SymbolGlyph(Glyph.Keyword))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub GetTypeExpression()
             TestInMethod("Dim x = GetType$$(String)",
                 MainDescription("GetType(String) As Type"),
@@ -1112,7 +1113,7 @@ End Module
         End Sub
 
         <WorkItem(544140)>
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub GetXmlNamespaceExpression()
             TestWithReferences(
                 <text>
@@ -1127,147 +1128,147 @@ end class
                 Documentation(ReturnsXNamespaceObject))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub TryCastExpression()
             TestInMethod("Dim x = TryCast$$(a, String)",
                 MainDescription($"TryCast({Expression1}, String) As String"),
                 Documentation(IntroducesSafeTypeConversion))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub DirectCastExpression()
             TestInMethod("Dim x = DirectCast$$(a, String)",
                 MainDescription($"DirectCast({Expression1}, String) As String"),
                 Documentation(IntroducesTypeConversion))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CTypeCastExpression()
             TestInMethod("Dim x = CType$$(a, String)",
                 MainDescription($"CType({Expression1}, String) As String"),
                 Documentation(ReturnsConvertResult))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CBoolExpression()
             TestInMethod("Dim x = CBool$$(a)",
                 MainDescription($"CBool({Expression1}) As Boolean"),
                 Documentation(String.Format(ConvertsToDataType, "Boolean")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CByteExpression()
             TestInMethod("Dim x = CByte$$(a)",
                 MainDescription($"CByte({Expression1}) As Byte"),
                 Documentation(String.Format(ConvertsToDataType, "Byte")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CCharExpression()
             TestInMethod("Dim x = CChar$$(a)",
                 MainDescription($"CChar({Expression1}) As Char"),
                 Documentation(String.Format(ConvertsToDataType, "Char")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CDateExpression()
             TestInMethod("Dim x = CDate$$(a)",
                 MainDescription($"CDate({Expression1}) As Date"),
                 Documentation(String.Format(ConvertsToDataType, "Date")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CDblExpression()
             TestInMethod("Dim x = CDbl$$(a)",
                 MainDescription($"CDbl({Expression1}) As Double"),
                 Documentation(String.Format(ConvertsToDataType, "Double")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CDecExpression()
             TestInMethod("Dim x = CDec$$(a)",
                 MainDescription($"CDec({Expression1}) As Decimal"),
                 Documentation(String.Format(ConvertsToDataType, "Decimal")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CIntExpression()
             TestInMethod("Dim x = CInt$$(a)",
                 MainDescription($"CInt({Expression1}) As Integer"),
                 Documentation(String.Format(ConvertsToDataType, "Integer")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CLngExpression()
             TestInMethod("Dim x = CLng$$(a)",
                 MainDescription($"CLng({Expression1}) As Long"),
                 Documentation(String.Format(ConvertsToDataType, "Long")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CObjExpression()
             TestInMethod("Dim x = CObj$$(a)",
                 MainDescription($"CObj({Expression1}) As Object"),
                 Documentation(String.Format(ConvertsToDataType, "Object")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CSByteExpression()
             TestInMethod("Dim x = CSByte$$(a)",
                 MainDescription($"CSByte({Expression1}) As SByte"),
                 Documentation(String.Format(ConvertsToDataType, "SByte")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CShortExpression()
             TestInMethod("Dim x = CShort$$(a)",
                 MainDescription($"CShort({Expression1}) As Short"),
                 Documentation(String.Format(ConvertsToDataType, "Short")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CSngExpression()
             TestInMethod("Dim x = CSng$$(a)",
                 MainDescription($"CSng({Expression1}) As Single"),
                 Documentation(String.Format(ConvertsToDataType, "Single")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CStrExpression()
             TestInMethod("Dim x = CStr$$(a)",
                 MainDescription($"CStr({Expression1}) As String"),
                 Documentation(String.Format(ConvertsToDataType, "String")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CUIntExpression()
             TestInMethod("Dim x = CUInt$$(a)",
                 MainDescription($"CUInt({Expression1}) As UInteger"),
                 Documentation(String.Format(ConvertsToDataType, "UInteger")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CULngExpression()
             TestInMethod("Dim x = CULng$$(a)",
                 MainDescription($"CULng({Expression1}) As ULong"),
                 Documentation(String.Format(ConvertsToDataType, "ULong")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub CUShortExpression()
             TestInMethod("Dim x = CUShort$$(a)",
                 MainDescription($"CUShort({Expression1}) As UShort"),
                 Documentation(String.Format(ConvertsToDataType, "UShort")))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub MidAssignmentStatement1()
             TestInMethod("$$Mid(""foo"", 0) = ""bar""",
                 MainDescription($"Mid({StringName}, {StartIndex}, [{Length}]) = {StringExpression}"),
                 Documentation(ReplacesChars))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.QuickInfo)>
         Public Sub MidAssignmentStatement2()
             TestInMethod("$$Mid(""foo"", 0, 0) = ""bar""",
                 MainDescription($"Mid({StringName}, {StartIndex}, [{Length}]) = {StringExpression}"),

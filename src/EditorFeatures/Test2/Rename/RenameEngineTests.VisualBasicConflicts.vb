@@ -1,6 +1,7 @@
 ' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.Rename.ConflictEngine
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.Rename
     Partial Public Class RenameEngineTests
@@ -2783,7 +2784,7 @@ End Class
                 End Using
             End Sub
 
-            <Fact>
+            <WpfFact>
             <Trait(Traits.Feature, Traits.Features.Rename)>
             <WorkItem(905, "https://github.com/dotnet/roslyn/issues/905")>
             Public Sub RenamingCompilerGeneratedPropertyBackingField_InvokableFromBackingFieldReference()

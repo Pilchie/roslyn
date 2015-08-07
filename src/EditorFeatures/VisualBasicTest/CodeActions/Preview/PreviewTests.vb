@@ -7,6 +7,7 @@ Imports Microsoft.CodeAnalysis.CodeRefactorings
 Imports Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 Imports Microsoft.CodeAnalysis.Text
 Imports Microsoft.VisualStudio.Text.Differencing
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.CodeRefactorings
     Public Class PreviewTests : Inherits AbstractVisualBasicCodeActionTest
@@ -75,7 +76,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.CodeRefactorings
             previews = editHandler.GetPreviews(workspace, action.GetPreviewOperationsAsync(CancellationToken.None).Result, CancellationToken.None)
         End Sub
 
-        <Fact>
+        <WpfFact>
         Public Sub TestPickTheRightPreview_NoPreference()
             Using workspace = CreateWorkspaceFromFile("Class D : End Class", Nothing, Nothing)
                 Dim document As Document = Nothing

@@ -7,12 +7,13 @@ Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.VisualStudio.Text
 Imports Microsoft.VisualStudio.Text.Operations
 Imports Microsoft.VisualStudio.Text.Projection
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.UnitTests.IntelliSense
     Public Class VisualBasicCompletionCommandHandlerTests
 
         <WorkItem(546208)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub MultiWordKeywordCommitBehavior()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -30,7 +31,7 @@ End Class
         End Sub
 
         <WorkItem(546208)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub MultiWordKeywordCommitBehavior2()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -48,7 +49,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionNotShownWhenBackspacingThroughWhitespace()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -64,7 +65,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion), WorkItem(541032)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion), WorkItem(541032)>
         Public Sub CompletionNotShownWhenBackspacingThroughNewline()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -82,7 +83,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionAdjustInsertionText_CommitsOnOpenParens1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -102,7 +103,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionUpAfterDot()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -120,7 +121,7 @@ End Module
         End Sub
 
         <WorkItem(546432)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub ImplementsCompletionFaultTolerance()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -134,7 +135,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionAdjustInsertionText_CommitsOnOpenParens2()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -154,7 +155,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionDismissedAfterEscape1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -174,7 +175,7 @@ End Module
         End Sub
 
         <WorkItem(543497)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestEnterOnSoftSelection1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -194,7 +195,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionTestTab1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -215,7 +216,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DotIsInserted()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -232,7 +233,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestReturn1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -253,7 +254,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestDown1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -287,7 +288,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestFirstCharacterDoesNotFilter1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -311,7 +312,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestSecondCharacterDoesFilter1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -340,7 +341,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNavigateSoftToHard()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -358,7 +359,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestBackspaceBeforeCompletedComputation()
             ' Simulate a very slow completion provider.
             Dim e = New ManualResetEvent(False)
@@ -395,7 +396,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNavigationBeforeCompletedComputation()
             ' Simulate a very slow completion provider.
             Dim e = New ManualResetEvent(False)
@@ -429,7 +430,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNavigateOutOfItemChangeSpan()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -452,7 +453,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestUndo1()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -472,7 +473,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCommitAfterNavigation()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -500,7 +501,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestSelectCompletionItemThroughPresenter()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -528,7 +529,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestFiltering1()
             Using state = TestState.CreateVisualBasicTestState(
                   <document>
@@ -545,7 +546,7 @@ End Class</document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestMSCorLibTypes()
             Using state = TestState.CreateVisualBasicTestState(
                   <document>
@@ -560,7 +561,7 @@ End Class</document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestDescription1()
             Using state = TestState.CreateVisualBasicTestState(
                   <document>
@@ -582,7 +583,7 @@ End Class]]></document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestObjectCreationPreselection1()
             Using state = TestState.CreateVisualBasicTestState(
                   <Document><![CDATA[
@@ -613,7 +614,7 @@ End Module]]></Document>)
         End Sub
 
         <WorkItem(287, "https://github.com/dotnet/roslyn/issues/287")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NotEnumPreselectionAfterBackspace()
             Using state = TestState.CreateVisualBasicTestState(
                   <Document><![CDATA[
@@ -634,7 +635,7 @@ End Class]]></Document>)
         End Sub
 
         <WorkItem(543496)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNumericLiteralWithNoMatch()
             Using state = TestState.CreateVisualBasicTestState(
                   <Document>
@@ -663,7 +664,7 @@ End Module</Document>.NormalizedValue, state.GetDocumentText())
         End Sub
 
         <WorkItem(543496)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNumericLiteralWithPartialMatch()
             Using state = TestState.CreateVisualBasicTestState(
                   <Document>
@@ -694,7 +695,7 @@ End Module</Document>.NormalizedValue, state.GetDocumentText())
         End Sub
 
         <WorkItem(543496)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNumbersAfterLetters()
             Using state = TestState.CreateVisualBasicTestState(
                   <Document>
@@ -724,7 +725,7 @@ End Module</Document>.NormalizedValue, state.GetDocumentText())
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNotAfterTypingDotAfterIntegerLiteral()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -740,7 +741,7 @@ end class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestAfterExplicitInvokeAfterDotAfterIntegerLiteral()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -758,7 +759,7 @@ end class
         End Sub
 
         <WorkItem(543669)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestDeleteWordToLeft()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -776,7 +777,7 @@ end class
         End Sub
 
         <WorkItem(543617)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCompletionGenericWithOpenParen()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -794,7 +795,7 @@ end class
         End Sub
 
         <WorkItem(543617)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCompletionGenericWithSpace()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -810,7 +811,7 @@ end class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForImportsStatement1()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -825,7 +826,7 @@ end class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForImportsStatement2()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -840,7 +841,7 @@ end class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitForImportsStatement3()
             Using state = TestState.CreateVisualBasicTestState(
                             <Document>
@@ -856,7 +857,7 @@ end class
         End Sub
 
         <WorkItem(544190)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DoNotInsertEqualsForNamedParameterCommitWithColon()
             Using state = TestState.CreateVisualBasicTestState(
                             <Document>
@@ -877,7 +878,7 @@ end class
         End Sub
 
         <WorkItem(544190)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DoInsertEqualsForNamedParameterCommitWithSpace()
             Using state = TestState.CreateVisualBasicTestState(
                             <Document>
@@ -899,7 +900,7 @@ end class
         End Sub
 
         <WorkItem(544150)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub ConsumeHashForPreprocessorCompletion()
             Using state = TestState.CreateVisualBasicTestState(
                             <Document>
@@ -913,7 +914,7 @@ $$
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EnumCompletionTriggeredOnSpace()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -946,7 +947,7 @@ class Foo
         End Function
 
         <WorkItem(544297)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestVerbatimNamedIdentifierFiltering()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -967,7 +968,7 @@ End Class
         End Sub
 
         <WorkItem(544299)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestExclusiveNamedParameterCompletion()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -992,7 +993,7 @@ End Class
         End Sub
 
         <WorkItem(544299)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestExclusiveNamedParameterCompletion2()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1024,7 +1025,7 @@ End Class
         End Sub
 
         <WorkItem(544471)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestDontCrashOnEmptyParameterList()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1037,7 +1038,7 @@ End Class
         End Sub
 
         <WorkItem(544628)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub OnlyMatchOnLowercaseIfPrefixWordMatch()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1053,7 +1054,7 @@ End Module
         End Sub
 
         <WorkItem(544989)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub MyBaseFinalize()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1071,7 +1072,7 @@ End Class
         End Sub
 
         <WorkItem(551117)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNamedParameterSortOrder()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1092,7 +1093,7 @@ End Module
         End Sub
 
         <WorkItem(546810)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestLineContinuationCharacter()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1111,7 +1112,7 @@ End Module
         End Sub
 
         <WorkItem(547287)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestNumberDismissesCompletion()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1144,7 +1145,7 @@ End Module
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestProjections()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1232,7 +1233,7 @@ End Module          </text>.NormalizedValue, state.GetDocumentText(), StringComp
         End Sub
 
         <WorkItem(622957)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestBangFiltersInDocComment()
             Using state = TestState.CreateVisualBasicTestState(
                   <Document><![CDATA[
@@ -1249,7 +1250,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionUpAfterBackSpacetoWord()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1263,7 +1264,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NoCompletionAfterBackspaceInStringLiteral()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1277,7 +1278,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionUpAfterDeleteDot()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1292,7 +1293,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NotCompletionUpAfterDeleteRParen()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1306,7 +1307,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NotCompletionUpAfterDeleteLParen()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1320,7 +1321,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NotCompletionUpAfterDeleteComma()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1334,7 +1335,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionAfterDeleteKeyword()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1349,7 +1350,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NoCompletionOnBackspaceAtBeginningOfFile()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>$$</Document>)
@@ -1360,7 +1361,7 @@ End Class
         End Sub
 
 
-        <Fact(), Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact(), Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionUpAfterLeftCurlyBrace()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -1381,7 +1382,7 @@ End Class
             End Using
         End Sub
 
-        <Fact(), Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact(), Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CompletionUpAfterLeftAngleBracket()
             Using state = TestState.CreateVisualBasicTestState(
                               <document>
@@ -1398,7 +1399,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeCompletionDoesNotFilter()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1415,7 +1416,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeCompletionSelectsWithoutRegardToCaretPosition()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1432,7 +1433,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeCompletionBeforeWordDoesNotSelect()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1448,7 +1449,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspaceCompletionInvokedSelectedAndUnfiltered()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1465,7 +1466,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub ListDismissedIfNoMatches()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1484,7 +1485,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InvokeCompletionComesUpEvenIfNoMatches()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1501,7 +1502,7 @@ End Class
         End Sub
 
         <WorkItem(674422)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspaceInvokeCompletionComesUpEvenIfNoMatches()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1520,7 +1521,7 @@ End Class
         End Sub
 
         <WorkItem(674366)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspaceCompletionSelects()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1538,7 +1539,7 @@ End Class
         End Sub
 
         <WorkItem(675555)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspaceCompletionNeverFilters()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1558,7 +1559,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TabAfterQuestionMarkInEmptyLine()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1574,7 +1575,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TabAfterTextFollowedByQuestionMark()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1591,7 +1592,7 @@ End Class
         End Sub
 
         <WorkItem(669942)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DistinguishItemsWithDifferentGlyphs()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1614,7 +1615,7 @@ End Class
         End Sub
 
         <WorkItem(670149)>
-        <Fact(), Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact(), Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TabAfterNullableFollowedByQuestionMark()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1629,7 +1630,7 @@ End Class
         End Sub
 
         <WorkItem(672474)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestInvokeSnippetCommandDismissesCompletion()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>$$</Document>)
@@ -1642,7 +1643,7 @@ End Class
         End Sub
 
         <WorkItem(672474)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestSurroundWithCommandDismissesCompletion()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>$$</Document>)
@@ -1655,7 +1656,7 @@ End Class
         End Sub
 
         <WorkItem(716117)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub XmlCompletionNotTriggeredOnBackspaceInText()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document><![CDATA[
@@ -1672,7 +1673,7 @@ End Class]]></Document>)
         End Sub
 
         <WorkItem(716117)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub XmlCompletionNotTriggeredOnBackspaceInTag()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document><![CDATA[
@@ -1690,7 +1691,7 @@ End Class]]></Document>)
         End Sub
 
         <WorkItem(674415)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspacingLastCharacterDismisses()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>$$</Document>)
@@ -1703,7 +1704,7 @@ End Class]]></Document>)
         End Sub
 
         <WorkItem(719977)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub HardSelectionWithBuilderAndOneExactMatch()
             Using state = TestState.CreateVisualBasicTestState(
 <Document>Module M
@@ -1718,7 +1719,7 @@ End Module</Document>)
         End Sub
 
         <WorkItem(828603)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub SoftSelectionWithBuilderAndNoExactMatch()
             Using state = TestState.CreateVisualBasicTestState(
 <Document>Module M
@@ -1733,7 +1734,7 @@ End Module</Document>)
         End Sub
 
         <WorkItem(792569)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitOnEnter()
             Dim expected = <Document>Module M
     Sub Main()
@@ -1756,7 +1757,7 @@ End Module</Document>)
         End Sub
 
         <WorkItem(546208)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub SelectKeywordFirst()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1778,7 +1779,7 @@ End Class
         End Sub
 
         <WorkItem(828392)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub ConstructorFiltersAsNew()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1800,7 +1801,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NoUnmentionableTypeInObjectCreation()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1816,7 +1817,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub FilterPreferEnum()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1839,7 +1840,7 @@ End Class</Document>)
         End Sub
 
         <WorkItem(883295)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub InsertOfOnSpace()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1860,7 +1861,7 @@ End Class
         End Sub
 
         <WorkItem(883295)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DoNotInsertOfOnTab()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1879,7 +1880,7 @@ End Class
         End Sub
 
         <WorkItem(899414)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub NotInPartialMethodDeclaration()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1901,7 +1902,7 @@ End Class</Document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub TestCompletionInLinkedFiles()
             Using state = TestState.CreateTestStateFromWorkspace(
                 <Workspace>
@@ -1943,7 +1944,7 @@ End Class
         End Sub
 
         <WorkItem(916452)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub SoftSelectedWithNoFilterText()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1959,7 +1960,7 @@ End Class</Document>)
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub EnumSortingOrder()
             Using state = TestState.CreateVisualBasicTestState(
                               <Document>
@@ -1979,7 +1980,7 @@ End Class</Document>)
         End Sub
 
         <WorkItem(951726)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DismissUponSave()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -1995,7 +1996,7 @@ End Class]]></Document>)
         End Sub
 
         <WorkItem(969794)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DeleteCompletionInvokedSelectedAndUnfiltered()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2013,7 +2014,7 @@ End Class
 
         <WorkItem(871755)>
         <WorkItem(954556)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub FilterPrefixOnlyOnBackspace1()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2030,7 +2031,7 @@ End Class
         End Sub
 
         <WorkItem(969040)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub BackspaceTriggerOnlyIfOptionEnabled()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2046,7 +2047,7 @@ End Class
         End Sub
 
         <WorkItem(957450)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub KeywordsForIntrinsicsDeduplicated()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2066,7 +2067,7 @@ End Class
         End Sub
 
         <WorkItem(957450)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub KeywordDeduplicationLeavesEscapedIdentifiers()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2088,7 +2089,7 @@ End Class
         End Sub
 
         <WorkItem(1075298)>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub CommitOnQuestionMarkForConditionalAccess()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2106,7 +2107,7 @@ End Class
         End Sub
 
         <WorkItem(1659, "https://github.com/dotnet/roslyn/issues/1659")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DismissOnSelectAllCommand()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[
@@ -2124,7 +2125,7 @@ Class C
         End Sub
 
         <WorkItem(3088, "https://github.com/dotnet/roslyn/issues/3088")>
-        <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
         Public Sub DoNotPreferParameterNames()
             Using state = TestState.CreateVisualBasicTestState(
                 <Document><![CDATA[

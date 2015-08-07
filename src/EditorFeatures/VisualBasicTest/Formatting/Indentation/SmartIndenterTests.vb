@@ -20,6 +20,7 @@ Imports Microsoft.VisualStudio.Text.Editor
 Imports Microsoft.VisualStudio.Text.Operations
 Imports Microsoft.VisualStudio.Text.Projection
 Imports Moq
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Formatting.Indentation
     Public Class SmartIndenterTests
@@ -61,7 +62,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 4)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         <WorkItem(529886)>
         Public Sub AtEndOfSpanInNugget()
@@ -80,7 +81,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 4)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         <WorkItem(529886)>
         Public Sub InsideMiddleOfSpanInNugget()
@@ -99,7 +100,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 4)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         <WorkItem(529886)>
         Public Sub AtContinuationAtStartOfNugget()
@@ -122,7 +123,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 8)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         <WorkItem(529886)>
         Public Sub AtContinuationInsideOfNugget()
@@ -2195,7 +2196,7 @@ End Module
                 expectedIndentation:=8)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub AfterStatementInNugget()
             Dim markup = <code>Module Module1
@@ -2215,7 +2216,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 4)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub AfterStatementOnFirstLineOfNugget()
             Dim markup = <code>Module Module1
@@ -2244,7 +2245,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 4)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub InQueryInNugget()
             Dim markup = <code>Module Module1
@@ -2266,7 +2267,7 @@ End Module
         End Sub
 
         <WorkItem(574314)>
-        <Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub InQueryOnFirstLineOfNugget()
             Dim markup = <code>Module Module1
     Sub Main(args As String())
@@ -2284,7 +2285,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 2 + "Dim query = ".Length)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub InNestedBlockInNugget()
             Dim markup = <code>Module Module1
@@ -2304,7 +2305,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 8)
         End Sub
 
-        <Fact>
+        <WpfFact>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub InNestedBlockStartingOnFirstLineOfNugget()
             Dim markup = <code>Module Module1
@@ -2323,7 +2324,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 8)
         End Sub
 
-        <Fact, WorkItem(646663)>
+        <WpfFact, WorkItem(646663)>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub InEmptyNugget()
             Dim markup = <code>Module Module1
@@ -2341,7 +2342,7 @@ End Module
                 expectedIndentation:=s_baseIndentationOfNugget + 4)
         End Sub
 
-        <Fact, WorkItem(1190278)>
+        <WpfFact, WorkItem(1190278)>
         <Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)>
         Public Sub GetNextTokenForFormattingSpanCalculationIncludesZeroWidthToken_VB()
             Dim markup = <code>Option Strict Off

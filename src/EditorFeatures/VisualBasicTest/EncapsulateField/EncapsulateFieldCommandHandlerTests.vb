@@ -1,10 +1,11 @@
 ' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests
+Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.EncapsulateField
     Public Class EncapsulateFieldCommandHandlerTests
-        <Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)>
         Public Sub PrivateField()
             Dim text = <File>
 Class C
@@ -38,7 +39,7 @@ End Class</File>.ConvertTestSourceTag()
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)>
         Public Sub NonPrivateField()
             Dim text = <File>
 Class C
@@ -73,7 +74,7 @@ End Class</File>.ConvertTestSourceTag()
         End Sub
 
         <WorkItem(1086632)>
-        <Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)>
         Public Sub EncapsulateTwoFields()
             Dim text = "
 Class Program
