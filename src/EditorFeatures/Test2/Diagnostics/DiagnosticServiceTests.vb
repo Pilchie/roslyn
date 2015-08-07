@@ -352,7 +352,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                 Dim analyzerReference2 = CreateAnalyzerFileReference("x:\temp.dll")
                 project = project.AddAnalyzerReference(analyzerReference1)
 #If DEBUG Then
-                Assert.Throws(Of TraceAssertException)(Function() project.AddAnalyzerReference(analyzerReference2))
+                Assert.Throws(Of XunitException)(Function() project.AddAnalyzerReference(analyzerReference2))
 #End If
             End Using
         End Sub
@@ -410,7 +410,7 @@ Namespace Microsoft.CodeAnalysis.Editor.Implementation.Diagnostics.UnitTests
                 project = project.AddAnalyzerReference(analyzerReference1)
                 project = project.AddAnalyzerReference(analyzerReference2)
 #If DEBUG Then
-                Assert.Throws(Of TraceAssertException)(Function() project.AddAnalyzerReference(analyzerReference1))
+                Assert.Throws(Of XunitException)(Function() project.AddAnalyzerReference(analyzerReference1))
 #End If
             End Using
         End Sub

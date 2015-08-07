@@ -20,28 +20,47 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.SignatureHelp
 {
-    public abstract class AbstractSignatureHelpProviderTests<TWorkspaceFixture> : TestBase, IUseFixture<TWorkspaceFixture>
+    public abstract class AbstractSignatureHelpProviderTests<TWorkspaceFixture> : TestBase, IDisposable
         where TWorkspaceFixture : TestWorkspaceFixture, new()
     {
         protected TWorkspaceFixture workspaceFixture;
 
         internal abstract ISignatureHelpProvider CreateSignatureHelpProvider();
 
-        public void SetFixture(TWorkspaceFixture workspaceFixture)
+        protected AbstractSignatureHelpProviderTests(TWorkspaceFixture workspaceFixture)
         {
             this.workspaceFixture = workspaceFixture;
         }
 
-        /// <summary>
-        /// Verifies that sighelp comes up at the indicated location in markup ($$), with the indicated span [| ... |].
-        /// </summary>
-        /// <param name="markup">Input markup with $$ denoting the cursor position, and [| ... |]
-        /// denoting the expected sighelp span</param>
-        /// <param name="expectedOrderedItemsOrNull">The exact expected sighelp items list. If null, this part of the test is ignored.</param>
-        /// <param name="usePreviousCharAsTrigger">If true, uses the last character before $$ to trigger sighelp.
-        /// If false, invokes sighelp explicitly at the cursor location.</param>
-        /// <param name="sourceCodeKind">The sourcecodekind to run this test on. If null, runs on both regular and script sources.</param>
-        protected virtual void Test(
+        ~AbstractSignatureHelpProviderTests()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                workspaceFixture?.Dispose();
+            }
+        }
+
+    /// <summary>
+    /// Verifies that sighelp comes up at the indicated location in markup ($$), with the indicated span [| ... |].
+    /// </summary>
+    /// <param name="markup">Input markup with $$ denoting the cursor position, and [| ... |]
+    /// denoting the expected sighelp span</param>
+    /// <param name="expectedOrderedItemsOrNull">The exact expected sighelp items list. If null, this part of the test is ignored.</param>
+    /// <param name="usePreviousCharAsTrigger">If true, uses the last character before $$ to trigger sighelp.
+    /// If false, invokes sighelp explicitly at the cursor location.</param>
+    /// <param name="sourceCodeKind">The sourcecodekind to run this test on. If null, runs on both regular and script sources.</param>
+    protected virtual void Test(
             string markup,
             IEnumerable<SignatureHelpTestItem> expectedOrderedItemsOrNull = null,
             bool usePreviousCharAsTrigger = false,

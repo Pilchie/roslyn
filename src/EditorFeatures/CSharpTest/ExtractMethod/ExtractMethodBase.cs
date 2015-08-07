@@ -52,11 +52,11 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.ExtractMethod
         {
             using (var workspace = CSharpWorkspaceFactory.CreateWorkspaceFromLines(codeWithMarker))
             {
-                Assert.NotNull(Record.Exception((Assert.ThrowsDelegate)(() =>
+                Assert.NotNull(Record.Exception(() =>
                 {
                     var testDocument = workspace.Documents.Single();
                     var tree = ExtractMethod(workspace, testDocument);
-                })));
+                }));
             }
         }
 

@@ -2782,7 +2782,7 @@ End Module
                 Dim x = 0
             End If
 
-            Assert.Equal(expectedIndentation, actualIndentation.Value)
+            Assert.Equal(Of Integer)(expectedIndentation.Value, actualIndentation.Value)
         End Sub
 
         ''' <param name="indentationLine">0-based. The line number in code to get indentation for.</param>
@@ -2821,7 +2821,7 @@ End Module
                     Dim actualIndentation = indenter.GetDesiredIndentation(indentationLineFromBuffer)
 
                     If expectedIndentation.HasValue Then
-                        Assert.Equal(expectedIndentation, actualIndentation.Value)
+                        Assert.Equal(Of Integer)(expectedIndentation.Value, actualIndentation.Value)
                     Else
                         Assert.Null(actualIndentation)
                     End If

@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces;
 using Microsoft.CodeAnalysis.LanguageServices;
 using Microsoft.CodeAnalysis.Text;
@@ -8,13 +9,33 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.TypeInferrer
 {
-    public abstract class TypeInferrerTestBase<TWorkspaceFixture> : TestBase, IUseFixture<TWorkspaceFixture> where TWorkspaceFixture : TestWorkspaceFixture, new()
+    public abstract class TypeInferrerTestBase<TWorkspaceFixture> : TestBase, IClassFixture<TWorkspaceFixture>
+        where TWorkspaceFixture : TestWorkspaceFixture, new()
     {
         protected TWorkspaceFixture fixture;
 
-        void IUseFixture<TWorkspaceFixture>.SetFixture(TWorkspaceFixture workspaceFixture)
+        protected TypeInferrerTestBase(TWorkspaceFixture fixture)
         {
-            this.fixture = workspaceFixture;
+            this.fixture = fixture;
+        }
+
+        ~TypeInferrerTestBase()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                fixture?.Dispose();
+            }
         }
 
         private static bool CanUseSpeculativeSemanticModel(Document document, int position)
