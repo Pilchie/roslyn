@@ -416,7 +416,7 @@ existingFilename:="Test2.vb")
 #End Region
 
 #Region "SameProject NewFile"
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeInNewFile()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly" CommonReferences="true">
@@ -449,7 +449,7 @@ newFileName:="Test2.vb")
         End Sub
 
         <WorkItem(850101)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateType_UsingsNotNeeded_InNewFile_InFolder()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly" CommonReferences="true">
@@ -519,7 +519,7 @@ newFileName:="Test2.vb")
 
         <WorkItem(850101)>
         <WorkItem(907454)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateType_UsingsNeeded_InNewFile_InFolder()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly" CommonReferences="true">
@@ -559,7 +559,7 @@ newFileName:="Test2.vb")
         End Sub
 
         <WorkItem(907454)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateType_UsingsPresentAlready_InNewFile_InFolder()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly" CommonReferences="true">
@@ -601,7 +601,7 @@ newFileName:="Test2.vb")
         End Sub
 
         <WorkItem(850101)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateType_UsingsNotNeeded_InNewFile_InFolder_NotSimpleName()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly" CommonReferences="true">
@@ -813,7 +813,7 @@ projectName:="Assembly2")
         End Sub
 
         <WorkItem(850101)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_Usings()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly1" CommonReferences="true">
@@ -857,7 +857,7 @@ projectName:="Assembly2")
         End Sub
 
         <WorkItem(850101)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_NoUsings_NotSimpleName()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly1" CommonReferences="true">
@@ -896,7 +896,7 @@ projectName:="Assembly2")
         End Sub
 
         <WorkItem(850101)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeIntoSameLanguageDifferentProjectNewFile_Folders_NoUsings_NotSimpleName_ProjectReference()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly2" CommonReferences="true">
@@ -941,7 +941,7 @@ projectName:="Assembly2")
 #End Region
 #End Region
 #Region "Different Language"
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeIntoDifferentLanguageNewFile()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly1" CommonReferences="true">
@@ -1029,7 +1029,7 @@ projectName:="Assembly2")
         End Sub
 
         <WorkItem(850101)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeIntoDifferentLanguageNewFile_Folders_NoImports_NotSimpleName()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly1" CommonReferences="true">
@@ -1328,7 +1328,7 @@ projectName:="Assembly2")
         End Sub
 
         <WorkItem(858826)>
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateTypeIntoDifferentLanguageNewFileAdjustTheFileExtension()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly1" CommonReferences="true">
@@ -2129,7 +2129,7 @@ typeKind:=TypeKind.Delegate,
 assertGenerateTypeDialogOptions:=New GenerateTypeDialogOptions(False, TypeKindOptions.AllOptions Or TypeKindOptions.Delegate))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub GenerateDelegateTypeIntoDifferentLanguageNewFile()
             Dim markupString = <Workspace>
                                    <Project Language="Visual Basic" AssemblyName="Assembly1" CommonReferences="true">

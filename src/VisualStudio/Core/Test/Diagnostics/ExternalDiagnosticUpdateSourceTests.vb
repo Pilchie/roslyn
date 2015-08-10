@@ -26,7 +26,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Diagnostics
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         Public Sub TestExternalDiagnostics_RaiseEvents()
             Using workspace = CSharpWorkspaceFactory.CreateWorkspaceFromLines(String.Empty)
                 Dim waiter = New Waiter()
@@ -54,7 +54,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Diagnostics
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         Public Sub TestExternalDiagnostics_DuplicatedError()
             Using workspace = CSharpWorkspaceFactory.CreateWorkspaceFromLines(String.Empty)
                 Dim waiter = New Waiter()

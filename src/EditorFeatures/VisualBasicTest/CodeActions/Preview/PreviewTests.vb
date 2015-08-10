@@ -124,7 +124,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.CodeRefactorings
             End Using
         End Sub
 
-        <Fact>
+        <WpfFact>
         Public Sub TestPickTheRightPreview_WithPreference()
             Using workspace = CreateWorkspaceFromFile("Class D : End Class", Nothing, Nothing)
                 Dim document As Document = Nothing

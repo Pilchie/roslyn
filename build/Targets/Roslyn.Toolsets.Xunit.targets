@@ -7,7 +7,4 @@
     <StartArguments Condition="'$(StartArguments)' == ''">$(AssemblyName).dll -xml $(AssemblyName).xml -noshadow</StartArguments>
     <StartWorkingDirectory Condition="'$(StartWorkingDirectory)' == ''">$(OutDir)</StartWorkingDirectory>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)\xunit.app.config\app.config" />
-  </ItemGroup>
 </Project>

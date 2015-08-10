@@ -73,6 +73,7 @@
     <Compile Include="CodeRefactoringTests.vb" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ImportGroup Label="Targets">

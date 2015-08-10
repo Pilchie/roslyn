@@ -176,7 +176,7 @@ End Class
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Progression)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Progression)>
         Public Sub TestInheritedByInterfacesVisualBasic()
             Using testState = New ProgressionTestState(
                     <Workspace>

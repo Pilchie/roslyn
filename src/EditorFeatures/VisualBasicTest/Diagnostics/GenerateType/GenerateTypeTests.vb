@@ -149,7 +149,7 @@ NewLines("Imports System \n Imports System.Collections.Generic \n Imports System
 index:=1)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestGenerateIntoNewNamespace()
             TestAddDocument(
 NewLines("Imports System \n Imports System.Collections.Generic \n Imports System.Linq \n Class Program \n Sub Main() \n Call New Foo.[|Bar|]() \n End Sub \n End Class"),
@@ -265,7 +265,7 @@ parseOptions:=TestOptions.Regular)
 NewLines("Imports [|System|]"))
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateType)>
         Public Sub TestNoContainersInNewType()
             TestAddDocument(
 NewLines("Class Base \n Sub Main \n Dim p = New [|Derived|]() \n End Sub \n End Class"),

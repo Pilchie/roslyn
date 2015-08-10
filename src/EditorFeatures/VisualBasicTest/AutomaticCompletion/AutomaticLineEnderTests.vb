@@ -25,7 +25,7 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.AutomaticCompletio
 $$</code>, <code>$$</code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub [Imports]()
             Test(<code>Imports _
     $$
@@ -34,7 +34,7 @@ $$</code>, <code>$$</code>)
         End Sub
 
         <WorkItem(530591)>
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub [Namespace]()
             Test(<code>Namespace NS
     $$
@@ -42,7 +42,7 @@ End Namespace</code>, <code>Namespace NS$$</code>)
         End Sub
 
         <WorkItem(530591)>
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub [Class]()
             Test(<code>Class C
     $$
@@ -60,7 +60,7 @@ End Class</code>, <code>Class C
 End Class</code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub [Dim]()
             Test(<code>Class C
     Sub Method()
@@ -136,7 +136,7 @@ $$
 End Class</code>)
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.AutomaticCompletion)>
         Public Sub [If]()
             Test(
 <code>

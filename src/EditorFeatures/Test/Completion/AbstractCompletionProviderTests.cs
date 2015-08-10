@@ -23,7 +23,7 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.Completion
 {
-    public abstract class AbstractCompletionProviderTests<TWorkspaceFixture> : TestBase, IDisposable
+    public abstract class AbstractCompletionProviderTests<TWorkspaceFixture> : TestBase
         where TWorkspaceFixture : TestWorkspaceFixture, new()
     {
         protected readonly Mock<ICompletionSession> MockCompletionSession;
