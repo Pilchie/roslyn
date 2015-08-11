@@ -8,8 +8,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
     Public Class ImplementsClauseCompletionProviderTests
         Inherits AbstractVisualBasicCompletionProviderTests
 
-        Public Sub New(workspaceFixture As VisualBasicTestWorkspaceFixture)
-            MyBase.New(workspaceFixture)
+        Public Sub New()
+            MyBase.New(New VisualBasicTestWorkspaceFixture())
         End Sub
 
         Friend Overrides Function CreateCompletionProvider() As CompletionListProvider

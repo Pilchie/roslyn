@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SignatureHelp
 {
     public class ElementAccessExpressionSignatureHelpProviderTests : AbstractCSharpSignatureHelpProviderTests
     {
-        public ElementAccessExpressionSignatureHelpProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public ElementAccessExpressionSignatureHelpProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 
@@ -752,7 +752,7 @@ class C
 
         public class IncompleteElementAccessExpressionSignatureHelpProviderTests : AbstractCSharpSignatureHelpProviderTests
         {
-            public IncompleteElementAccessExpressionSignatureHelpProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+            public IncompleteElementAccessExpressionSignatureHelpProviderTests() : base(new CSharpTestWorkspaceFixture())
             {
             }
 

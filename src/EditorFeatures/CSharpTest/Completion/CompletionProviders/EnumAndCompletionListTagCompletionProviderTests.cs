@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class EnumAndCompletionListTagCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        public EnumAndCompletionListTagCompletionProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public EnumAndCompletionListTagCompletionProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

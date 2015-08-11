@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SignatureHelp
 {
     public class AttributeSignatureHelpProviderTests : AbstractCSharpSignatureHelpProviderTests
     {
-        public AttributeSignatureHelpProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public AttributeSignatureHelpProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class ExplicitInterfaceCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        public ExplicitInterfaceCompletionProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public ExplicitInterfaceCompletionProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

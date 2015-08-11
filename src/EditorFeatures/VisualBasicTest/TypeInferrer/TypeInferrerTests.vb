@@ -13,8 +13,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.TypeInferrer
     Partial Public Class TypeInferrerTests
         Inherits TypeInferrerTestBase(Of VisualBasicTestWorkspaceFixture)
 
-        Public Sub New(workspaceFixture As VisualBasicTestWorkspaceFixture)
-            MyBase.New(workspaceFixture)
+        Public Sub New()
+            MyBase.New(New VisualBasicTestWorkspaceFixture())
         End Sub
 
         Protected Overrides Sub TestWorker(document As Document, textSpan As TextSpan, expectedType As String, useNodeStartPosition As Boolean)

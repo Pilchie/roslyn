@@ -392,7 +392,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Task.Run(() => Window.Operations.TrySubmitStandardInput()).PumpingWait();
         }
 
-        [WpfFact]
+        [WpfFact(Skip = "https://github.com/dotnet/roslyn/issues/4518")]
         public void CallResetAsyncOnNonUIThread()
         {
             Task.Run(() => Window.Operations.ResetAsync()).PumpingWait();
@@ -410,7 +410,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Task.Run(() => Window.Operations.Cancel()).PumpingWait();
         }
 
-        [Fact]
+        [WpfFact]
         public void TestProjectionSpans()
         {
             new ExpectedProjectionSpans
@@ -615,7 +615,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.Equal(expectedColumn, actualColumn);
         }
 		
-		[Fact]
+		[WpfFact]
         public void CheckHistoryPrevious()
         {
             const string inputString = "1 ";

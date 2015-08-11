@@ -12,7 +12,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.SignatureHelp
 {
     public class GenericNameSignatureHelpProviderTests : AbstractCSharpSignatureHelpProviderTests
     {
-        public GenericNameSignatureHelpProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public GenericNameSignatureHelpProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

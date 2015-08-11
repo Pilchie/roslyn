@@ -8,8 +8,8 @@ Namespace Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Complet
     Public Class CompletionListTagCompletionProviderTests
         Inherits AbstractVisualBasicCompletionProviderTests
 
-        Public Sub New(workspaceFixture As VisualBasicTestWorkspaceFixture)
-            MyBase.New(workspaceFixture)
+        Public Sub New()
+            MyBase.New(New VisualBasicTestWorkspaceFixture())
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Completion)>

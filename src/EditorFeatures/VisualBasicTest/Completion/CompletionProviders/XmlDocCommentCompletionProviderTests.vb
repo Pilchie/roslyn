@@ -1,3 +1,4 @@
+Imports Roslyn.Test.Utilities
 ' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports Microsoft.CodeAnalysis.Completion
@@ -9,8 +10,8 @@ Imports Microsoft.CodeAnalysis.Editor.VisualBasic.UnitTests.Completion.Completio
 Public Class XmlDocCommentCompletionProviderTests
     Inherits AbstractVisualBasicCompletionProviderTests
 
-    Public Sub New(workspaceFixture As VisualBasicTestWorkspaceFixture)
-        MyBase.New(workspaceFixture)
+    Public Sub New()
+        MyBase.New(New VisualBasicTestWorkspaceFixture())
     End Sub
 
     Friend Overrides Function CreateCompletionProvider() As CompletionListProvider
@@ -308,7 +309,7 @@ End Class
 
     <WorkItem(623219)>
     <WorkItem(746919)>
-    <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+    <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
     Public Sub CommitParam()
         Dim text = <File>
 Class C(Of T)
@@ -382,7 +383,7 @@ End Module]]></File>.Value
     End Sub
 
     <WorkItem(638653)>
-    <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+    <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
     Public Sub AllowTypingDoubleQuote()
         Dim text = <File>
 Class C(Of T)
@@ -404,7 +405,7 @@ End Class
     End Sub
 
     <WorkItem(638653)>
-    <Fact, Trait(Traits.Feature, Traits.Features.Completion)>
+    <WpfFact, Trait(Traits.Feature, Traits.Features.Completion)>
     Public Sub AllowTypingSpace()
         Dim text = <File>
 Class C(Of T)

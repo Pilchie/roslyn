@@ -2810,7 +2810,7 @@ namespace ConsoleApplication1
             }
 
             [WorkItem(774321)]
-            [Fact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateMethod)]
+            [WpfFact, Trait(Traits.Feature, Traits.Features.CodeActionsGenerateMethod)]
             public void TestEquivalenceKey()
             {
                 TestEquivalenceKey(

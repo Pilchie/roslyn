@@ -125,7 +125,7 @@ End Module</Document>
             End Using
         End Sub
 
-        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
+        <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Sub CompletionAfterReturn()
             Dim text = <Workspace>
                            <Project Language="Visual Basic" CommonReferences="true">
@@ -176,7 +176,7 @@ End Module</Document>
             End Using
         End Sub
 
-        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
+        <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Sub SignatureHelpInParameterizedConstructor()
             Dim text = <Workspace>
                            <Project Language="Visual Basic" CommonReferences="true">
@@ -197,7 +197,7 @@ End Module</Document>
             End Using
         End Sub
 
-        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
+        <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Sub SignatureHelpInMethodCall()
             Dim text = <Workspace>
                            <Project Language="Visual Basic" CommonReferences="true">
@@ -218,7 +218,7 @@ End Module</Document>
             End Using
         End Sub
 
-        <ConditionalFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
+        <ConditionalWpfFact(GetType(x86)), Trait(Traits.Feature, Traits.Features.DebuggingIntelliSense)>
         Public Sub SignatureHelpInGenericMethod()
             Dim text = <Workspace>
                            <Project Language="Visual Basic" CommonReferences="true">

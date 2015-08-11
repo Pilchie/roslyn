@@ -14,7 +14,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.IntelliSense.Completion
 {
     public class ReferenceDirectiveCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        public ReferenceDirectiveCompletionProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public ReferenceDirectiveCompletionProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

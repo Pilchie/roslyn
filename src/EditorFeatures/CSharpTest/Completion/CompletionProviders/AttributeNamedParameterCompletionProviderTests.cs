@@ -11,7 +11,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionSe
 {
     public class AttributeNamedParameterCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        public AttributeNamedParameterCompletionProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public AttributeNamedParameterCompletionProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

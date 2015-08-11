@@ -10,7 +10,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
 {
     public class ExternAliasCompletionProviderTests : AbstractCSharpCompletionProviderTests
     {
-        public ExternAliasCompletionProviderTests(CSharpTestWorkspaceFixture workspaceFixture) : base(workspaceFixture)
+        public ExternAliasCompletionProviderTests() : base(new CSharpTestWorkspaceFixture())
         {
         }
 

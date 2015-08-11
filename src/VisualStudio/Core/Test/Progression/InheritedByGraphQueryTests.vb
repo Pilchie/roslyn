@@ -116,7 +116,7 @@ interface I3 : I2 // should not be shown as inherited by I
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Progression)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Progression)>
         Public Sub TestInheritedByClassesVisualBasic()
             Using testState = New ProgressionTestState(
                     <Workspace>

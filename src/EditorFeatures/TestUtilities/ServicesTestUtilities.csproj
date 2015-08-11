@@ -33,9 +33,9 @@
     <PlatformTarget>ARM</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Test\Utilities\TestUtilities.csproj"> 
-      <Project>{76C6F005-C89D-4348-BB4A-391898DBEB52}</Project> 
-      <Name>TestUtilities</Name> 
+    <ProjectReference Include="..\..\Compilers\Test\Utilities\Core2\CompilerTestUtilities2.csproj"> 
+      <Project>{f7712928-1175-47b3-8819-ee086753dee2}</Project>
+      <Name>CompilerTestUtilities2</Name>
     </ProjectReference> 
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
