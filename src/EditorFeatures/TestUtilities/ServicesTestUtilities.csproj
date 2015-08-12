@@ -79,11 +79,11 @@
     <Compile Include="ExceptionUtilities.cs" />
     <Compile Include="Traits.cs" />
     <Compile Include="VisualStudioSendKeys.cs" />
-    <Compile Include="WpfFactAttribute.cs" />
-    <Compile Include="WpfFactDiscoverer.cs" />
-    <Compile Include="WpfTestCase.cs" />
-    <Compile Include="WpfTheoryAttribute.cs" />
-    <Compile Include="WpfTheoryDiscoverer.cs" />
+    <Compile Include="ThirdParty\xUnit\WpfFactAttribute.cs" />
+    <Compile Include="ThirdParty\xUnit\WpfFactDiscoverer.cs" />
+    <Compile Include="ThirdParty\xUnit\WpfTestCase.cs" />
+    <Compile Include="ThirdParty\xUnit\WpfTheoryAttribute.cs" />
+    <Compile Include="ThirdParty\xUnit\WpfTheoryDiscoverer.cs" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleToTest Include="Roslyn.Compilers.CSharp.CommandLine.UnitTests" />

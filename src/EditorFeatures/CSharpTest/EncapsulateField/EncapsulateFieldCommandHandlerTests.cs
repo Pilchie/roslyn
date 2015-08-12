@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using Roslyn.Test.Utilities;
 using Xunit;
@@ -7,7 +7,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.EncapsulateField
 {
     public class EncapsulateFieldCommandHandlerTests
     {
-        [Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
         public void EncapsulatePrivateField()
         {
             var text = @"
@@ -50,7 +50,7 @@ class C
             }
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
         public void EncapsulateNonPrivateField()
         {
             var text = @"
@@ -93,7 +93,7 @@ class C
             }
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
         public void DialogShownIfNotFieldsFound()
         {
             var text = @"
@@ -114,7 +114,7 @@ class$$ C
         }
 
         [WorkItem(1086632)]
-        [Fact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.EncapsulateField)]
         public void EncapsulateTwoFields()
         {
             var text = @"

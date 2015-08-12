@@ -626,7 +626,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.Equal(inputString, GetTextFromCurrentLanguageBuffer());
         }
 
-        [Fact]
+        [WpfFact]
         public void CheckHistoryPreviousAfterReset()
         {
             const string resetCommand = "#reset";
@@ -637,7 +637,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.Equal(resetCommand, GetTextFromCurrentLanguageBuffer());
         }
 
-        [Fact]
+        [WpfFact]
         public void ResetCommandArgumentParsing_Success()
         {
             bool initialize;
@@ -663,7 +663,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.False(initialize);
         }
 
-        [Fact]
+        [WpfFact]
         public void ResetCommandArgumentParsing_Failure()
         {
             bool initialize;
@@ -675,7 +675,7 @@ namespace Microsoft.VisualStudio.InteractiveWindow.UnitTests
             Assert.False(ResetCommand.TryParseArguments("noconfig\r\na", out initialize));
         }
 
-        [Fact]
+        [WpfFact]
         public void ResetCommandNoConfigClassification()
         {
             Assert.Empty(ResetCommand.GetNoConfigPositions(""));

@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// Copyright 2014 Outercurve Foundation. Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// https://github.com/xunit/samples.xunit/tree/f4d955a52d3298150ad2bd211c65a3477e184413
+
+using System.Collections.Generic;
 using System.Linq;
 
 using Xunit.Abstractions;

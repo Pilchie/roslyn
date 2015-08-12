@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Editor.CSharp.Completion.CompletionProviders.XmlDocCommentCompletion;
@@ -277,7 +277,7 @@ public class foo<T>
 }", "typeparam name=\"T\"");
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitSummary()
         {
             var markupBeforeCommit = @"class c
@@ -295,7 +295,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitSummaryOnTab()
         {
             var markupBeforeCommit = @"class c
@@ -313,7 +313,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit, commitChar: '\t');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitSummaryOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -331,7 +331,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitSummary()
         {
             var markupBeforeCommit = @"class c
@@ -349,7 +349,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitSummaryOnTab()
         {
             var markupBeforeCommit = @"class c
@@ -367,7 +367,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit, commitChar: '\t');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitSummaryOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -385,7 +385,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitRemarksOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -403,7 +403,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "remarks", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitRemarksOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -421,7 +421,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "remarks", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitReturnOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -439,7 +439,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "returns", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitReturnOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -457,7 +457,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "returns", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitExampleOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -475,7 +475,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "example", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitExampleOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -493,7 +493,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "example", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitExceptionNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -511,7 +511,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "exception", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitExceptionOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -529,7 +529,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "exception", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitCommentNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -547,7 +547,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "!--", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitCommentOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -565,7 +565,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "!--", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitCdataNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -583,7 +583,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "![CDATA[", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitCdataOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -601,7 +601,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "![CDATA[", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitIncludeNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -619,7 +619,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "include", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitIncludeOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -637,7 +637,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "include", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitPermissionNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -655,7 +655,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "permission", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitPermissionOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -673,7 +673,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "permission", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitSeeNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -691,7 +691,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "see", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitSeeOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -709,7 +709,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "see", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitSeealsoNoOpenAngle()
         {
             var markupBeforeCommit = @"class c
@@ -727,7 +727,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "seealso", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitSeealsoOnCloseAngle()
         {
             var markupBeforeCommit = @"class c
@@ -745,7 +745,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "seealso", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitParam()
         {
             var markupBeforeCommit = @"class c<T>
@@ -763,7 +763,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "param name=\"bar\"", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitParamOnTab()
         {
             var markupBeforeCommit = @"class c<T>
@@ -781,7 +781,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "param name=\"bar\"", expectedCodeAfterCommit, commitChar: '\t');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitParamOnCloseAngle()
         {
             var markupBeforeCommit = @"class c<T>
@@ -799,7 +799,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "param name=\"bar\"", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitParam()
         {
             var markupBeforeCommit = @"class c<T>
@@ -817,7 +817,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "param name=\"bar\"", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitParamOnTab()
         {
             var markupBeforeCommit = @"class c<T>
@@ -835,7 +835,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "param name=\"bar\"", expectedCodeAfterCommit, commitChar: '\t');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitParamOnCloseAngle()
         {
             var markupBeforeCommit = @"class c<T>
@@ -853,7 +853,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "param name=\"bar\"", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void InvokeWithOpenAngleCommitTypeparamOnCloseAngle()
         {
             var markupBeforeCommit = @"class c<T>
@@ -871,7 +871,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "typeparam name=\"T\"", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitList()
         {
             var markupBeforeCommit = @"class c<T>
@@ -893,7 +893,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "list", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitListCloseAngle()
         {
             var markupBeforeCommit = @"class c<T>
@@ -915,7 +915,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "list", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void TestTagCompletion1()
         {
             var markupBeforeCommit = @"class c<T>
@@ -935,7 +935,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void TestTagCompletion2()
         {
             var markupBeforeCommit = @"class c<T>
@@ -957,7 +957,7 @@ public class foo<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "summary", expectedCodeAfterCommit, commitChar: '>');
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void TestTagCompletion3()
         {
             var markupBeforeCommit = @"class c<T>
@@ -980,7 +980,7 @@ public class foo<T>
         }
 
         [WorkItem(623168)]
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void NoTrailingSpace()
         {
             var markupBeforeCommit = @"class c

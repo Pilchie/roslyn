@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -2671,7 +2671,7 @@ class Program{
                 SyntaxKind.OpenBraceToken);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(620568)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void SkippedTokens1()
@@ -2683,7 +2683,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(530830)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor()
@@ -2701,7 +2701,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(530830)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor2()
@@ -2719,7 +2719,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(530830)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor3()
@@ -2737,7 +2737,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(784674)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor4()
@@ -2755,7 +2755,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(924469)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor5()
@@ -2772,7 +2772,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(924469)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor6()
@@ -2790,7 +2790,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(924469)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void AutoPropertyAccessor7()
@@ -2808,7 +2808,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(912965)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void NestedUsingStatement()
@@ -2834,7 +2834,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(912965)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void NestedNotUsingStatement()
@@ -2860,7 +2860,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(954386)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void FormattingRangeForFirstStatementOfBlock()
@@ -2883,7 +2883,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(954386)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void FormattingRangeForFirstMemberofType()
@@ -2906,7 +2906,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(954386)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void FormattingRangeForFirstMethodMemberofType()
@@ -2923,7 +2923,7 @@ class Program{
             AutoFormatToken(code, expected);
         }
 
-        [Fact]
+        [WpfFact]
         [WorkItem(954386)]
         [Trait(Traits.Feature, Traits.Features.SmartTokenFormatting)]
         public void FormattingRangeForFirstMemberOfNamespace()
@@ -2941,7 +2941,7 @@ class Program{
         }
 
         [WorkItem(981821)]
-        [Fact]
+        [WpfFact]
         [Trait(Traits.Feature, Traits.Features.Formatting)]
         public void FormatDirectiveTriviaAlwaysToColumnZero()
         {
@@ -2969,7 +2969,7 @@ class Program{
         }
 
         [WorkItem(981821)]
-        [Fact]
+        [WpfFact]
         [Trait(Traits.Feature, Traits.Features.Formatting)]
         public void FormatDirectiveTriviaAlwaysToColumnZeroWithCode()
         {
@@ -2999,7 +2999,7 @@ class Program{
         }
 
         [WorkItem(981821)]
-        [Fact]
+        [WpfFact]
         [Trait(Traits.Feature, Traits.Features.Formatting)]
         public void FormatDirectiveTriviaAlwaysToColumnZeroWithBrokenElseDirective()
         {
