@@ -143,7 +143,7 @@
     <InternalsVisibleToTest Include="Roslyn.Services.UnitTests" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="..\App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ImportGroup Label="Targets">
