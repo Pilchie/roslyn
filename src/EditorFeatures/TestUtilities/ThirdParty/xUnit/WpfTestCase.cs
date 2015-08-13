@@ -21,11 +21,14 @@ namespace Roslyn.Test.Utilities
     public class WpfTestCase : LongLivedMarshalByRefObject, IXunitTestCase
     {
         private IXunitTestCase _testCase;
+        private static ThreadLocal<bool> s_isWpfFactThread = new ThreadLocal<bool>();
 
         public WpfTestCase(IXunitTestCase testCase)
         {
             _testCase = testCase;
         }
+
+        public static bool IsWpfFactThread => s_isWpfFactThread.Value;
 
         /// <summary/>
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -51,6 +54,7 @@ namespace Roslyn.Test.Utilities
             var tcs = new TaskCompletionSource<RunSummary>();
             var thread = new Thread(() =>
             {
+                s_isWpfFactThread.Value = true;
                 try
                 {
                     // Set up the SynchronizationContext so that any awaits

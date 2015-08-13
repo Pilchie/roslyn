@@ -12,6 +12,7 @@ using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Utilities;
 using Roslyn.Utilities;
+using Roslyn.Test.Utilities;
 
 namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 {
@@ -203,6 +204,11 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
         {
             if (_textView == null)
             {
+                if (!WpfTestCase.IsWpfFactThread)
+                {
+                    Contract.ThrowIfFalse(WpfTestCase.IsWpfFactThread, $"Can't get the {nameof(ITextView)} outside of a WpfFact");
+                }
+
                 _textView = _exportProvider.GetExportedValue<ITextEditorFactoryService>().CreateTextView(this.TextBuffer);
                 if (this.CursorPosition.HasValue)
                 {
@@ -270,10 +276,21 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
 
         internal void CloseTextView()
         {
-            if (_textView != null && !_textView.IsClosed)
+            if (_textView != null )
             {
-                _textView.Close();
+                if (!_textView.IsClosed)
+                {
+                    _textView.Close();
+                }
+
                 _textView = null;
+            }
+            else
+            {
+                if (WpfTestCase.IsWpfFactThread)
+                {
+                    Contract.ThrowIfTrue(WpfTestCase.IsWpfFactThread, $"Should not be in a WpfFact if not using then {nameof(ITextView)}");
+                }
             }
         }
 
