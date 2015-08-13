@@ -234,7 +234,7 @@ namespace Microsoft.CodeAnalysis.Editor.CSharp.UnitTests.Completion.CompletionPr
             VerifyNoItemsExist(text);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitInPartialClass()
         {
             var markupBeforeCommit = @"partial class c
@@ -259,7 +259,7 @@ partial class c
             VerifyCustomCommitProvider(markupBeforeCommit, "foo()", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitGenericPartialMethod()
         {
             var markupBeforeCommit = @"partial class c<T>
@@ -284,7 +284,7 @@ partial class c<T>
             VerifyCustomCommitProvider(markupBeforeCommit, "foo(T bar)", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitMethodErasesPrivate()
         {
             var markupBeforeCommit = @"partial class c
@@ -309,7 +309,7 @@ partial class c
             VerifyCustomCommitProvider(markupBeforeCommit, "foo()", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitInPartialClassPart()
         {
             var markupBeforeCommit = @"partial class c
@@ -340,7 +340,7 @@ partial class c
             VerifyCustomCommitProvider(markupBeforeCommit, "foo()", expectedCodeAfterCommit);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitInPartialStruct()
         {
             var markupBeforeCommit = @"partial struct c
@@ -399,7 +399,7 @@ partial struct c
         }
 
         [WorkItem(578078)]
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void CommitAsync()
         {
             var markupBeforeCommit = @"using System;
@@ -427,7 +427,7 @@ partial class Bar
         }
 
         [WorkItem(578078)]
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void AmbiguityCommittingWithParen()
         {
             var markupBeforeCommit = @"using System;
@@ -455,7 +455,7 @@ partial class Bar
         }
 
         [WorkItem(965677)]
-        [Fact, Trait(Traits.Feature, Traits.Features.Completion)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.Completion)]
         public void NoDefaultParameterValues()
         {
             var text = @"namespace PartialClass

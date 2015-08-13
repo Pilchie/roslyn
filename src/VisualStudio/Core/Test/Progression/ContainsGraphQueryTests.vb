@@ -314,7 +314,7 @@ Namespace Microsoft.VisualStudio.LanguageServices.UnitTests.Progression
             End Using
         End Sub
 
-        <Fact, Trait(Traits.Feature, Traits.Features.Progression), WorkItem(610147)>
+        <WpfFact, Trait(Traits.Feature, Traits.Features.Progression), WorkItem(610147)>
         Public Sub NothingInBrokenCode2()
             Using testState = New ProgressionTestState(
                     <Workspace>

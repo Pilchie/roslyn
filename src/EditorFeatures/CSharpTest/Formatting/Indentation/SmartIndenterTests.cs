@@ -1886,7 +1886,7 @@ $$Console.WriteLine();|]|}
                 markup, BaseIndentationOfNugget + 4);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AtEndOfSpanInNugget()
         {
             var markup = @"class Program
@@ -1904,7 +1904,7 @@ $$|]|}
                 markup, BaseIndentationOfNugget + 4);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void InMiddleOfSpanAtStartOfNugget()
         {
             var markup = @"class Program
@@ -1927,7 +1927,7 @@ $$teLine();|]|}
                 markup, BaseIndentationOfNugget + 8);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void InMiddleOfSpanInsideOfNugget()
         {
             var markup = @"class Program
@@ -1951,7 +1951,7 @@ $$teLine();|]|}
                 markup, BaseIndentationOfNugget + 8);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AfterStatementInNugget()
         {
             var markup = @"class Program
@@ -1971,7 +1971,7 @@ $$
                 markup, BaseIndentationOfNugget + 4);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AfterStatementOnFirstLineOfNugget()
         {
             var markup = @"class Program
@@ -2001,7 +2001,7 @@ $$
                 markup, BaseIndentationOfNugget + 4);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void InQueryOnFistLineOfNugget()
         {
             var markup = @"class Program
@@ -2020,7 +2020,7 @@ $$
                 markup, BaseIndentationOfNugget + 8);
         }
 
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void InQueryInNugget()
         {
             var markup = @"class Program
@@ -2041,7 +2041,7 @@ $$
         }
 
         [WorkItem(9216, "DevDiv_Projects/Roslyn")]
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void InsideBracesInNugget()
         {
             var markup = @"class Program
@@ -2061,7 +2061,7 @@ $$
         }
 
         [WorkItem(9216, "DevDiv_Projects/Roslyn")]
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AfterEmbeddedStatementOnFirstLineOfNugget()
         {
             var markup = @"class Program
@@ -2086,7 +2086,7 @@ $$
         }
 
         [WorkItem(9216, "DevDiv_Projects/Roslyn")]
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AfterEmbeddedStatementInNugget()
         {
             var markup = @"class Program
@@ -2112,7 +2112,7 @@ $$
 
         // this is the special case where the smart indenter 
         // aligns with the base or base + 4th position.
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AfterSwitchStatementAtEndOfNugget()
         {
             var markup = @"
@@ -2139,7 +2139,7 @@ $$
 
         // this is the special case where the smart indenter 
         // aligns with the base or base + 4th position.
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void AfterSwitchStatementInNugget()
         {
             var markup = @"
@@ -2163,7 +2163,7 @@ $$
                 expectedIndentation: BaseIndentationOfNugget + 12);
         }
 
-        [Fact, WorkItem(529876), Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, WorkItem(529876), Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void InEmptyNugget()
         {
             var markup = @"class Program
@@ -2183,7 +2183,7 @@ $$|]|}
         }
 
         [WorkItem(1190278)]
-        [Fact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
+        [WpfFact, Trait(Traits.Feature, Traits.Features.SmartIndent), Trait(Traits.Feature, Traits.Features.Venus)]
         public void GetNextTokenForFormattingSpanCalculationIncludesZeroWidthToken_CS()
         {
             var markup = @"//------------------------------------------------------------------------------
