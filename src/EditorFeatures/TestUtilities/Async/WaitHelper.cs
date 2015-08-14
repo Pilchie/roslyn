@@ -13,6 +13,11 @@ namespace Roslyn.Test.Utilities
     {
         public static void WaitForDispatchedOperationsToComplete(DispatcherPriority priority)
         {
+            if (!WpfTestCase.IsWpfFactThread)
+            {
+                throw new InvalidOperationException($"Can't call {nameof(WaitForDispatchedOperationsToComplete)} outside of a WpfFact");
+            }
+
             Action action = delegate { };
             new FrameworkElement().Dispatcher.Invoke(action, priority);
         }

@@ -289,7 +289,7 @@ namespace Microsoft.CodeAnalysis.Editor.UnitTests.Workspaces
             {
                 if (WpfTestCase.IsWpfFactThread)
                 {
-                    Contract.ThrowIfTrue(WpfTestCase.IsWpfFactThread, $"Should not be in a WpfFact if not using then {nameof(ITextView)}");
+                    //Contract.ThrowIfTrue(WpfTestCase.IsWpfFactThread, $"Should not be in a WpfFact if not using then {nameof(ITextView)}");
                 }
             }
         }
