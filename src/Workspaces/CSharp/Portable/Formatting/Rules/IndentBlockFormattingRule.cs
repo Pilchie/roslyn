@@ -223,10 +223,18 @@ namespace Microsoft.CodeAnalysis.CSharp.Formatting
             var elseClause = node as ElseClauseSyntax;
             if (elseClause != null && elseClause.Statement != null)
             {
-                if (!(elseClause.Statement is BlockSyntax || elseClause.Statement is IfStatementSyntax))
+                if (elseClause.Statement is BlockSyntax)
                 {
-                    AddEmbeddedStatementsIndentationOperation(list, elseClause.Statement);
+                    return;
                 }
+
+                if (elseClause.Statement is IfStatementSyntax)
+                    //&& elseClause.ElseKeyword.Span == ((IfStatementSyntax)elseClause.Statement).IfKeyword.Span.Line)
+                {
+                    return;
+                }
+
+                AddEmbeddedStatementsIndentationOperation(list, elseClause.Statement);
 
                 return;
             }
