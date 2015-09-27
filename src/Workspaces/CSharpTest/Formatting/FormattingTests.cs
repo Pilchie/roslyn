@@ -6447,5 +6447,24 @@ class Program
 	} // The tab here should stay a tab
 }", changedOptionSet: optionSet);
         }
+
+        [Fact, Trait(Traits.Feature, Traits.Features.Formatting)]
+        [WorkItem(111079, "devdiv.visualstudio.com")]
+        public void TestThrowInIfOnSingleLine()
+        {
+            var code = @"
+class C
+{
+    void M()
+    {
+        if (true) throw new Exception(
+            ""message"");
+    }
+}
+";
+
+            AssertFormat(code, code);
+        }
+
     }
 }
