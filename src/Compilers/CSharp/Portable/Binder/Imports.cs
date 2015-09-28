@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Microsoft.CodeAnalysis.Collections;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Roslyn.Utilities;
@@ -19,11 +20,11 @@ namespace Microsoft.CodeAnalysis.CSharp
         internal static readonly Imports Empty = new Imports(null, null,
             ImmutableArray<NamespaceOrTypeAndUsingDirective>.Empty, ImmutableArray<AliasAndExternAliasDirective>.Empty, null);
 
-        private readonly CSharpCompilation compilation;
-        private readonly DiagnosticBag diagnostics;
+        private readonly CSharpCompilation _compilation;
+        private readonly DiagnosticBag _diagnostics;
 
         // completion state that tracks whether validation was done/not done/currently in process. 
-        private SymbolCompletionState state;
+        private SymbolCompletionState _state;
 
         public readonly Dictionary<string, AliasAndUsingDirective> UsingAliases;
         public readonly ImmutableArray<NamespaceOrTypeAndUsingDirective> Usings;
@@ -38,10 +39,10 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             Debug.Assert(!usings.IsDefault && !externs.IsDefault);
 
-            this.compilation = compilation;
+            _compilation = compilation;
             this.UsingAliases = usingAliases;
             this.Usings = usings;
-            this.diagnostics = diagnostics;
+            _diagnostics = diagnostics;
             this.ExternAliases = externs;
         }
 
@@ -93,19 +94,13 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 // A binder that contains the extern aliases but not the usings. The resolution of the target of a using directive or alias 
                 // should not make use of other peer usings.
-                InContainerBinder usingsBinder;
-                if (binder.Container.IsSubmissionClass)
-                {
+                var usingsBinder = binder.IsSubmissionClass ?
                     // Top-level usings in interactive code are resolved in the context of global namespace, w/o extern aliases:
-                    usingsBinder = new InContainerBinder(binder.Compilation.GlobalNamespace, new BuckStopsHereBinder(binder.Compilation));
-                }
-                else
-                {
-                    usingsBinder = new InContainerBinder(binder.Container, binder.Next,
+                    new InContainerBinder(binder.Compilation.GlobalNamespace, new BuckStopsHereBinder(binder.Compilation)) :
+                    new InContainerBinder(binder.Container, binder.Next,
                         new Imports(binder.Compilation, null, ImmutableArray<NamespaceOrTypeAndUsingDirective>.Empty, externAliases, null));
-                }
 
-                var uniqueUsings = new HashSet<NamespaceOrTypeSymbol>();
+                var uniqueUsings = PooledHashSet<NamespaceOrTypeSymbol>.GetInstance();
 
                 foreach (var usingDirective in usingDirectives)
                 {
@@ -208,6 +203,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                         }
                     }
                 }
+
+                uniqueUsings.Free();
             }
 
             if (diagnostics.IsEmptyWithoutResolution)
@@ -303,9 +300,9 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         private void MarkImportDirective(CSharpSyntaxNode directive, bool callerIsSemanticModel)
         {
-            if (directive != null && this.compilation != null && !callerIsSemanticModel)
+            if (directive != null && _compilation != null && !callerIsSemanticModel)
             {
-                compilation.MarkImportDirectiveAsUsed(directive);
+                _compilation.MarkImportDirectiveAsUsed(directive);
             }
         }
 
@@ -314,15 +311,15 @@ namespace Microsoft.CodeAnalysis.CSharp
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var incompletePart = state.NextIncompletePart;
+                var incompletePart = _state.NextIncompletePart;
                 switch (incompletePart)
                 {
                     case CompletionPart.StartValidatingImports:
                         {
-                            if (state.NotePartComplete(CompletionPart.StartValidatingImports))
+                            if (_state.NotePartComplete(CompletionPart.StartValidatingImports))
                             {
                                 Validate();
-                                state.NotePartComplete(CompletionPart.FinishValidatingImports);
+                                _state.NotePartComplete(CompletionPart.FinishValidatingImports);
                             }
                         }
                         break;
@@ -330,8 +327,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                     case CompletionPart.FinishValidatingImports:
                         // some other thread has started validating imports (otherwise we would be in the case above) so
                         // we just wait for it to both finish and report the diagnostics.
-                        Debug.Assert(state.HasComplete(CompletionPart.StartValidatingImports));
-                        state.SpinWaitComplete(CompletionPart.FinishValidatingImports, cancellationToken);
+                        Debug.Assert(_state.HasComplete(CompletionPart.StartValidatingImports));
+                        _state.SpinWaitComplete(CompletionPart.FinishValidatingImports, cancellationToken);
                         break;
 
                     case CompletionPart.None:
@@ -339,17 +336,17 @@ namespace Microsoft.CodeAnalysis.CSharp
 
                     default:
                         // any other values are completion parts intended for other kinds of symbols
-                        state.NotePartComplete(CompletionPart.All & ~CompletionPart.ImportsAll);
+                        _state.NotePartComplete(CompletionPart.All & ~CompletionPart.ImportsAll);
                         break;
                 }
 
-                state.SpinWaitComplete(incompletePart, cancellationToken);
+                _state.SpinWaitComplete(incompletePart, cancellationToken);
             }
         }
 
         private void Validate()
         {
-            DiagnosticBag semanticDiagnostics = this.compilation.SemanticDiagnostics;
+            DiagnosticBag semanticDiagnostics = _compilation.DeclarationDiagnostics;
 
             if (UsingAliases != null)
             {
@@ -375,9 +372,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 semanticDiagnostics.AddRange(alias.Alias.AliasTargetDiagnostics);
             }
 
-            if (diagnostics != null && !diagnostics.IsEmptyWithoutResolution)
+            if (_diagnostics != null && !_diagnostics.IsEmptyWithoutResolution)
             {
-                semanticDiagnostics.AddRange(diagnostics.AsEnumerable());
+                semanticDiagnostics.AddRange(_diagnostics.AsEnumerable());
             }
         }
 
@@ -571,17 +568,9 @@ namespace Microsoft.CodeAnalysis.CSharp
                 }
             }
 
-            if(seenNamespaceWithExtensionMethods && seenStaticClassWithExtensionMethods)
+            if (seenNamespaceWithExtensionMethods && seenStaticClassWithExtensionMethods)
             {
-                var methodsNoDuplicates = ArrayBuilder<MethodSymbol>.GetInstance();
-                methodsNoDuplicates.AddRange(methods.Distinct());
-                if(methodsNoDuplicates.Count < methods.Count)
-                {
-                    methods.Clear();
-                    methods.AddRange(methodsNoDuplicates);
-                }
-
-                methodsNoDuplicates.Free();
+                methods.RemoveDuplicates();
             }
         }
 

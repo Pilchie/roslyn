@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
@@ -1475,10 +1477,12 @@ namespace x
         }
 
         [WorkItem(528539, "DevDiv")]
+        [WorkItem(1119609, "DevDiv")]
+        [WorkItem(920, "http://github.com/dotnet/roslyn/issues/920")]
         [Fact]
         public void CS0030ERR_NoExplicitConv02()
         {
-            var text = @"
+            const string text = @"
 public class C
 {
     public static void Main()
@@ -1486,13 +1490,28 @@ public class C
         decimal x = (decimal)double.PositiveInfinity;
     }
 }";
-            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
-                // (6,21): error CS0031: Constant value 'Infinity' cannot be converted to a 'decimal'
-                //         decimal x = (decimal)double.PositiveInfinity;
-                Diagnostic(ErrorCode.ERR_ConstOutOfRange, "(decimal)double.PositiveInfinity").WithArguments("Infinity", "decimal"),
-                // (6,17): warning CS0219: The variable 'x' is assigned but its value is never used
-                //         decimal x = (decimal)double.PositiveInfinity;
-                Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "x").WithArguments("x"));
+            var diagnostics = CreateCompilationWithMscorlib(text).GetDiagnostics();
+
+            var savedCurrentCulture = Thread.CurrentThread.CurrentCulture;
+            var savedCurrentUICulture = Thread.CurrentThread.CurrentUICulture;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+
+            try
+            {
+                diagnostics.Verify(
+                    // (6,21): error CS0031: Constant value 'Infinity' cannot be converted to a 'decimal'
+                    //         decimal x = (decimal)double.PositiveInfinity;
+                    Diagnostic(ErrorCode.ERR_ConstOutOfRange, "(decimal)double.PositiveInfinity").WithArguments("Infinity", "decimal"),
+                    // (6,17): warning CS0219: The variable 'x' is assigned but its value is never used
+                    //         decimal x = (decimal)double.PositiveInfinity;
+                    Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "x").WithArguments("x"));
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = savedCurrentCulture;
+                Thread.CurrentThread.CurrentUICulture = savedCurrentUICulture;
+            }
         }
 
         [Fact]
@@ -1862,7 +1881,6 @@ class Program
 }
 ";
             CreateCompilationWithMscorlib(text).VerifyDiagnostics(Diagnostic(ErrorCode.ERR_ValueCantBeNull, "(MyEnum)null").WithArguments("Program.MyEnum").WithLocation(12, 20));
-
         }
 
         [Fact(), WorkItem(528875, "DevDiv")]
@@ -2903,7 +2921,6 @@ class F
                 //   [DefaultValue(Prop.Privacy)] // CS0120
                 Diagnostic(ErrorCode.ERR_ObjectProhibited, "Prop.Privacy").WithArguments("ProtectionLevel.Privacy")  // Extra In Roslyn
                 );
-
         }
 
         [Fact]
@@ -3583,17 +3600,21 @@ class C
         [Fact]
         public void CS0133ERR_NotConstantExpression04()
         {
-            DiagnosticsUtils.TestDiagnosticsExact(
+            var source =
 @"class C
 {
     static void M()
     {
         const int x = x + x;
     }
-}
-",
-                //"'x + x' error CS0133: The expression being assigned to 'x' must be constant",
-                "'x + x' error CS0133: The expression being assigned to 'x' must be constant");
+}";
+            CreateCompilationWithMscorlib45(source).VerifyDiagnostics(
+                // (5,27): error CS0110: The evaluation of the constant value for 'x' involves a circular definition
+                //         const int x = x + x;
+                Diagnostic(ErrorCode.ERR_CircConstValue, "x").WithArguments("x").WithLocation(5, 27),
+                // (5,23): error CS0110: The evaluation of the constant value for 'x' involves a circular definition
+                //         const int x = x + x;
+                Diagnostic(ErrorCode.ERR_CircConstValue, "x").WithArguments("x").WithLocation(5, 23));
         }
 
         [Fact]
@@ -4190,7 +4211,7 @@ public class B : A
 }";
             var compilation1 = CreateCompilationWithMscorlib(source1);
             compilation1.VerifyDiagnostics();
-            var compilationVerifier = CompileAndVerify(compilation1, emitOptions: TestEmitters.CCI);
+            var compilationVerifier = CompileAndVerify(compilation1);
             var reference1 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
             var source2 =
 @"class C
@@ -4530,7 +4551,7 @@ class C
                 Diagnostic(ErrorCode.ERR_BadEmptyThrowInFinally, "throw"),
                 // (36,17): error CS0724: A throw statement with no arguments is not allowed in a finally clause that is nested inside the nearest enclosing catch clause
                 Diagnostic(ErrorCode.ERR_BadEmptyThrowInFinally, "throw"),
-                    // (36,17): error CS0724: A throw statement with no arguments is not allowed in a finally clause that is nested inside the nearest enclosing catch clause
+                // (36,17): error CS0724: A throw statement with no arguments is not allowed in a finally clause that is nested inside the nearest enclosing catch clause
                 Diagnostic(ErrorCode.ERR_BadEmptyThrowInFinally, "throw"),
                 // (41,13): error CS0156: A throw statement with no arguments is not allowed outside of a catch clause
                 Diagnostic(ErrorCode.ERR_BadEmptyThrow, "throw"),
@@ -4871,7 +4892,7 @@ class Program
                 // (12,17): error CS0159: No such label 'default:' within the scope of the goto statement
                 //                 goto default;
                 Diagnostic(ErrorCode.ERR_LabelNotFound, "goto default;").WithArguments("default:"),
-                // (11,13): error CS14001: Control cannot fall out of switch from final case label ('case 23:')
+                // (11,13): error CS8070: Control cannot fall out of switch from final case label ('case 23:')
                 //             case 23:
                 Diagnostic(ErrorCode.ERR_SwitchFallOut, "case 23:").WithArguments("case 23:"));
         }
@@ -6578,7 +6599,6 @@ public class C
                 //     N(h2); // Error: hoisted to field
                 Diagnostic(ErrorCode.ERR_SpecialByRefInLambda, "h2").WithArguments("System.RuntimeArgumentHandle")
                 );
-
         }
 
         [Fact, WorkItem(538008, "DevDiv")]
@@ -6760,6 +6780,77 @@ class MyDerived : MyClass
             });
         }
 
+        [Fact, WorkItem(990, "https://github.com/dotnet/roslyn/issues/990")]
+        public void WriteOfReadonlyStaticMemberOfAnotherInstantiation01()
+        {
+            var text =
+@"public static class Foo<T>
+{
+    static Foo()
+    {
+        Foo<int>.X = 1;
+        Foo<int>.Y = 2;
+        Foo<T>.Y = 3;
+    }
+
+    public static readonly int X;
+    public static int Y { get; }
+}";
+            CreateCompilationWithMscorlib(text, options: TestOptions.ReleaseDll).VerifyDiagnostics(
+                // (6,9): error CS0200: Property or indexer 'Foo<int>.Y' cannot be assigned to -- it is read only
+                //         Foo<int>.Y = 2;
+                Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "Foo<int>.Y").WithArguments("Foo<int>.Y").WithLocation(6, 9)
+                );
+            CreateCompilationWithMscorlib(text, options: TestOptions.ReleaseDll, parseOptions: TestOptions.Regular.WithStrictFeature()).VerifyDiagnostics(
+                // (5,9): error CS0198: A static readonly field cannot be assigned to (except in a static constructor or a variable initializer)
+                //         Foo<int>.X = 1;
+                Diagnostic(ErrorCode.ERR_AssgReadonlyStatic, "Foo<int>.X").WithLocation(5, 9),
+                // (6,9): error CS0200: Property or indexer 'Foo<int>.Y' cannot be assigned to -- it is read only
+                //         Foo<int>.Y = 2;
+                Diagnostic(ErrorCode.ERR_AssgReadonlyProp, "Foo<int>.Y").WithArguments("Foo<int>.Y").WithLocation(6, 9)
+                );
+        }
+
+        [Fact, WorkItem(990, "https://github.com/dotnet/roslyn/issues/990")]
+        public void WriteOfReadonlyStaticMemberOfAnotherInstantiation02()
+        {
+            var text =
+@"using System;
+using System.Threading;
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.WriteLine(Foo<long>.x);
+        Console.WriteLine(Foo<int>.x);
+        Console.WriteLine(Foo<string>.x);
+        Console.WriteLine(Foo<int>.x);
+    }
+}
+
+public static class Foo<T>
+{
+    static Foo()
+    {
+        Console.WriteLine(""initializing for "" + typeof(T));
+        Foo<int>.x = typeof(T).Name;
+    }
+
+    public static readonly string x;
+}";
+            var expectedOutput =
+@"initializing for System.Int64
+initializing for System.Int32
+
+Int64
+initializing for System.String
+
+String
+";
+            // Although we accept this nasty code, it will not verify.
+            CompileAndVerify(text, expectedOutput: expectedOutput, verify: false);
+        }
+
         [Fact]
         public void CS0199ERR_RefReadonlyStatic()
         {
@@ -6917,7 +7008,7 @@ public class B : A
 }";
             var compilation1 = CreateCompilationWithMscorlib(source1);
             compilation1.VerifyDiagnostics();
-            var compilationVerifier = CompileAndVerify(compilation1, emitOptions: TestEmitters.CCI);
+            var compilationVerifier = CompileAndVerify(compilation1);
             var reference1 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
             var source2 =
 @"class C
@@ -7604,7 +7695,8 @@ class C
                 Diagnostic(ErrorCode.ERR_ConstOutOfRangeChecked, "E.A - 1").WithArguments("-1", "E"));
         }
 
-        [Fact]
+        [WorkItem(1119609, "DevDiv")]
+        [Fact(Skip = "1119609")]
         public void CS0221ERR_ConstOutOfRangeChecked03()
         {
             var text =
@@ -7960,6 +8052,34 @@ public class MemberInitializerTest
                 //     private Foo f = new Foo{i = i, s = s};
                 Diagnostic(ErrorCode.ERR_FieldInitRefNonstatic, "s").WithArguments("MemberInitializerTest.s").WithLocation(12, 40));
         }
+
+        [Fact]
+        public void CS0236ERR_FieldInitRefNonstatic_AnotherInitializer()
+        {
+            CreateCompilationWithMscorlib(
+@"
+class TestClass
+{
+    int P1 { get; }
+
+    int y = (P1 = 123);
+    int y1 { get; } = (P1 = 123);
+
+    static void Main()
+    {
+    }
+}
+")
+            .VerifyDiagnostics(
+    // (6,14): error CS0236: A field initializer cannot reference the non-static field, method, or property 'TestClass.P1'
+    //     int y = (P1 = 123);
+    Diagnostic(ErrorCode.ERR_FieldInitRefNonstatic, "P1").WithArguments("TestClass.P1").WithLocation(6, 14),
+    // (7,24): error CS0236: A field initializer cannot reference the non-static field, method, or property 'TestClass.P1'
+    //     int y1 { get; } = (P1 = 123);
+    Diagnostic(ErrorCode.ERR_FieldInitRefNonstatic, "P1").WithArguments("TestClass.P1").WithLocation(7, 24)
+                );
+        }
+
 
         [Fact]
         public void CS0242ERR_VoidError()
@@ -10052,6 +10172,32 @@ public class A : A<int>
                 Diagnostic(ErrorCode.ERR_RecursiveConstructorCall, "base").WithArguments("A.A()"));
         }
 
+        [WorkItem(366, "https://github.com/dotnet/roslyn/issues/366")]
+        [Fact]
+        public void IndirectConstructorCycle()
+        {
+            var text = @"
+public class A
+{
+    public A() : this(1) {}
+    public A(int x) : this(string.Empty) {}
+    public A(string s) : this(1) {}
+    public A(long l) : this(double.MaxValue) {}
+    public A(double d) : this(char.MaxValue) {}
+    public A(char c) : this(long.MaxValue) {}
+    public A(short s) : this() {}
+}
+";
+            CreateCompilationWithMscorlib(text).VerifyDiagnostics(
+                // (6,24): error CS0768: Constructor 'A.A(string)' cannot call itself through another constructor
+                //     public A(string s) : this(1) {}
+                Diagnostic(ErrorCode.ERR_IndirectRecursiveConstructorCall, ": this(1)").WithArguments("A.A(string)").WithLocation(6, 24),
+                // (9,22): error CS0768: Constructor 'A.A(char)' cannot call itself through another constructor
+                //     public A(char c) : this(long.MaxValue) {}
+                Diagnostic(ErrorCode.ERR_IndirectRecursiveConstructorCall, ": this(long.MaxValue)").WithArguments("A.A(char)").WithLocation(9, 22)
+                );
+        }
+
         [Fact]
         public void CS0517ERR_ObjectCallingBaseConstructor()
         {
@@ -10892,29 +11038,28 @@ class Test
         var v = M(); // CS0815
     }
     static void M() {}
-}", parseOptions: TestOptions.Script).VerifyDiagnostics(
-    // (6,13): error CS0815: Cannot assign method group to an implicitly-typed variable
-    //         var m = Main; // CS0815
-    Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "m = Main").WithArguments("method group"),
-    // (7,13): error CS0815: Cannot assign lambda expression to an implicitly-typed variable
-    //         var d = s => -1; // CS0815
-    Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "d = s => -1").WithArguments("lambda expression"),
-    // (8,13): error CS0815: Cannot assign lambda expression to an implicitly-typed variable
-    //         var e = (string s) => 0; // CS0815
-    Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "e = (string s) => 0").WithArguments("lambda expression"),
-    // (9,13): error CS0815: Cannot assign <null> to an implicitly-typed variable
-    //         var p = null;//CS0815
-    Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "p = null").WithArguments("<null>"),
-    // (10,13): error CS0815: Cannot assign anonymous method to an implicitly-typed variable
-    //         var del = delegate(string a) { return -1; };// CS0815
-    Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "del = delegate(string a) { return -1; }").WithArguments("anonymous method"),
-    // (11,13): error CS0815: Cannot assign void to an implicitly-typed variable
-    //         var v = M(); // CS0815
-    Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "v = M()").WithArguments("void"),
-    // (9,13): warning CS0219: The variable 'p' is assigned but its value is never used
-    //         var p = null;//CS0815
-    Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "p").WithArguments("p")
-                );
+}").VerifyDiagnostics(
+                // (6,13): error CS0815: Cannot assign method group to an implicitly-typed variable
+                //         var m = Main; // CS0815
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "m = Main").WithArguments("method group"),
+                // (7,13): error CS0815: Cannot assign lambda expression to an implicitly-typed variable
+                //         var d = s => -1; // CS0815
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "d = s => -1").WithArguments("lambda expression"),
+                // (8,13): error CS0815: Cannot assign lambda expression to an implicitly-typed variable
+                //         var e = (string s) => 0; // CS0815
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "e = (string s) => 0").WithArguments("lambda expression"),
+                // (9,13): error CS0815: Cannot assign <null> to an implicitly-typed variable
+                //         var p = null;//CS0815
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "p = null").WithArguments("<null>"),
+                // (10,13): error CS0815: Cannot assign anonymous method to an implicitly-typed variable
+                //         var del = delegate(string a) { return -1; };// CS0815
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "del = delegate(string a) { return -1; }").WithArguments("anonymous method"),
+                // (11,13): error CS0815: Cannot assign void to an implicitly-typed variable
+                //         var v = M(); // CS0815
+                Diagnostic(ErrorCode.ERR_ImplicitlyTypedVariableAssignedBadValue, "v = M()").WithArguments("void"),
+                // (9,13): warning CS0219: The variable 'p' is assigned but its value is never used
+                //         var p = null;//CS0815
+                Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "p").WithArguments("p"));
         }
 
         [Fact]
@@ -12720,7 +12865,7 @@ class C : B
                 new ErrorDescription[] {
                     new ErrorDescription { Code = (int)ErrorCode.WRN_NewRequired, Line = 8, Column = 16, IsWarning = true },
                     new ErrorDescription { Code = (int)ErrorCode.WRN_NewRequired, Line = 12, Column = 22, IsWarning = true },
-                //new ErrorDescription { Code = (int)ErrorCode.ERR_BadArgTypes, Line = 16, Column = 5 },  //specifically omitted by roslyn
+                    //new ErrorDescription { Code = (int)ErrorCode.ERR_BadArgTypes, Line = 16, Column = 5 },  //specifically omitted by roslyn
                     new ErrorDescription { Code = (int)ErrorCode.ERR_BadArgType, Line = 16, Column = 13 }
                 });
         }
@@ -13309,7 +13454,6 @@ class Program
                 // (11,9): error CS7036: There is no argument given that corresponds to the required formal parameter 'y' of 'MyDelegate1'
                 //         md1(1);
                 Diagnostic(ErrorCode.ERR_NoCorrespondingArgument, "md1").WithArguments("y", "MyDelegate1").WithLocation(11, 9));
-
         }
 
         [Fact]
@@ -13328,7 +13472,6 @@ class Program
 ";
             CreateCompilationWithMscorlib(text).
                 VerifyDiagnostics(Diagnostic(ErrorCode.ERR_BadDelArgCount, "new Action<int>(Console.WriteLine)").WithArguments("System.Action<int>", "2"));
-
         }
 
         [Fact()]
@@ -14844,7 +14987,7 @@ class ErrorCS1676
                     new ErrorDescription { Code = (int)ErrorCode.ERR_NewlineInConst, Line = 11, Column = 31 },
                     new ErrorDescription { Code = (int)ErrorCode.ERR_CloseParenExpected, Line = 11, Column = 34 },
                     new ErrorDescription { Code = (int)ErrorCode.ERR_SemicolonExpected, Line = 11, Column = 34 },
-                // new ErrorDescription { Code = (int)ErrorCode.ERR_CantConvAnonMethNoParams, Line = 9, Column = 13 },
+                    // new ErrorDescription { Code = (int)ErrorCode.ERR_CantConvAnonMethNoParams, Line = 9, Column = 13 },
                 });
         }
 
@@ -14978,7 +15121,7 @@ public class Child2 : Parent
 
             compilation.VerifyDiagnostics(expected);
 
-            compilation.GetDiagnosticsForSyntaxTree(CompilationStage.Compile, compilation.SyntaxTrees.Single(), null, true).Verify(expected);
+            compilation.GetDiagnosticsForSyntaxTree(CompilationStage.Compile, compilation.SyntaxTrees.Single(), filterSpanWithinTree: null, includeEarlierStages: true).Verify(expected);
         }
 
         [WorkItem(539631, "DevDiv")]
@@ -16521,7 +16664,7 @@ interface IInv<T> { }";
         /// -------------------------+----------------------+------------------------+--------------------
         /// Type Param Covariant     | Covariant            | Contravariant          | Invariant
         /// Type Param Contravariant | Contravariant        | Covariant              | Invariant
-        /// Type Param Invariant     | Error                | Error                  | Invarian
+        /// Type Param Invariant     | Error                | Error                  | Invariant
         /// </summary>
         [Fact]
         public void CS1961ERR_UnexpectedVariance_Generics()
@@ -18699,7 +18842,7 @@ class MyClass
    }
 }
 ";
-            var verifier = CompileAndVerify(source: text, emitOptions: TestEmitters.RefEmitBug, expectedOutput: @"ffffffffffffffffffffffffffffffffffffffffffffffff
+            var verifier = CompileAndVerify(source: text, expectedOutput: @"ffffffffffffffffffffffffffffffffffffffffffffffff
 ffffffffffffffffffffffffffffffffffffffffffffffff
 ffff");
 
@@ -19033,12 +19176,13 @@ class Test
                 new ErrorDescription[] { new ErrorDescription { Code = (int)ErrorCode.WRN_GotoCaseShouldConvert, Line = 13, Column = 13, IsWarning = true } });
         }
 
-        [Fact]
+        [Fact, WorkItem(663, "https://github.com/dotnet/roslyn/issues/663")]
         public void CS0472WRN_NubExprIsConstBool()
         {
-            // Due to a long-standing bug, the native compiler does not produce warnings for "guid == null", but does 
-            // for "int == null". Roslyn corrects this lapse and produces warnings for both built-in and
-            // user-defined lifted equality operators.
+            // Due to a long-standing bug, the native compiler does not produce warnings for "guid == null",
+            // but does for "int == null". Roslyn corrects this lapse and produces warnings for both built-in
+            // and user-defined lifted equality operators, but the new warnings for user-defined types are
+            // only given in "strict" more.
 
             var text = @"
 using System;
@@ -19144,8 +19288,7 @@ class MyClass
 ftftftftftftftftftftftft
 tf
 ftftftft";
-            var comp = this.CompileAndVerify(source: text, expectedOutput: expected);
-            comp.VerifyDiagnostics(
+            var fullExpected = new DiagnosticDescription[] {
                 // (19,11): warning CS0472: The result of the expression is always 'false' since a value of type 'int' is never equal to 'null' of type 'int?'
                 //         W(i == null);            // CS0472
                 Diagnostic(ErrorCode.WRN_NubExprIsConstBool, "i == null").WithArguments("false", "int", "int?").WithLocation(19, 11),
@@ -19242,8 +19385,10 @@ ftftftft";
                 // (96,11): warning CS0472: The result of the expression is always 'true' since a value of type 'MyClass.E' is never equal to 'null' of type 'MyClass.E?'
                 //         W((E?)null != 0);
                 Diagnostic(ErrorCode.WRN_NubExprIsConstBool, "(E?)null != 0").WithArguments("true", "MyClass.E", "MyClass.E?").WithLocation(96, 11)
-                    );
-
+            };
+            var compatibleExpected = fullExpected.Where(d => !d.Code.Equals((int)ErrorCode.WRN_NubExprIsConstBool2)).ToArray();
+            this.CompileAndVerify(source: text, expectedOutput: expected).VerifyDiagnostics(compatibleExpected);
+            this.CompileAndVerify(source: text, expectedOutput: expected, options: TestOptions.ReleaseExe, parseOptions: TestOptions.Regular.WithStrictFeature()).VerifyDiagnostics(fullExpected);
         }
 
         [Fact]
@@ -19532,7 +19677,7 @@ class B
                 Diagnostic(ErrorCode.WRN_IncorrectBooleanAssg, "b = false"));
         }
 
-        [Fact]
+        [Fact, WorkItem(909, "https://github.com/dotnet/roslyn/issues/909")]
         public void CS0675WRN_BitwiseOrSignExtend()
         {
             var text = @"
@@ -19577,6 +19722,22 @@ public class sign
       object v19 = 0xDEADBEEFU | (uint?)ni16;   // CS0675 
    }
 }
+
+class Test
+{
+    static void Main()
+    {
+        long bits = 0;
+        for (int i = 0; i < 32; i++)
+        {
+            if (i % 2 == 0)
+            {
+                bits |= (1 << i);
+                bits = bits | (1 << i);
+            }
+        }
+    }
+}
 ";
             var comp = CreateCompilationWithMscorlib(text);
             comp.VerifyDiagnostics(
@@ -19603,7 +19764,13 @@ public class sign
                 Diagnostic(ErrorCode.WRN_BitwiseOrSignExtend, "(ulong?)(uint?)(ushort?)ni08 | (ulong?)ni32_lo"),
                 // (40,20): warning CS0675: Bitwise-or operator used on a sign-extended operand; consider casting to a smaller unsigned type first
                 //       object v19 = 0xDEADBEEFU | (uint?)ni16;   // CS0675 
-                Diagnostic(ErrorCode.WRN_BitwiseOrSignExtend, "0xDEADBEEFU | (uint?)ni16")
+                Diagnostic(ErrorCode.WRN_BitwiseOrSignExtend, "0xDEADBEEFU | (uint?)ni16"),
+                // (53,17): warning CS0675: Bitwise-or operator used on a sign-extended operand; consider casting to a smaller unsigned type first
+                //                 bits |= (1 << i);
+                Diagnostic(ErrorCode.WRN_BitwiseOrSignExtend, "bits |= (1 << i)").WithLocation(53, 17),
+                // (54,24): warning CS0675: Bitwise-or operator used on a sign-extended operand; consider casting to a smaller unsigned type first
+                //                 bits = bits | (1 << i);
+                Diagnostic(ErrorCode.WRN_BitwiseOrSignExtend, "bits | (1 << i)").WithLocation(54, 24)
                 );
         }
 
@@ -19666,7 +19833,8 @@ class C
                     Diagnostic(ErrorCode.WRN_AssignmentToLockOrDispose, "d").WithArguments("d").WithLocation(16, 19));
         }
 
-        [Fact, WorkItem(543615, "DevDiv"), WorkItem(546550, "DevDiv")]
+        [WorkItem(543615, "DevDiv"), WorkItem(546550, "DevDiv")]
+        [ClrOnlyFact(ClrOnlyReason.Pdb)]
         public void CS0811ERR_DebugFullNameTooLong()
         {
             var text = @"
@@ -20077,7 +20245,7 @@ public class Test
                 Diagnostic(ErrorCode.WRN_MissingXMLComment, "Main").WithArguments("Test.Main()"));
         }
 
-        [Fact]
+        [ClrOnlyFact]
         public void CS1592WRN_XMLParseIncludeError()
         {
             var xmlFile = Temp.CreateFile(extension: ".xml").WriteAllText("&");
@@ -20698,13 +20866,7 @@ static class C
                 // (26,9): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'T6' is null
                 Diagnostic(ErrorCode.WRN_DotOnDefault, "default(T6).GetHashCode").WithArguments("T6").WithLocation(26, 9),
                 // (28,9): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'T6' is null
-                Diagnostic(ErrorCode.WRN_DotOnDefault, "default(T6).P").WithArguments("T6").WithLocation(28, 9),
-                // (31,9): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'object' is null
-                Diagnostic(ErrorCode.WRN_DotOnDefault, "default(object).E").WithArguments("object").WithLocation(31, 9),
-                // (35,9): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'T4' is null
-                Diagnostic(ErrorCode.WRN_DotOnDefault, "default(T4).E").WithArguments("T4").WithLocation(35, 9),
-                // (37,9): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'T6' is null
-                Diagnostic(ErrorCode.WRN_DotOnDefault, "default(T6).E").WithArguments("T6").WithLocation(37, 9));
+                Diagnostic(ErrorCode.WRN_DotOnDefault, "default(T6).P").WithArguments("T6").WithLocation(28, 9));
         }
 
         [Fact]
@@ -20774,6 +20936,31 @@ class C
                 Diagnostic(ErrorCode.ERR_AssgLvalueExpected, "default(T3)[1]").WithLocation(37, 9), // Incorrect? See CS0131ERR_AssgLvalueExpected03 unit test.
                                                                                                     // (38,9): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'T4' is null
                 Diagnostic(ErrorCode.WRN_DotOnDefault, "default(T4)[1]").WithArguments("T4").WithLocation(38, 9));
+        }
+
+        [Fact]
+        public void CS1720WRN_DotOnDefault03()
+        {
+            var source =
+@"static class A
+{
+    static void Main()
+    {
+        System.Console.WriteLine(default(string).IsNull());
+    }
+
+    internal static bool IsNull(this string val)
+    {
+        return (object)val == null; 
+    }
+}
+";
+            CompileAndVerify(source, expectedOutput: "True", additionalRefs: new[] { SystemCoreRef }).VerifyDiagnostics(
+                // Do not report the following warning:
+                // (5,34): warning CS1720: Expression will always cause a System.NullReferenceException because the default value of 'string' is null
+                //         System.Console.WriteLine(default(string).IsNull());
+                // Diagnostic(ErrorCode.WRN_DotOnDefault, "default(string).IsNull").WithArguments("string").WithLocation(5, 34)
+                );
         }
 
         [Fact]
@@ -21433,8 +21620,6 @@ class C
                 Diagnostic(ErrorCode.ERR_MetadataNameTooLong, "set").WithArguments("set_" + longE + 5),
                 Diagnostic(ErrorCode.ERR_MetadataNameTooLong, longE + 1).WithArguments(longE + 1)
             );
-
-
         }
         #endregion
 
@@ -22121,6 +22306,46 @@ class Program
         {
             var text = @"
 using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+
+namespace ConsoleApplication31
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var o = new Foo();
+            var x = o.E.Compile()().Pop();
+            System.Console.WriteLine(x);
+        }
+    }
+
+    static class StackExtensions
+    {
+        public static void Add<T>(this Stack<T> s, T x) => s.Push(x);
+    }
+
+    class Foo
+    {
+        public Expression<Func<Stack<int>>> E = () => new Stack<int> { 42 };
+    }
+}
+
+";
+            CreateCompilationWithMscorlib45(text, new[] { SystemRef_v4_0_30319_17929, SystemCoreRef_v4_0_30319_17929, CSharpRef }).VerifyDiagnostics(
+    // (25,72): error CS8075: An expression tree lambda may not contain an extension collection element initializer.
+    //         public Expression<Func<Stack<int>>> E = () => new Stack<int> { 42 };
+    Diagnostic(ErrorCode.ERR_ExtensionCollectionElementInitializerInExpressionTree, "42").WithLocation(25, 72)
+               );
+        }
+
+        [WorkItem(310, "https://github.com/dotnet/roslyn/issues/310")]
+        [Fact]
+        public void ExtensionElementInitializerInExpressionLambda()
+        {
+            var text = @"
+using System;
 using System.Collections;
 using System.Linq.Expressions;
 class C
@@ -22230,5 +22455,34 @@ class Program
                );
         }
 
+        [Fact]
+        [WorkItem(1179322, "DevDiv")]
+        public void LabelSameNameAsParameter()
+        {
+            var text = @"
+class Program
+{
+    static object M(object obj, object value)
+    {
+        if (((string)obj).Length == 0)  value: new Program();
+    }
+}
+";
+            var compilation = CreateCompilationWithMscorlib(text);
+            compilation.GetParseDiagnostics().Verify(
+                // (6,41): error CS1023: Embedded statement cannot be a declaration or labeled statement
+                //         if (((string)obj).Length == 0)  value: new Program();
+                Diagnostic(ErrorCode.ERR_BadEmbeddedStmt, "value: new Program();").WithLocation(6, 41));
+
+            // Make sure the compiler can handle producing method body diagnostics for this pattern when 
+            // queried via an API (command line compile would exit after parse errors were reported). 
+            compilation.GetMethodBodyDiagnostics().Verify(
+                // (6,41): warning CS0164: This label has not been referenced
+                //         if (((string)obj).Length == 0)  value: new Program();
+                Diagnostic(ErrorCode.WRN_UnreferencedLabel, "value").WithLocation(6, 41),
+                // (4,19): error CS0161: 'Program.M(object, object)': not all code paths return a value
+                //     static object M(object obj, object value)
+                Diagnostic(ErrorCode.ERR_ReturnExpected, "M").WithArguments("Program.M(object, object)").WithLocation(4, 19));
+        }
     }
 }

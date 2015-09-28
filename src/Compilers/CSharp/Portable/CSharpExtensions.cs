@@ -54,7 +54,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// True if the list has at least one node of the specified kind.
         /// </summary>
-        public static bool Any<TNode>(this SyntaxList<TNode> list, SyntaxKind kind) 
+        public static bool Any<TNode>(this SyntaxList<TNode> list, SyntaxKind kind)
             where TNode : SyntaxNode
         {
             return list.IndexOf(kind) >= 0;
@@ -75,7 +75,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// True if the list has at least one node of the specified kind.
         /// </summary>
-        public static bool Any<TNode>(this SeparatedSyntaxList<TNode> list, SyntaxKind kind) 
+        public static bool Any<TNode>(this SeparatedSyntaxList<TNode> list, SyntaxKind kind)
             where TNode : SyntaxNode
         {
             return list.IndexOf(kind) >= 0;
@@ -210,12 +210,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             if (index < 0 || index > list.Count)
             {
-                throw new ArgumentOutOfRangeException("index");
+                throw new ArgumentOutOfRangeException(nameof(index));
             }
 
             if (items == null)
             {
-                throw new ArgumentNullException("items");
+                throw new ArgumentNullException(nameof(items));
             }
 
             if (list.Count == 0)
@@ -349,6 +349,12 @@ namespace Microsoft.CodeAnalysis.CSharp
         {
             var csharpTree = tree as CSharpSyntaxTree;
             return csharpTree != null && csharpTree.HasReferenceDirectives;
+        }
+
+        internal static bool HasReferenceOrLoadDirectives(this SyntaxTree tree)
+        {
+            var csharpTree = tree as CSharpSyntaxTree;
+            return csharpTree != null && csharpTree.HasReferenceOrLoadDirectives;
         }
 
         internal static bool IsAnyPreprocessorSymbolDefined(this SyntaxTree tree, ImmutableArray<string> conditionalSymbols)

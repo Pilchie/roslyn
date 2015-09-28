@@ -23,13 +23,13 @@ namespace Microsoft.CodeAnalysis.FindSymbols
     {
         private struct DefinitionProject
         {
-            private readonly bool isSourceProject;
-            private readonly string assemblyName;
+            private readonly bool _isSourceProject;
+            private readonly string _assemblyName;
 
             public DefinitionProject(bool isSourceProject, string assemblyName)
             {
-                this.isSourceProject = isSourceProject;
-                this.assemblyName = assemblyName;
+                _isSourceProject = isSourceProject;
+                _assemblyName = assemblyName;
             }
         }
 
@@ -66,13 +66,13 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         ///     Key: DefinitionProject, which contains the assembly name and a flag indicating whether assembly is source or metadata assembly.
         ///     Value: List of DependentProjects, where each DependentProject contains a dependent project ID and a flag indicating whether the dependent project has internals access to definition project.
         /// </summary>
-        private static readonly ConditionalWeakTable<Solution, ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>>> dependentProjectsCache =
+        private static readonly ConditionalWeakTable<Solution, ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>>> s_dependentProjectsCache =
             new ConditionalWeakTable<Solution, ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>>>();
 
         /// <summary>
         /// Used to create a new concurrent dependent projects map for a given assembly when needed.
         /// </summary>
-        private static readonly ConditionalWeakTable<Solution, ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>>>.CreateValueCallback createDependentProjectsMapCallback =
+        private static readonly ConditionalWeakTable<Solution, ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>>>.CreateValueCallback s_createDependentProjectsMapCallback =
             _ => new ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>>(concurrencyLevel: 2, capacity: 20);
 
         public static async Task<IEnumerable<Project>> GetDependentProjectsAsync(ISymbol symbol, Solution solution, IImmutableSet<Project> projects, CancellationToken cancellationToken)
@@ -140,7 +140,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
 
             // Find the projects that reference this assembly.
 
-            var sourceProject = solution.GetProject(containingAssembly);
+            var sourceProject = solution.GetProject(containingAssembly, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             // 1) Compute all the dependent projects (submission + non-submission) and their InternalsVisibleTo semantics to the definition project.
@@ -154,7 +154,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
             else
             {
                 // We cache the dependent projects for non-private symbols, check in the cache first.
-                ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>> dependentProjectsMap = dependentProjectsCache.GetValue(solution, createDependentProjectsMapCallback);
+                ConcurrentDictionary<DefinitionProject, IEnumerable<DependentProject>> dependentProjectsMap = s_dependentProjectsCache.GetValue(solution, s_createDependentProjectsMapCallback);
                 var key = new DefinitionProject(isSourceProject: sourceProject != null, assemblyName: containingAssembly.Name.ToLower());
 
                 if (!dependentProjectsMap.TryGetValue(key, out dependentProjects))
@@ -231,7 +231,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
             foreach (var projectId in solution.ProjectIds)
             {
                 var project = solution.GetProject(projectId);
-                if (project.IsSubmission)
+                if (project.IsSubmission && project.SupportsCompilation)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
@@ -240,7 +240,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
                     var compilation = await project.GetCompilationAsync(cancellationToken).ConfigureAwait(false);
                     if (compilation.PreviousSubmission != null)
                     {
-                        var referencedProject = solution.GetProject(compilation.PreviousSubmission.Assembly);
+                        var referencedProject = solution.GetProject(compilation.PreviousSubmission.Assembly, cancellationToken);
                         List<ProjectId> referencingSubmissions = null;
 
                         if (!projectIdsToReferencingSubmissionIds.TryGetValue(referencedProject.Id, out referencingSubmissions))
@@ -362,7 +362,12 @@ namespace Microsoft.CodeAnalysis.FindSymbols
                     }
 
                     var value = (string)typeNameConstant.Value;
-                    var commaIndex = value.IndexOf(",");
+                    if (value == null)
+                    {
+                        continue;
+                    }
+
+                    var commaIndex = value.IndexOf(',');
                     var assemblyName = commaIndex >= 0 ? value.Substring(0, commaIndex).Trim() : value;
 
                     map.Add(assemblyName);
@@ -377,18 +382,26 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         {
             if (containingAssembly == null)
             {
-                throw new ArgumentNullException("containingAssembly");
+                throw new ArgumentNullException(nameof(containingAssembly));
             }
 
             if (project == null)
             {
-                throw new ArgumentNullException("project");
+                throw new ArgumentNullException(nameof(project));
             }
 
             if (sourceProject != null)
             {
                 // most of time, compilation should be already there
                 return project.ProjectReferences.Any(p => p.ProjectId == sourceProject.Id);
+            }
+
+            // If the project we're looking at doesn't even support compilations, then there's no 
+            // way for it to have an IAssemblySymbol.  And without that, there is no way for it
+            // to have any sort of 'ReferenceTo' the provided 'containingAssembly' symbol.
+            if (!project.SupportsCompilation)
+            {
+                return false;
             }
 
             // WORKAROUND:

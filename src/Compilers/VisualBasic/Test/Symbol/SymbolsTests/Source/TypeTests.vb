@@ -133,9 +133,10 @@ End Namespace
             Assert.Same(delegateB, delegateB.TypeParameters(0).ContainingSymbol)
             Assert.Equal(1, delegateB.Locations.Length())
             Assert.Equal("System.MulticastDelegate", delegateB.BaseType.ToTestDisplayString())
-            Assert.NotEqual(0, IdentifierComparison.GetHashCode("B"))
-            Assert.NotEqual(0, IdentifierComparison.GetHashCode("A"))
+
+#If Not DISABLE_GOOD_HASH_TESTS Then
             Assert.NotEqual(IdentifierComparison.GetHashCode("A"), IdentifierComparison.GetHashCode("B"))
+#End If
             Dim enumE = DirectCast(membersOfN(2), NamedTypeSymbol)
             Assert.Equal(nsN.GetTypeMembers("E", 0).First(), enumE)
             Assert.Equal(nsN, enumE.ContainingSymbol)
@@ -2497,7 +2498,9 @@ End Structure
             Dim s2 = compilation.GlobalNamespace.GetTypeMembers("s2")(0)
             Assert.Equal(2, s2.InstanceConstructors.Length)
 
-            compilation.VerifyDiagnostics()
+            compilation.VerifyDiagnostics(
+                    Diagnostic(ERRID.ERR_NewInStruct, "new").WithLocation(2, 9)
+)
         End Sub
 
         <Fact, WorkItem(530171, "DevDiv")>
@@ -2915,7 +2918,7 @@ Friend Class c2
 ]]>
 
             Dim ilBytes As ImmutableArray(Of Byte) = Nothing
-            Using reference = SharedCompilationUtils.IlasmTempAssembly(ilSource.Value, appendDefaultHeader:=False)
+            Using reference = IlasmUtilities.CreateTempAssembly(ilSource.Value, appendDefaultHeader:=False)
                 ilBytes = ReadFromFile(reference.Path)
             End Using
 
@@ -2981,7 +2984,7 @@ BC37211: Type 'ITest20(Of T)' exported from module 'ITest20Mod.netmodule' confli
 ]]>
 
             Dim ilBytes As ImmutableArray(Of Byte) = Nothing
-            Using reference = SharedCompilationUtils.IlasmTempAssembly(ilSource.Value, appendDefaultHeader:=False)
+            Using reference = IlasmUtilities.CreateTempAssembly(ilSource.Value, appendDefaultHeader:=False)
                 ilBytes = ReadFromFile(reference.Path)
             End Using
 
@@ -3087,21 +3090,21 @@ End Class
 ]]>.Value
 
             Dim ilBytes As ImmutableArray(Of Byte) = Nothing
-            Using reference = SharedCompilationUtils.IlasmTempAssembly(modSource.Replace("<<ModuleName>>", "module1_FT1").Replace("<<TypesForWardedToAssembly>>", "ForwardedTypes1"),
+            Using reference = IlasmUtilities.CreateTempAssembly(modSource.Replace("<<ModuleName>>", "module1_FT1").Replace("<<TypesForWardedToAssembly>>", "ForwardedTypes1"),
                                                                        appendDefaultHeader:=False)
                 ilBytes = ReadFromFile(reference.Path)
             End Using
 
             Dim module1_FT1_Ref = ModuleMetadata.CreateFromImage(ilBytes).GetReference()
 
-            Using reference = SharedCompilationUtils.IlasmTempAssembly(modSource.Replace("<<ModuleName>>", "module2_FT1").Replace("<<TypesForWardedToAssembly>>", "ForwardedTypes1"),
+            Using reference = IlasmUtilities.CreateTempAssembly(modSource.Replace("<<ModuleName>>", "module2_FT1").Replace("<<TypesForWardedToAssembly>>", "ForwardedTypes1"),
                                                                        appendDefaultHeader:=False)
                 ilBytes = ReadFromFile(reference.Path)
             End Using
 
             Dim module2_FT1_Ref = ModuleMetadata.CreateFromImage(ilBytes).GetReference()
 
-            Using reference = SharedCompilationUtils.IlasmTempAssembly(modSource.Replace("<<ModuleName>>", "module3_FT2").Replace("<<TypesForWardedToAssembly>>", "ForwardedTypes2"),
+            Using reference = IlasmUtilities.CreateTempAssembly(modSource.Replace("<<ModuleName>>", "module3_FT2").Replace("<<TypesForWardedToAssembly>>", "ForwardedTypes2"),
                                                                        appendDefaultHeader:=False)
                 ilBytes = ReadFromFile(reference.Path)
             End Using
@@ -3133,7 +3136,7 @@ End Class
 // Image base: 0x01100000
 ]]>.Value
 
-            Using reference = SharedCompilationUtils.IlasmTempAssembly(module4_FT1_source, appendDefaultHeader:=False)
+            Using reference = IlasmUtilities.CreateTempAssembly(module4_FT1_source, appendDefaultHeader:=False)
                 ilBytes = ReadFromFile(reference.Path)
             End Using
 
@@ -3193,7 +3196,7 @@ BC37218: Type 'ns.CF2' forwarded to assembly 'ForwardedTypes1, Version=0.0.0.0, 
                 }, TestOptions.ReleaseDll)
 
             ' Exported types in .Net modules cause PEVerify to fail.
-            CompileAndVerify(compilation, emitOptions:=TestEmitters.RefEmitBug, verify:=False).VerifyDiagnostics()
+            CompileAndVerify(compilation, verify:=False).VerifyDiagnostics()
 
             compilation = CreateCompilationWithMscorlibAndReferences(emptySource,
                 {

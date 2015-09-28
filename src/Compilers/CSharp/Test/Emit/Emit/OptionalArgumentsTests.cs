@@ -170,7 +170,7 @@ public delegate object D([DecimalConstant(0, 0, 0, 0, 3)]decimal o = 3);
                 references: new[] { SystemRef, new CSharpCompilationReference(comp1) },
                 options: TestOptions.DebugExe);
             comp2a.VerifyDiagnostics();
-            CompileAndVerify(comp2a, emitOptions: TestEmitters.CCI, expectedOutput:
+            CompileAndVerify(comp2a, expectedOutput:
 @"1
 2
 3");
@@ -179,7 +179,7 @@ public delegate object D([DecimalConstant(0, 0, 0, 0, 3)]decimal o = 3);
                 references: new[] { SystemRef, MetadataReference.CreateFromStream(comp1.EmitToStream()) },
                 options: TestOptions.DebugExe);
             comp2b.VerifyDiagnostics();
-            CompileAndVerify(comp2b, emitOptions: TestEmitters.CCI, expectedOutput:
+            CompileAndVerify(comp2b, expectedOutput:
 @"1
 2
 3");
@@ -384,7 +384,7 @@ class C
     [DecimalConstantAttribute(0, 128, 0, 0, 7)] public const decimal F15 = -7;
 }";
             var comp = CreateCompilationWithMscorlib(source, references: new[] { SystemRef });
-                
+
             comp.VerifyDiagnostics(
 // (11,38): error CS0579: Duplicate 'DecimalConstant' attribute
 //     [DecimalConstant(0, 0, 0, 0, 0), DecimalConstant(0, 0, 0, 0, 0)] public DateTime F2 = default(DateTime);
@@ -424,6 +424,5 @@ Diagnostic(ErrorCode.ERR_FieldHasMultipleDistinctConstantValues, "DecimalConstan
             var c = comp.GetTypeByMetadataName("C");
             Assert.Equal(1, c.GetMember("F15").GetCustomAttributesToEmit(new ModuleCompilationState()).Count());
         }
-
     }
 }

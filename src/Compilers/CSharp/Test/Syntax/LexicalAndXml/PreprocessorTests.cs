@@ -4,12 +4,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
 
-//test
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     #region Local types for verification
@@ -66,21 +66,26 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         #region Helpers
 
-        private CSharpParseOptions GetOptions(string[] defines)
+        private CSharpParseOptions GetOptions(SourceCodeKind kind, string[] defines)
         {
-            return new CSharpParseOptions(languageVersion: LanguageVersion.CSharp4, preprocessorSymbols: defines);
+            return new CSharpParseOptions(languageVersion: LanguageVersion.CSharp4, kind: kind, preprocessorSymbols: defines);
         }
 
         private CompilationUnitSyntax Parse(string text, params string[] defines)
         {
-            var options = this.GetOptions(defines);
+            return Parse(text, SourceCodeKind.Regular, defines);
+        }
+
+        private CompilationUnitSyntax Parse(string text, SourceCodeKind kind, params string[] defines)
+        {
+            var options = this.GetOptions(kind, defines);
             var itext = SourceText.From(text);
             return SyntaxFactory.ParseSyntaxTree(itext, options).GetCompilationUnitRoot();
         }
 
         private SyntaxTree ParseTree(string text, params string[] defines)
         {
-            var options = this.GetOptions(defines);
+            var options = this.GetOptions(SourceCodeKind.Regular, defines);
             var itext = SourceText.From(text);
             return SyntaxFactory.ParseSyntaxTree(itext, options);
         }
@@ -2010,7 +2015,7 @@ return (i);
         }
 
         [WorkItem(2958, "DevDiv_Projects/Roslyn")]
-        [Fact]
+        [ClrOnlyFact]
         [Trait("Feature", "Directives")]
         public void TestRegionWithSingleLineComment()
         {
@@ -2032,7 +2037,7 @@ return (i);
         }
 
         [WorkItem(2958, "DevDiv_Projects/Roslyn")]
-        [Fact]
+        [ClrOnlyFact]
         [Trait("Feature", "Directives")]
         public void TestRegionWithInvalidSingleLineComment()
         {
@@ -2075,7 +2080,7 @@ class Test
         [WorkItem(906835, "DevDiv/Personal")]
         [Fact]
         [Trait("Feature", "Directives")]
-        public void TestRegressNegRegionWithInvalidExcapeString()
+        public void TestRegressNegRegionWithInvalidEscapeString()
         {
             // Dev10 compiler gives errors CS1009
             var text = @"
@@ -2108,7 +2113,7 @@ class Test
         [WorkItem(527079, "DevDiv")]
         [Fact]
         [Trait("Feature", "Directives")]
-        public void TestRegressRegionWithExcapeUnicodePrefixOnly()
+        public void TestRegressRegionWithEscapeUnicodePrefixOnly()
         {
             // [Breaking Change] Dev10 compiler gives errors CS1009
             var text = @"#region \u
@@ -2953,7 +2958,7 @@ class A { }
             var error = tree.GetDiagnostics().Single();
             Assert.Equal((int)ErrorCode.ERR_ErrorDirective, error.Code);
             string errorString = error.ToString();
-            string actualErrorStringFileName = errorString.Substring(0, errorString.IndexOf("("));
+            string actualErrorStringFileName = errorString.Substring(0, errorString.IndexOf('('));
             Assert.Equal(expectedErrorStringFileName, actualErrorStringFileName);
         }
 
@@ -3177,7 +3182,7 @@ x = 1;
             VerifyDirectivesSpecial(tree.GetCompilationUnitRoot(), new DirectiveInfo { Kind = SyntaxKind.LineDirectiveTrivia, Status = NodeStatus.IsActive, Number = 100, Text = "test.cs" });
 
             var diagnostics = tree.GetDiagnostics();
-            Assert.Contains("100", diagnostics.First().ToString()); // one-based line number
+            Assert.Contains("100", diagnostics.First().ToString(), StringComparison.Ordinal); // one-based line number
 
             var lineSpan = diagnostics.First().Location.GetMappedLineSpan();
             Assert.Equal(99, lineSpan.StartLinePosition.Line); // zero-based line number
@@ -3708,7 +3713,7 @@ static void Main() { }
         public void TestReference()
         {
             var text = @"#r ""bogus""";
-            var node = Parse(text);
+            var node = Parse(text, SourceCodeKind.Script);
             TestRoundTripping(node, text);
             VerifyDirectivesSpecial(node, new DirectiveInfo
             {
@@ -3723,7 +3728,7 @@ static void Main() { }
         public void TestReferenceWithComment()
         {
             var text = @"#r ""bogus"" // FOO";
-            var node = Parse(text);
+            var node = Parse(text, SourceCodeKind.Script);
             TestRoundTripping(node, text);
             VerifyDirectivesSpecial(node, new DirectiveInfo
             {
@@ -3796,11 +3801,73 @@ static void Main() { }
 #r ""C:\Documents and Settings\someuser\Local Settings\Temp\{f0a37341-d692-11d4-a984-009027ec0a9c}\test.cs"" // comment
 #r ""mailto://someuser@microsoft.com""
 ";
-            var node = Parse(text);
+            var node = Parse(text, SourceCodeKind.Script);
             TestRoundTripping(node, text);
             VerifyDirectives(node, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia,
                 SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia,
                 SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia, SyntaxKind.ReferenceDirectiveTrivia);
+        }
+
+        #endregion
+
+        #region #load
+
+        [Fact]
+        public void TestLoad()
+        {
+            var text = "#load \"bogus\"";
+            var node = Parse(text, SourceCodeKind.Script);
+            TestRoundTripping(node, text);
+            VerifyDirectivesSpecial(node, new DirectiveInfo
+            {
+                Kind = SyntaxKind.LoadDirectiveTrivia,
+                Status = NodeStatus.IsActive,
+                Text = "bogus"
+            });
+        }
+
+        [Fact]
+        public void TestLoadWithoutFile()
+        {
+            var text = "#load";
+            var node = Parse(text, SourceCodeKind.Interactive);
+            TestRoundTripping(node, text, disallowErrors: false);
+            VerifyErrorCode(node, (int)ErrorCode.ERR_ExpectedPPFile);
+            VerifyDirectivesSpecial(node, new DirectiveInfo
+            {
+                Kind = SyntaxKind.LoadDirectiveTrivia,
+                Status = NodeStatus.IsActive,
+            });
+            Assert.True(node.GetLoadDirectives().Single().File.IsMissing);
+        }
+
+        [Fact]
+        public void TestLoadWithSemicolon()
+        {
+            var text = "#load \"\";";
+            var node = Parse(text, SourceCodeKind.Interactive);
+            TestRoundTripping(node, text, disallowErrors: false);
+            VerifyErrorCode(node, (int)ErrorCode.ERR_EndOfPPLineExpected);
+            VerifyDirectivesSpecial(node, new DirectiveInfo
+            {
+                Kind = SyntaxKind.LoadDirectiveTrivia,
+                Status = NodeStatus.IsActive,
+                Text = ""
+            });
+        }
+
+        [Fact]
+        public void TestLoadWithComment()
+        {
+            var text = "#load \"bogus\" // comment";
+            var node = Parse(text, SourceCodeKind.Script);
+            TestRoundTripping(node, text);
+            VerifyDirectivesSpecial(node, new DirectiveInfo
+            {
+                Kind = SyntaxKind.LoadDirectiveTrivia,
+                Status = NodeStatus.IsActive,
+                Text = "bogus"
+            });
         }
 
         #endregion

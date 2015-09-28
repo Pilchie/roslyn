@@ -18,7 +18,71 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
     /// </summary>
     public class UnsafeTests : CompilingTestBase
     {
+        private static string GetEscapedNewLine()
+        {
+            if (Environment.NewLine == "\n")
+            {
+                return @"\n";
+            }
+            else if (Environment.NewLine == "\r\n")
+            {
+                return @"\r\n";
+            }
+            else
+            {
+                throw new Exception("Unrecognized new line");
+            }
+        }
+
         #region Unsafe regions
+
+        [Fact]
+        public void FixedSizeBuffer()
+        {
+            var text1 = @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class R
+{
+    public unsafe struct S
+    {
+        public fixed byte Buffer[16];
+    }
+}";
+            var comp1 = CreateCompilation(text1, assemblyName: "assembly1", references: new[] { MscorlibRef_v20 },
+                options: TestOptions.UnsafeDebugDll);
+
+            var ref1 = comp1.EmitToImageReference();
+
+            var text2 = @"
+using System;
+
+class C
+{
+    unsafe void M(byte* p)
+    {
+        R.S* p2 = (R.S*)p;
+        IntPtr p3 = M2((IntPtr)p2[0].Buffer);
+    }
+
+    unsafe IntPtr M2(IntPtr p) => p;
+}";
+            var comp2 = CreateCompilationWithMscorlib45(text2,
+                references: new[] { ref1 },
+                options: TestOptions.UnsafeDebugDll);
+            comp2.VerifyDiagnostics(
+    // warning CS1701: Assuming assembly reference 'mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' used by 'assembly1' matches identity 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' of 'mscorlib', you may need to supply runtime policy
+    Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin).WithArguments("mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "assembly1", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "mscorlib").WithLocation(1, 1),
+    // warning CS1701: Assuming assembly reference 'mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' used by 'assembly1' matches identity 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' of 'mscorlib', you may need to supply runtime policy
+    Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin).WithArguments("mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "assembly1", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "mscorlib").WithLocation(1, 1),
+    // warning CS1701: Assuming assembly reference 'mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' used by 'assembly1' matches identity 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' of 'mscorlib', you may need to supply runtime policy
+    Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin).WithArguments("mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "assembly1", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "mscorlib").WithLocation(1, 1),
+    // warning CS1701: Assuming assembly reference 'mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' used by 'assembly1' matches identity 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' of 'mscorlib', you may need to supply runtime policy
+    Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin).WithArguments("mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "assembly1", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "mscorlib").WithLocation(1, 1),
+    // warning CS1701: Assuming assembly reference 'mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' used by 'assembly1' matches identity 'mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089' of 'mscorlib', you may need to supply runtime policy
+    Diagnostic(ErrorCode.WRN_UnifyReferenceMajMin).WithArguments("mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "assembly1", "mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089", "mscorlib").WithLocation(1, 1));
+        }
 
         [Fact]
         public void CompilationNotUnsafe1()
@@ -1877,19 +1941,19 @@ class C
     }
 }
 ";
-            var expected = @"
+            var expected = string.Format(@"
 No, TypeExpression 'int' is not a non-moveable variable
 No, Literal '0' is not a non-moveable variable
 No, IncrementOperator 'i++' is not a non-moveable variable
 Yes, Local 'i' is a non-moveable variable with underlying symbol 'i'
 No, TypeExpression 'System.Action' is not a non-moveable variable
-No, Conversion '() =>\r\n        {\r\n            int j = i;\r\n            j++;\r\n        }' is not a non-moveable variable
-No, Lambda '() =>\r\n        {\r\n            int j = i;\r\n            j++;\r\n        }' is not a non-moveable variable
+No, Conversion '() =>{0}        {{{0}            int j = i;{0}            j++;{0}        }}' is not a non-moveable variable
+No, Lambda '() =>{0}        {{{0}            int j = i;{0}            j++;{0}        }}' is not a non-moveable variable
 No, TypeExpression 'int' is not a non-moveable variable
 Yes, Local 'i' is a non-moveable variable with underlying symbol 'i'
 No, IncrementOperator 'j++' is not a non-moveable variable
 Yes, Local 'j' is a non-moveable variable with underlying symbol 'j'
-".Trim();
+", GetEscapedNewLine()).Trim();
 
             CheckNonMoveableVariables(text, expected);
         }
@@ -2078,9 +2142,9 @@ class C
     }
 }
 ";
-            var expected = @"
+            var expected = string.Format(@"
 No, TypeExpression 'var' is not a non-moveable variable
-No, QueryClause 'from i in array \r\n            from j in array \r\n            select i + j' is not a non-moveable variable
+No, QueryClause 'from i in array {0}            from j in array {0}            select i + j' is not a non-moveable variable
 No, QueryClause 'select i + j' is not a non-moveable variable
 No, QueryClause 'from j in array' is not a non-moveable variable
 No, Call 'from j in array' is not a non-moveable variable
@@ -2099,7 +2163,7 @@ Yes, RangeVariable 'i' is a non-moveable variable with underlying symbol 'i'
 Yes, Parameter 'i' is a non-moveable variable with underlying symbol 'i'
 Yes, RangeVariable 'j' is a non-moveable variable with underlying symbol 'j'
 Yes, Parameter 'j' is a non-moveable variable with underlying symbol 'j'
-".Trim();
+", GetEscapedNewLine()).Trim();
 
             CheckNonMoveableVariables(text, expected);
         }
@@ -2146,9 +2210,9 @@ static class Extensions
 }
 ";
 
-            var expected = @"
+            var expected = string.Format(@"
 No, TypeExpression 'var' is not a non-moveable variable
-No, QueryClause 'from x in c\r\n                     where x > 0 //int\r\n                     where x.Length < 2 //string\r\n                     select char.IsLetter(x)' is not a non-moveable variable
+No, QueryClause 'from x in c{0}                     where x > 0 //int{0}                     where x.Length < 2 //string{0}                     select char.IsLetter(x)' is not a non-moveable variable
 No, QueryClause 'select char.IsLetter(x)' is not a non-moveable variable
 No, Call 'select char.IsLetter(x)' is not a non-moveable variable
 No, QueryClause 'where x.Length < 2' is not a non-moveable variable
@@ -2176,7 +2240,7 @@ No, Call 'char.IsLetter(x)' is not a non-moveable variable
 No, TypeExpression 'char' is not a non-moveable variable
 Yes, RangeVariable 'x' is a non-moveable variable with underlying symbol 'x'
 Yes, Parameter 'x' is a non-moveable variable with underlying symbol 'x'
-".Trim();
+", GetEscapedNewLine()).Trim();
 
             CheckNonMoveableVariables(text, expected);
         }
@@ -2218,13 +2282,13 @@ Yes, Parameter 'x' is a non-moveable variable with underlying symbol 'x'
 
         private class NonMoveableVariableVisitor : BoundTreeWalker
         {
-            private readonly Binder binder;
-            private readonly ArrayBuilder<string> builder;
+            private readonly Binder _binder;
+            private readonly ArrayBuilder<string> _builder;
 
             private NonMoveableVariableVisitor(Binder binder, ArrayBuilder<string> builder)
             {
-                this.binder = binder;
-                this.builder = builder;
+                _binder = binder;
+                _builder = builder;
             }
 
             public static void Process(BoundBlock block, Binder binder, ArrayBuilder<string> builder)
@@ -2243,18 +2307,18 @@ Yes, Parameter 'x' is a non-moveable variable with underlying symbol 'x'
                     {
                         text = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, quote: false);
                         Symbol accessedLocalOrParameterOpt;
-                        bool isNonMoveableVariable = binder.IsNonMoveableVariable(expr, out accessedLocalOrParameterOpt);
+                        bool isNonMoveableVariable = _binder.IsNonMoveableVariable(expr, out accessedLocalOrParameterOpt);
 
                         if (isNonMoveableVariable)
                         {
-                            builder.Add(string.Format("Yes, {0} '{1}' is a non-moveable variable{2}",
+                            _builder.Add(string.Format("Yes, {0} '{1}' is a non-moveable variable{2}",
                                 expr.Kind,
                                 text,
                                 accessedLocalOrParameterOpt == null ? "" : string.Format(" with underlying symbol '{0}'", accessedLocalOrParameterOpt.Name)));
                         }
                         else
                         {
-                            builder.Add(string.Format("No, {0} '{1}' is not a non-moveable variable", expr.Kind, text));
+                            _builder.Add(string.Format("No, {0} '{1}' is not a non-moveable variable", expr.Kind, text));
                         }
                     }
                 }
@@ -4428,7 +4492,6 @@ struct S
             Assert.Equal(SpecialType.System_Void, callSummary.ConvertedType.SpecialType);
             Assert.Equal(ConversionKind.Identity, callSummary.ImplicitConversion.Kind);
             Assert.Equal(0, callSummary.MethodGroup.Length);
-
         }
 
         [Fact]
@@ -4492,7 +4555,6 @@ struct S
             Assert.Equal(callSummary.Type, callSummary.ConvertedType);
             Assert.Equal(ConversionKind.Identity, callSummary.ImplicitConversion.Kind);
             Assert.Equal(0, callSummary.MethodGroup.Length);
-
         }
 
         #endregion PointerMemberAccess SemanticModel tests
@@ -6822,7 +6884,7 @@ class Program
 
         #region sizeof semantic model tests
 
-        private static readonly Dictionary<SpecialType, int> SpecialTypeSizeOfMap = new Dictionary<SpecialType, int>
+        private static readonly Dictionary<SpecialType, int> s_specialTypeSizeOfMap = new Dictionary<SpecialType, int>
         {
             { SpecialType.System_SByte, 1 },
             { SpecialType.System_Byte, 1 },
@@ -6899,7 +6961,7 @@ class Program
                 Assert.Equal(0, sizeOfSummary.MethodGroup.Length);
                 Assert.Null(sizeOfSummary.Alias);
                 Assert.True(sizeOfSummary.IsCompileTimeConstant);
-                Assert.Equal(SpecialTypeSizeOfMap[type.SpecialType], sizeOfSummary.ConstantValue);
+                Assert.Equal(s_specialTypeSizeOfMap[type.SpecialType], sizeOfSummary.ConstantValue);
             }
         }
 
@@ -6962,7 +7024,7 @@ enum E2 : long
                 Assert.Equal(0, sizeOfSummary.MethodGroup.Length);
                 Assert.Null(sizeOfSummary.Alias);
                 Assert.True(sizeOfSummary.IsCompileTimeConstant);
-                Assert.Equal(SpecialTypeSizeOfMap[type.GetEnumUnderlyingType().SpecialType], sizeOfSummary.ConstantValue);
+                Assert.Equal(s_specialTypeSizeOfMap[type.GetEnumUnderlyingType().SpecialType], sizeOfSummary.ConstantValue);
             }
         }
 
@@ -7969,12 +8031,12 @@ class C
 
 
         [Fact]
-        public void FixedBuffersNoDefinateAssignmentCheck()
+        public void FixedBuffersNoDefiniteAssignmentCheck()
         {
             var text = @"
-    unsafe struct struct_ForTestingDefinateAssignmentChecking        
+    unsafe struct struct_ForTestingDefiniteAssignmentChecking        
     {
-        //Definate Assignment Checking
+        //Definite Assignment Checking
         public fixed int FixedbuffInt[1024];
     }
 ";
@@ -7985,7 +8047,7 @@ class C
         public void FixedBuffersNoErorsOnValidTypes()
         {
             var text = @"
-    unsafe struct struct_ForTestingDefinateAssignmentChecking        
+    unsafe struct struct_ForTestingDefiniteAssignmentChecking        
     {
     public fixed bool _Type1[10]; 
     public fixed byte _Type12[10]; 
@@ -8054,7 +8116,7 @@ class Program
 
 }
 ";
-            var compilation = CompileAndVerify(text, options: TestOptions.UnsafeReleaseExe, emitOptions: TestEmitters.RefEmitBug); //expectedOutput: @"TrueFalseTrue"
+            var compilation = CompileAndVerify(text, options: TestOptions.UnsafeReleaseExe);
 
             compilation.VerifyIL("Program.Store", @"{
   // Code size       36 (0x24)
@@ -8172,9 +8234,9 @@ class Program
 }
 ";
             //IL Baseline rather than execute because I'm intentionally writing outside of bounds of buffer
-            // This will compile without warning but runtime behaviour is unpredictable.
+            // This will compile without warning but runtime behavior is unpredictable.
 
-            var compilation = CompileAndVerify(text, options: TestOptions.UnsafeReleaseExe, emitOptions: TestEmitters.RefEmitBug);
+            var compilation = CompileAndVerify(text, options: TestOptions.UnsafeReleaseExe);
             compilation.VerifyIL("Program.Load", @"
 {
   // Code size       49 (0x31)
@@ -8246,7 +8308,7 @@ using System;
 unsafe struct s
     {
         private fixed ushort _e_res[4]; 
-        void Error_UsingFixedBuffersWiththis()
+        void Error_UsingFixedBuffersWithThis()
         {
             fixed (ushort* abc = this._e_res)
             {
@@ -8337,11 +8399,10 @@ namespace ConsoleApplication30
 
     }
 }";
-            var comp1 = CompileAndVerify(s1, options: TestOptions.UnsafeReleaseDll, emitOptions: TestEmitters.RefEmitBug).Compilation;
+            var comp1 = CompileAndVerify(s1, options: TestOptions.UnsafeReleaseDll).Compilation;
 
             var comp2 = CompileAndVerify(s2,
                 options: TestOptions.UnsafeReleaseExe,
-                emitOptions: TestEmitters.RefEmitBug,
                 additionalRefs: new MetadataReference[] { MetadataReference.CreateFromImage(comp1.EmitToArray()) },
                 expectedOutput: "TrueFalse").Compilation;
 
@@ -8394,9 +8455,7 @@ namespace ConsoleApplication30
             // this doesnt warn but causes flakiness when executed.
             var comp3 = CompileAndVerify(s3,
                 options: TestOptions.UnsafeReleaseDll,
-                emitOptions: TestEmitters.RefEmitBug,
                 additionalRefs: new MetadataReference[] { MetadataReference.CreateFromImage(comp1.EmitToArray()) }).Compilation;
-
         }
 
         [Fact]
@@ -8422,7 +8481,7 @@ unsafe struct FixedBufferExampleForSizes3
 
 class Program
 {
-    // Reference to struct containing a fixed bugg
+    // Reference to struct containing a fixed buffer
     static FixedBufferExampleForSizes1 _fixedBufferExample1 = new FixedBufferExampleForSizes1();
     static FixedBufferExampleForSizes2 _fixedBufferExample2 = new FixedBufferExampleForSizes2();
     static FixedBufferExampleForSizes3 _fixedBufferExample3 = new FixedBufferExampleForSizes3();  
@@ -8466,7 +8525,7 @@ unsafe struct FixedBufferExampleForSizes3
 
 class Program
 {
-    // Reference to struct containing a fixed bugg
+    // Reference to struct containing a fixed buffer
     static FixedBufferExampleForSizes1 _fixedBufferExample1 = new FixedBufferExampleForSizes1();
     static FixedBufferExampleForSizes2 _fixedBufferExample2 = new FixedBufferExampleForSizes2();
     static FixedBufferExampleForSizes3 _fixedBufferExample3 = new FixedBufferExampleForSizes3();  
@@ -8486,7 +8545,6 @@ class Program
 ";
             CompileAndVerify(text, options: TestOptions.UnsafeReleaseExe, expectedOutput: @"4812");
         }
-
 
         #endregion
     }

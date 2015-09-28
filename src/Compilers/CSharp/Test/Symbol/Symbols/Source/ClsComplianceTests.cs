@@ -2,6 +2,7 @@
 
 using System;
 using System.Linq;
+using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
@@ -1761,7 +1762,7 @@ public class Derived : Base
                 Diagnostic(ErrorCode.WRN_CLS_BadIdentifier, "_M").WithArguments("_M"));
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void WRN_CLS_BadIdentifier_NotReferencable()
         {
             var il = @"
@@ -1802,7 +1803,7 @@ public class C : B
             comp.VerifyDiagnostics();
 
             var accessor = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<PropertySymbol>("P").GetMethod;
-            Assert.True(accessor.Name.StartsWith("_"));
+            Assert.True(accessor.Name[0] == '_');
         }
 
         [Fact]
@@ -2067,7 +2068,7 @@ public class C
                 // false.netmodule: warning CS3017: You cannot specify the CLSCompliant attribute on a module that differs from the CLSCompliant attribute on the assembly
                 Diagnostic(ErrorCode.WRN_CLS_NotOnModules2));
 
-            CreateCompilationWithMscorlib("[assembly:System.CLSCompliant(true)]", new[] { noneModuleRef }).VerifyDiagnostics( 
+            CreateCompilationWithMscorlib("[assembly:System.CLSCompliant(true)]", new[] { noneModuleRef }).VerifyDiagnostics(
                 // none.netmodule: warning CS3013: Added modules must be marked with the CLSCompliant attribute to match the assembly
                 Diagnostic(ErrorCode.WRN_CLS_ModuleMissingCLS));
 
@@ -2853,7 +2854,7 @@ public class C
                     type = type.Construct(ArrayBuilder<TypeSymbol>.GetInstance(type.Arity, intType).ToImmutableAndFree());
                 }
                 var qualifiedName = type.ToTestDisplayString();
-                
+
                 var source = string.Format(sourceTemplate, qualifiedName);
                 var comp = CreateCompilationWithMscorlib45(source);
 
@@ -3135,7 +3136,7 @@ public class D
             var libRef = CreateCompilationWithMscorlib(libSource).EmitToImageReference();
             var comp = CreateCompilationWithMscorlib(source, new[] { libRef });
             var tree = comp.SyntaxTrees.Single();
-            comp.GetDiagnosticsForSyntaxTree(CompilationStage.Declare, tree, null, includeEarlierStages: false);
+            comp.GetDiagnosticsForSyntaxTree(CompilationStage.Declare, tree, null, includeEarlierStages: false, cancellationToken: CancellationToken.None);
         }
 
         [WorkItem(709317, "DevDiv")]
@@ -3223,14 +3224,14 @@ namespace N{0}
                 // (22,18): warning CS3015: 'N2.MyAttribute' has no accessible constructors which use only CLS-compliant types
                 //     public class MyAttribute : Attribute
                 Diagnostic(ErrorCode.WRN_CLS_BadAttributeType, "MyAttribute").WithArguments("N2.MyAttribute"),
-                
+
                 // Not interesting:
 
                 // (4,11): error CS0579: Duplicate 'CLSCompliant' attribute
                 // [assembly:CLSCompliant(true)]
                 Diagnostic(ErrorCode.ERR_DuplicateAttribute, "CLSCompliant").WithArguments("CLSCompliant"));
 
-            comp.GetDiagnosticsForSyntaxTree(CompilationStage.Declare, tree1, null, includeEarlierStages: false).Verify(
+            comp.GetDiagnosticsForSyntaxTree(CompilationStage.Declare, tree1, null, includeEarlierStages: false, cancellationToken: CancellationToken.None).Verify(
                 // a.cs(21,6): warning CS3016: Arrays as attribute arguments is not CLS-compliant
                 //     [My(new int[] { 1 })]
                 Diagnostic(ErrorCode.WRN_CLS_ArrayArgumentToAttribute, "My(new int[] { 1 })"),
@@ -3293,7 +3294,7 @@ public class C
             CreateCompilationWithMscorlib("[assembly:System.CLSCompliant(false)]" + source).VerifyDiagnostics();
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void InheritedCompliance1()
         {
             var libSource = @"
@@ -3326,7 +3327,7 @@ public class C
                 Diagnostic(ErrorCode.WRN_CLS_BadFieldPropType, "d").WithArguments("C.d"));
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void InheritedCompliance2()
         {
             var libIL = @"

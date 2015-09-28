@@ -2458,26 +2458,26 @@ Module Module1
         Dim a2 As New S1?(av)
         Dim b2 As T1
         b2 = a2
-        Console.WriteLine("regular UD conversion+PDconversion:  S1?->S1 -->T1, value passsed:{0}" &amp; vbCrLf, b2.i) 'expect 7
+        Console.WriteLine("regular UD conversion+PDconversion:  S1?->S1 -->T1, value passed:{0}" &amp; vbCrLf, b2.i) 'expect 7
 
         Dim a21 As New S1
         a21.i = 8
         Dim b21 As T1?
         b21 = a21
-        Console.WriteLine("regular UD conversion+PD conversion: S1-->T1->T1?, value passsed:{0}" &amp; vbCrLf, b21.Value.i) 'expect 8
+        Console.WriteLine("regular UD conversion+PD conversion: S1-->T1->T1?, value passed:{0}" &amp; vbCrLf, b21.Value.i) 'expect 8
 
         Dim val As New S1
         val.i = 3
         c = New S1?(val)
         d = c
-        Console.WriteLine("lifted UD conversion, value passsed:{0}" &amp; vbCrLf, d.Value.i) 'expect 3
+        Console.WriteLine("lifted UD conversion, value passed:{0}" &amp; vbCrLf, d.Value.i) 'expect 3
 
         Dim k As New S2
         k.i = 2
         Dim c2 As New S2?(k)
         Dim d2 As T2?
         d2 = c2 'UD conversion on nullable preferred over lifting
-        Console.WriteLine(" UD nullable conversion, preferred over lifted value passsed: {0}" &amp; vbCrLf, d2.Value.i) 'expect 2
+        Console.WriteLine(" UD nullable conversion, preferred over lifted value passed: {0}" &amp; vbCrLf, d2.Value.i) 'expect 2
 
 
         av.i = 5
@@ -2485,26 +2485,26 @@ Module Module1
         'a.i = 2
         Dim b As T1?
         b = a
-        Console.WriteLine("lifted UD conversion, value passsed:{0}" &amp; vbCrLf, b.Value.i) 'expect 5
+        Console.WriteLine("lifted UD conversion, value passed:{0}" &amp; vbCrLf, b.Value.i) 'expect 5
 
         Dim a1 As S1
         a1.i = 6
         Dim b1 As T1
         b1 = a1
-        Console.WriteLine("regular UD conversion, value passsed:{0}" &amp; vbCrLf, b1.i) 'expect 6
+        Console.WriteLine("regular UD conversion, value passed:{0}" &amp; vbCrLf, b1.i) 'expect 6
 
         Dim a3 As S1
         a3.i = 8
         Dim b3 As T1?
         b3 = a3
-        Console.WriteLine("regular UD conversion+PD conversion, value passsed:{0}" &amp; vbCrLf, b3.Value.i) 'expect 8
+        Console.WriteLine("regular UD conversion+PD conversion, value passed:{0}" &amp; vbCrLf, b3.Value.i) 'expect 8
 
         Dim atv = New st(Of Integer)
         atv.i = 9
         Dim at As New st(Of Integer)?(atv)
         Dim bt As Integer?
         bt = at
-        Console.WriteLine("generic UD, value passsed bt.value = :{0}" &amp; vbCrLf, bt.Value) 'expect 8
+        Console.WriteLine("generic UD, value passed bt.value = :{0}" &amp; vbCrLf, bt.Value) 'expect 8
     End Sub
 
     Structure S1
@@ -2594,28 +2594,28 @@ widening to nullable UD conversion: c=1;  c.value= 1
 widening to nullable UD conversion: c=Nothing;  c.HasValue= False
 
 UD regular conversion S1->T1 (possible by lifting) invoked
-regular UD conversion+PDconversion:  S1?->S1 -->T1, value passsed:7
+regular UD conversion+PDconversion:  S1?->S1 -->T1, value passed:7
 
 UD regular conversion S1->T1 (possible by lifting) invoked
-regular UD conversion+PD conversion: S1-->T1->T1?, value passsed:8
+regular UD conversion+PD conversion: S1-->T1->T1?, value passed:8
 
 UD regular conversion S1->T1 (possible by lifting) invoked
-lifted UD conversion, value passsed:3
+lifted UD conversion, value passed:3
 
 UD S2?->T2? conversion on nullable invoked
- UD nullable conversion, preferred over lifted value passsed: 2
+ UD nullable conversion, preferred over lifted value passed: 2
 
 UD regular conversion S1->T1 (possible by lifting) invoked
-lifted UD conversion, value passsed:5
+lifted UD conversion, value passed:5
 
 UD regular conversion S1->T1 (possible by lifting) invoked
-regular UD conversion, value passsed:6
+regular UD conversion, value passed:6
 
 UD regular conversion S1->T1 (possible by lifting) invoked
-regular UD conversion+PD conversion, value passsed:8
+regular UD conversion+PD conversion, value passed:8
 
 UD generic regular conversion st(of T)->T (possible by lifting) invoked
-generic UD, value passsed bt.value = :9
+generic UD, value passed bt.value = :9
 
 ]]>)
         End Sub
@@ -3330,38 +3330,37 @@ End Module
             VerifyIL("M.Main",
             <![CDATA[
 {
-  // Code size       55 (0x37)
+  // Code size       53 (0x35)
   .maxstack  2
   .locals init (Integer V_0,
-  Integer? V_1,
-  System.ArgumentNullException V_2) //ex
+                Integer? V_1,
+                System.ArgumentNullException V_2) //ex
   .try
-{
-  IL_0000:  call       "Function M.foo_exception() As Integer"
-  IL_0005:  stloc.0
-  IL_0006:  call       "Function M.foo_eval_check() As Integer?"
-  IL_000b:  stloc.1
-  IL_000c:  ldloca.s   V_1
-  IL_000e:  call       "Function Integer?.get_HasValue() As Boolean"
-  IL_0013:  brtrue.s   IL_0017
-  IL_0015:  leave.s    IL_0036
-  IL_0017:  ldloc.0
-  IL_0018:  ldloca.s   V_1
-  IL_001a:  call       "Function Integer?.GetValueOrDefault() As Integer"
-  IL_001f:  div
-  IL_0020:  newobj     "Sub Integer?..ctor(Integer)"
-  IL_0025:  pop
-  IL_0026:  leave.s    IL_0036
-}
+  {
+    IL_0000:  call       "Function M.foo_exception() As Integer"
+    IL_0005:  stloc.0
+    IL_0006:  call       "Function M.foo_eval_check() As Integer?"
+    IL_000b:  stloc.1
+    IL_000c:  ldloca.s   V_1
+    IL_000e:  call       "Function Integer?.get_HasValue() As Boolean"
+    IL_0013:  brfalse.s  IL_0024
+    IL_0015:  ldloc.0
+    IL_0016:  ldloca.s   V_1
+    IL_0018:  call       "Function Integer?.GetValueOrDefault() As Integer"
+    IL_001d:  div
+    IL_001e:  newobj     "Sub Integer?..ctor(Integer)"
+    IL_0023:  pop
+    IL_0024:  leave.s    IL_0034
+  }
   catch System.ArgumentNullException
-{
-  IL_0028:  dup
-  IL_0029:  call       "Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)"
-  IL_002e:  stloc.2
-  IL_002f:  call       "Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()"
-  IL_0034:  leave.s    IL_0036
-}
-  IL_0036:  ret
+  {
+    IL_0026:  dup
+    IL_0027:  call       "Sub Microsoft.VisualBasic.CompilerServices.ProjectData.SetProjectError(System.Exception)"
+    IL_002c:  stloc.2
+    IL_002d:  call       "Sub Microsoft.VisualBasic.CompilerServices.ProjectData.ClearProjectError()"
+    IL_0032:  leave.s    IL_0034
+  }
+  IL_0034:  ret
 }
                 ]]>)
         End Sub
@@ -3493,7 +3492,7 @@ End Class
                     </file>
                 </compilation>
 
-            CompileAndVerify(source, emitOptions:=TestEmitters.RefEmitBug, expectedOutput:="PASS").VerifyDiagnostics(
+            CompileAndVerify(source, expectedOutput:="PASS").VerifyDiagnostics(
                     Diagnostic(ERRID.WRN_EqualToLiteralNothing, "x = Nothing"),
                     Diagnostic(ERRID.WRN_NotEqualToLiteralNothing, "Nothing <> y")
                                                                           )
@@ -3525,7 +3524,7 @@ End Module
                     </file>
                 </compilation>
 
-            CompileAndVerify(source, emitOptions:=TestEmitters.RefEmitBug).VerifyDiagnostics().VerifyIL("Program.Main", <![CDATA[
+            CompileAndVerify(source).VerifyDiagnostics().VerifyIL("Program.Main", <![CDATA[
 {
   // Code size      124 (0x7c)
   .maxstack  3
@@ -4718,6 +4717,31 @@ VerifyIL("NullableTest.EqualEqual",
 }
                 ]]>)
 
+        End Sub
+
+        <Fact>
+        Public Sub LiftedToIntPtrConversion()
+            Dim source =
+<compilation>
+    <file name="a.vb">
+Imports System
+
+Module M
+    Sub Main()
+        Console.WriteLine(CType(M(Nothing), IntPtr?))
+        Console.WriteLine(CType(M(42), IntPtr?))
+    End Sub
+
+    Function M(p as Integer?) As Integer?
+        Return p
+    End Function
+End Module
+
+    </file>
+</compilation>
+
+            Dim expectedOutput = "" + vbCrLf + "42"
+            CompileAndVerify(source, expectedOutput)
         End Sub
 
     End Class

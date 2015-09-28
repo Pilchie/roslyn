@@ -140,7 +140,7 @@ public class C
             var sourceType = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             var referencedType = referencedAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
 
-            var distinguisher = new SymbolDistinguisher(null, sourceType, referencedType); 
+            var distinguisher = new SymbolDistinguisher(null, sourceType, referencedType);
             Assert.Equal(@"C [a\..\file.cs(1)]", distinguisher.First.ToString()); // File path comes out of tree.
             Assert.Equal("C [Metadata, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]", distinguisher.Second.ToString());
         }
@@ -181,8 +181,8 @@ public class C
             var referencedAssembly = (AssemblySymbol)comp.GetAssemblyOrModuleSymbol(libRef);
 
             var sourceParameter = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>("M").Parameters.Single();
-            var referenedParameter = referencedAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>("M").Parameters.Single();
-            var distinguisher = new SymbolDistinguisher(comp, sourceParameter, referenedParameter);
+            var referencedParameter = referencedAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>("M").Parameters.Single();
+            var distinguisher = new SymbolDistinguisher(comp, sourceParameter, referencedParameter);
             // NOTE: Locations come from parameter *types*.
             // NOTE: RefKind retained.
             Assert.Equal("ref C [file.cs(2)]", distinguisher.First.ToString());
@@ -257,8 +257,8 @@ public class C
             var referencedAssembly = (AssemblySymbol)comp.GetAssemblyOrModuleSymbol(libRef);
 
             var sourceParameter = sourceAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>("M").Parameters.Single();
-            var referenedParameter = referencedAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>("M").Parameters.Single();
-            var distinguisher = new SymbolDistinguisher(comp, sourceParameter, referenedParameter);
+            var referencedParameter = referencedAssembly.GlobalNamespace.GetMember<NamedTypeSymbol>("C").GetMember<MethodSymbol>("M").Parameters.Single();
+            var distinguisher = new SymbolDistinguisher(comp, sourceParameter, referencedParameter);
             // NOTE: Locations come from parameter element types.
             // NOTE: 'params' retained.
             Assert.Equal("params C[] [file.cs(2)]", distinguisher.First.ToString());

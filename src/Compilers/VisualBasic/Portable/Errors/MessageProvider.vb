@@ -85,7 +85,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
             End If
         End Function
 
-        Overrides ReadOnly Property ErrorCodeType As Type
+        Public Overrides ReadOnly Property ErrorCodeType As Type
             Get
                 Return GetType(ERRID)
             End Get
@@ -129,13 +129,15 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Function
 
         Public Overrides Function GetDiagnosticReport(diagnosticInfo As DiagnosticInfo, options As CompilationOptions) As ReportDiagnostic
+            Dim hasSourceSuppression = False
             Return VisualBasicDiagnosticFilter.GetDiagnosticReport(diagnosticInfo.Severity,
                                                                    True,
                                                                    diagnosticInfo.MessageIdentifier,
                                                                    Location.None,
                                                                    diagnosticInfo.Category,
                                                                    options.GeneralDiagnosticOption,
-                                                                   options.SpecificDiagnosticOptions)
+                                                                   options.SpecificDiagnosticOptions,
+                                                                   hasSourceSuppression)
         End Function
 
 
@@ -146,9 +148,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         End Property
 
         ' command line:
-        Public Overrides ReadOnly Property ERR_NoScriptsSpecified As Integer
+        Public Overrides ReadOnly Property ERR_ExpectedSingleScript As Integer
             Get
-                Return ERRID.ERR_NoScriptsSpecified
+                Return ERRID.ERR_ExpectedSingleScript
             End Get
         End Property
 
@@ -227,6 +229,21 @@ Namespace Microsoft.CodeAnalysis.VisualBasic
         Public Overrides ReadOnly Property ERR_CantReadRulesetFile As Integer
             Get
                 Return ERRID.ERR_CantReadRulesetFile
+            End Get
+        End Property
+
+        Public Overrides ReadOnly Property ERR_CompileCancelled As Integer
+            Get
+                ' TODO: Add an error code for CompileCancelled
+                Return ERRID.ERR_None
+            End Get
+        End Property
+
+        ' compilation options:
+
+        Public Overrides ReadOnly Property ERR_BadCompilationOptionValue As Integer
+            Get
+                Return ERRID.ERR_InvalidSwitchValue
             End Get
         End Property
 

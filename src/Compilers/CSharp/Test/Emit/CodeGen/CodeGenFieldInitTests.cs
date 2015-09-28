@@ -2,10 +2,7 @@
 
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -647,7 +644,7 @@ a.a = 1
                 expectedOutput.AppendLine(i.ToString());
             }
 
-            var compilation = CreateCompilationWithMscorlib(trees, options: TestOptions.ReleaseExe);
+            var compilation = CreateCompilationWithMscorlib45(trees, options: TestOptions.ReleaseExe);
 
             CompileAndVerify(compilation, expectedOutput: expectedOutput.ToString());
         }

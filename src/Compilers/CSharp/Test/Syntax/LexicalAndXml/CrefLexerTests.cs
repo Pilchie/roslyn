@@ -391,7 +391,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         }
 
         [WorkItem(530523, "DevDiv")]
-        [Fact(Skip="530523")]
+        [Fact(Skip = "530523")]
         public void TestLexNewline()
         {
             AssertTokens(@"A
@@ -434,7 +434,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         internal override IEnumerable<InternalSyntax.SyntaxToken> GetTokens(string text)
         {
-            Assert.DoesNotContain("'", text);
+            Assert.DoesNotContain("'", text, StringComparison.Ordinal);
             using (var lexer = new InternalSyntax.Lexer(SourceText.From(text + "'"), TestOptions.RegularWithDocumentationComments))
             {
                 while (true)

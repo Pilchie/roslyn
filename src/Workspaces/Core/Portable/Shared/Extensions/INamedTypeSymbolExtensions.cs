@@ -28,35 +28,10 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
         public static Task<IEnumerable<INamedTypeSymbol>> FindDerivedClassesAsync(
             this INamedTypeSymbol type,
             Solution solution,
-            CancellationToken cancellationToken)
-        {
-            return FindDerivedClassesAsync(type, solution, null, cancellationToken);
-        }
-
-        public static Task<IEnumerable<INamedTypeSymbol>> FindDerivedClassesAsync(
-            this INamedTypeSymbol type,
-            Solution solution,
             IImmutableSet<Project> projects,
             CancellationToken cancellationToken)
         {
             return DependentTypeFinder.FindDerivedClassesAsync(type, solution, projects, cancellationToken);
-        }
-
-        public static Task<IEnumerable<INamedTypeSymbol>> FindDerivedInterfacesAsync(
-            this INamedTypeSymbol type,
-            Solution solution,
-            CancellationToken cancellationToken)
-        {
-            return FindDerivedInterfacesAsync(type, solution, null, cancellationToken);
-        }
-
-        public static Task<IEnumerable<INamedTypeSymbol>> FindDerivedInterfacesAsync(
-            this INamedTypeSymbol type,
-            Solution solution,
-            IImmutableSet<Project> projects,
-            CancellationToken cancellationToken)
-        {
-            return DependentTypeFinder.FindDerivedInterfacesAsync(type, solution, projects, cancellationToken);
         }
 
         public static Task<IEnumerable<INamedTypeSymbol>> FindImplementingTypesAsync(
@@ -397,7 +372,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
         private static IList<ISymbol> GetUnimplementedMembers(
             this INamedTypeSymbol classOrStructType,
             INamedTypeSymbol interfaceType,
-            Func<INamedTypeSymbol, ISymbol, Func<INamedTypeSymbol, ISymbol, bool>,  CancellationToken, bool> isImplemented,
+            Func<INamedTypeSymbol, ISymbol, Func<INamedTypeSymbol, ISymbol, bool>, CancellationToken, bool> isImplemented,
             Func<INamedTypeSymbol, ISymbol, bool> isValidImplementation,
             Func<INamedTypeSymbol, ISymbol, ImmutableArray<ISymbol>> interfaceMemberGetter,
             CancellationToken cancellationToken)

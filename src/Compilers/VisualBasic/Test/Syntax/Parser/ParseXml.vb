@@ -1780,9 +1780,9 @@ End Module]]>)
 Dim x = <?xml version="1.0" standalone=''?><doc/>
 End Module
  ]]>,
- <erors>
+ <errors>
      <error id="31182"/>
- </erors>)
+ </errors>)
     End Sub
 
     <WorkItem(930757, "DevDiv/Personal")>
@@ -2381,16 +2381,7 @@ Module M
             
         %>/>
 End Module
-]]>,
-            <errors>
-                <error id="30625" message="'Module' statement must end with a matching 'End Module'." start="1" end="9"/>
-                <error id="31151" message="Element is missing an end tag." start="22" end="112"/>
-                <error id="31159" message="Expected closing '%>' for embedded expression." start="88" end="88"/>
-                <error id="31169" message="Character '%' (&amp;H25) is not allowed at the beginning of an XML name." start="110" end="111"/>
-                <error id="30249" message="'=' expected." start="111" end="111"/>
-                <error id="31165" message="Expected beginning '&lt;' for an XML tag." start="126" end="126"/>
-                <error id="30636" message="'>' expected." start="126" end="126"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2399,11 +2390,7 @@ Module M
 
         )
 End Module
-]]>,
-            <errors>
-                <error id="30198" message="')' expected." start="58" end="58"/>
-                <error id="30035" message="Syntax error." start="68" end="69"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2414,17 +2401,7 @@ Module M
 
         ) %>/>
 End Module
-]]>,
-            <errors>
-                <error id="30625" message="'Module' statement must end with a matching 'End Module'." start="1" end="9"/>
-                <error id="31151" message="Element is missing an end tag." start="22" end="85"/>
-                <error id="30198" message="')' expected." start="69" end="69"/>
-                <error id="31159" message="Expected closing '%>' for embedded expression." start="69" end="69"/>
-                <error id="30636" message="'>' expected." start="81" end="82"/>
-                <error id="31169" message="Character '%' (&amp;H25) is not allowed at the beginning of an XML name." start="83" end="84"/>
-                <error id="31165" message="Expected beginning '&lt;' for an XML tag." start="99" end="99"/>
-                <error id="30636" message="'>' expected." start="99" end="99"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2436,10 +2413,7 @@ Module M
                 Select x
     End Sub
 End Module
-]]>,
-            <errors>
-                <error id="30095" message="'Select Case' must end with a matching 'End Select'." start="147" end="155"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2452,10 +2426,7 @@ Module M
                 Select x
     End Sub
 End Module
-]]>,
-            <errors>
-                <error id="30095" message="'Select Case' must end with a matching 'End Select'." start="178" end="186"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2467,10 +2438,7 @@ Module M
                 Select x
     End Sub
 End Module
-]]>,
-            <errors>
-                <error id="30095" message="'Select Case' must end with a matching 'End Select'." start="149" end="157"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2482,10 +2450,7 @@ Module M
                 Select x
     End Sub
 End Module
-]]>,
-            <errors>
-                <error id="30095" message="'Select Case' must end with a matching 'End Select'." start="154" end="162"/>
-            </errors>)
+]]>)
 
         ParseAndVerify(<![CDATA[
 Module M
@@ -2495,10 +2460,7 @@ Module M
  
         Distinct
 End Module
-]]>,
-            <errors>
-                <error id="30188" message="Declaration expected." start="99" end="107"/>
-            </errors>)
+]]>)
     End Sub
 
     <WorkItem(598156, "DevDiv")>
@@ -3551,6 +3513,46 @@ End Module
     End Sub
 
     <Fact()>
+    Public Sub XmlNameTokenPossibleKeywordKind()
+        Const sourceTemplate = "
+Module M
+    Dim x = <{0}:
+y a=""/>
+End Module
+"
+
+        Const squiggleTemplate = "<{0}:
+y a=""/>
+End Module
+"
+        Dim commonExpectedErrors =
+        {
+            Diagnostic(ERRID.ERR_ExpectedEndModule, "Module M"),
+            Diagnostic(ERRID.ERR_IllegalXmlWhiteSpace, "
+"),
+            Diagnostic(ERRID.ERR_ExpectedXmlName, "y"),
+            Diagnostic(ERRID.ERR_ExpectedQuote, ""),
+            Diagnostic(ERRID.ERR_ExpectedLT, ""),
+            Diagnostic(ERRID.ERR_ExpectedGreater, "")
+        }
+
+        Dim tree1 = Parse(String.Format(sourceTemplate, "e"))
+        tree1.GetDiagnostics().Verify(commonExpectedErrors.Concat({Diagnostic(ERRID.ERR_MissingXmlEndTag, String.Format(squiggleTemplate, "e"))}).ToArray())
+
+        Dim tree2 = Parse(String.Format(sourceTemplate, "ee"))
+        tree2.GetDiagnostics().Verify(commonExpectedErrors.Concat({Diagnostic(ERRID.ERR_MissingXmlEndTag, String.Format(squiggleTemplate, "ee"))}).ToArray())
+
+        Dim getPossibleKeywordKind = Function(x As XmlNameSyntax) DirectCast(x.Green, InternalSyntax.XmlNameSyntax).LocalName.PossibleKeywordKind
+
+        Dim kinds1 = tree1.GetRoot().DescendantNodes().OfType(Of XmlNameSyntax).Select(getPossibleKeywordKind)
+        Assert.NotEmpty(kinds1)
+        AssertEx.All(kinds1, Function(k) k = SyntaxKind.XmlNameToken)
+
+        Dim kinds2 = tree2.GetRoot().DescendantNodes().OfType(Of XmlNameSyntax).Select(getPossibleKeywordKind)
+        Assert.Equal(kinds1, kinds2)
+    End Sub
+
+    <Fact()>
     Public Sub TransitionFromXmlToVB()
         ParseAndVerify(<![CDATA[
 Module M
@@ -4465,18 +4467,18 @@ End Module]]>.Value.Replace("~"c, FULLWIDTH_COLON))
         Dim source = "
 Imports <xmlns = ""http://xml"">
 "
-        CreateCompilationWithMscorlib({source}, compOptions:=TestOptions.ReleaseDll).VerifyDiagnostics(
+        CreateCompilationWithMscorlib({source}, options:=TestOptions.ReleaseDll).VerifyDiagnostics(
             Diagnostic(ERRID.HDN_UnusedImportStatement, "Imports <xmlns = ""http://xml"">").WithLocation(2, 1))
     End Sub
 
     <WorkItem(969980)>
     <Fact(Skip:="969980")>
     Public Sub UnaliasedXmlImport_Project()
-        CreateCompilationWithMscorlib({""}, compOptions:=TestOptions.ReleaseDll.WithGlobalImports(GlobalImport.Parse("<xmlns = ""http://xml"">"))).VerifyDiagnostics()
+        CreateCompilationWithMscorlib({""}, options:=TestOptions.ReleaseDll.WithGlobalImports(GlobalImport.Parse("<xmlns = ""http://xml"">"))).VerifyDiagnostics()
     End Sub
 
     <WorkItem(1042696)>
-    <Fact(Skip:="1042696")>
+    <Fact>
     Public Sub ParseXmlTrailingNewLinesBeforeDistinct()
         ParseAndVerify(<![CDATA[
 Module M

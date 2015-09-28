@@ -10,7 +10,7 @@ Imports InternalSyntaxFactory = Microsoft.CodeAnalysis.VisualBasic.Syntax.Intern
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
 
-    Partial Class Parser
+    Friend Partial Class Parser
 
         ' File: Parser.cpp
         ' Lines: 18978 - 18978
@@ -93,12 +93,12 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
         ' Expression* .Parser::ParseConditionalCompilationExpression( [ _Inout_ bool& ErrorInConstruct ] )
 
         Friend Function ParseConditionalCompilationExpression() As ExpressionSyntax
-            Dim PrevEvaluatingConditionCompilationExpressions As Boolean = m_EvaluatingConditionCompilationExpression
-            m_EvaluatingConditionCompilationExpression = True
+            Dim PrevEvaluatingConditionCompilationExpressions As Boolean = _evaluatingConditionCompilationExpression
+            _evaluatingConditionCompilationExpression = True
 
-            Dim Expr = ParseExpression()
+            Dim Expr = ParseExpressionCore()
 
-            m_EvaluatingConditionCompilationExpression = PrevEvaluatingConditionCompilationExpressions
+            _evaluatingConditionCompilationExpression = PrevEvaluatingConditionCompilationExpressions
 
             Return Expr
         End Function
@@ -257,13 +257,6 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             VerifyExpectedToken(SyntaxKind.StringLiteralToken, title)
 
             Dim statement = SyntaxFactory.RegionDirectiveTrivia(hashToken, regionKeyword, title)
-
-            'TODO - There isn't a context anymore for directives.  So this check can't be done here.  Is it really necessary to restrict
-            ' regions to be outside of method bodies? Commenting out the check for now.
-            'If Context.IsWithin(AddressOf SyntaxFacts.IsMethodBlockStatement) Then
-            '    statement = ReportSyntaxError(statement, ERRID.ERR_RegionWithinMethod)
-            'End If
-
             Return statement
         End Function
 
@@ -436,6 +429,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Syntax.InternalSyntax
             ElseIf enableOrDisableKeyword.Kind = SyntaxKind.DisableKeyword Then
                 statement = SyntaxFactory.DisableWarningDirectiveTrivia(
                     hashToken, enableOrDisableKeyword, warningKeyword, errorCodes.ToList)
+            End If
+
+            If statement IsNot Nothing Then
+                statement = CheckFeatureAvailability(Feature.WarningDirectives, statement)
             End If
 
             Me._pool.Free(errorCodes)

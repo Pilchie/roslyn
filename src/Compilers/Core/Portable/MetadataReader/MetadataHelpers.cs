@@ -32,6 +32,7 @@ namespace Microsoft.CodeAnalysis
             internal readonly string TopLevelType;
             internal readonly string[] NestedTypes;
             internal readonly AssemblyQualifiedTypeName[] TypeArguments;
+            internal readonly int PointerCount;
             internal readonly int[] ArrayRanks;
             internal readonly string AssemblyName;
 
@@ -39,12 +40,14 @@ namespace Microsoft.CodeAnalysis
                 string topLevelType,
                 string[] nestedTypes,
                 AssemblyQualifiedTypeName[] typeArguments,
+                int pointerCount,
                 int[] arrayRanks,
                 string assemblyName)
             {
                 this.TopLevelType = topLevelType;
                 this.NestedTypes = nestedTypes;
                 this.TypeArguments = typeArguments;
+                this.PointerCount = pointerCount;
                 this.ArrayRanks = arrayRanks;
                 this.AssemblyName = assemblyName;
             }
@@ -64,53 +67,53 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         private struct SerializedTypeDecoder
         {
-            private static readonly char[] TypeNameDelimiters = new char[] { '+', ',', '[', ']' };
-            private readonly string input;
-            private int offset;
+            private static readonly char[] s_typeNameDelimiters = { '+', ',', '[', ']', '*' };
+            private readonly string _input;
+            private int _offset;
 
             internal SerializedTypeDecoder(string s)
             {
-                input = s;
-                offset = 0;
+                _input = s;
+                _offset = 0;
             }
 
-            void Advance()
+            private void Advance()
             {
                 if (!EndOfInput)
                 {
-                    offset++;
+                    _offset++;
                 }
             }
 
-            void AdvanceTo(int i)
+            private void AdvanceTo(int i)
             {
-                if (i <= input.Length)
+                if (i <= _input.Length)
                 {
-                    offset = i;
+                    _offset = i;
                 }
             }
 
-            bool EndOfInput
-            {
-                get
-                {
-                    return offset >= input.Length;
-                }
-            }
-
-            int Offset
+            private bool EndOfInput
             {
                 get
                 {
-                    return offset;
+                    return _offset >= _input.Length;
                 }
             }
 
-            char Current
+            private int Offset
             {
                 get
                 {
-                    return input[offset];
+                    return _offset;
+                }
+            }
+
+            private char Current
+            {
+                get
+                {
+                    return _input[_offset];
                 }
             }
 
@@ -124,22 +127,23 @@ namespace Microsoft.CodeAnalysis
                 Debug.Assert(!isTypeArgumentWithAssemblyName || isTypeArgument);
 
                 string topLevelType = null;
-                ArrayBuilder<string> nestedTypesbuilder = null;
+                ArrayBuilder<string> nestedTypesBuilder = null;
                 AssemblyQualifiedTypeName[] typeArguments = null;
+                int pointerCount = 0;
                 ArrayBuilder<int> arrayRanksBuilder = null;
                 string assemblyName = null;
                 bool decodingTopLevelType = true;
                 bool isGenericTypeName = false;
 
                 var pooledStrBuilder = PooledStringBuilder.GetInstance();
-                StringBuilder typeNamebuilder = pooledStrBuilder.Builder;
+                StringBuilder typeNameBuilder = pooledStrBuilder.Builder;
 
                 while (!EndOfInput)
                 {
-                    int i = input.IndexOfAny(TypeNameDelimiters, offset);
+                    int i = _input.IndexOfAny(s_typeNameDelimiters, _offset);
                     if (i >= 0)
                     {
-                        char c = input[i];
+                        char c = _input[i];
 
                         // Found name, which could be a generic name with arity.
                         // Generic type parameter count, if any, are handled in DecodeGenericName.
@@ -148,22 +152,37 @@ namespace Microsoft.CodeAnalysis
 
                         // Type name is generic if the decoded name of the top level type OR any of the outer types of a nested type had the '`' character.
                         isGenericTypeName = isGenericTypeName || decodedString.IndexOf(GenericTypeNameManglingChar) >= 0;
-                        typeNamebuilder.Append(decodedString);
+                        typeNameBuilder.Append(decodedString);
 
                         switch (c)
                         {
-                            case '+':
+                            case '*':
                                 if (arrayRanksBuilder != null)
                                 {
                                     // Error case, array shape must be specified at the end of the type name.
                                     // Process as a regular character and continue.
-                                    typeNamebuilder.Append('+');
+                                    typeNameBuilder.Append(c);
+                                }
+                                else
+                                {
+                                    pointerCount++;
+                                }
+
+                                Advance();
+                                break;
+
+                            case '+':
+                                if (arrayRanksBuilder != null || pointerCount > 0)
+                                {
+                                    // Error case, array shape must be specified at the end of the type name.
+                                    // Process as a regular character and continue.
+                                    typeNameBuilder.Append(c);
                                 }
                                 else
                                 {
                                     // Type followed by nested type. Handle nested class separator and collect the nested types.
-                                    HandleDecodedTypeName(typeNamebuilder.ToString(), decodingTopLevelType, ref topLevelType, ref nestedTypesbuilder);
-                                    typeNamebuilder.Clear();
+                                    HandleDecodedTypeName(typeNameBuilder.ToString(), decodingTopLevelType, ref topLevelType, ref nestedTypesBuilder);
+                                    typeNameBuilder.Clear();
                                     decodingTopLevelType = false;
                                 }
 
@@ -175,11 +194,11 @@ namespace Microsoft.CodeAnalysis
                                 if (isGenericTypeName && typeArguments == null)
                                 {
                                     Advance();
-                                    if (arrayRanksBuilder != null)
+                                    if (arrayRanksBuilder != null || pointerCount > 0)
                                     {
                                         // Error case, array shape must be specified at the end of the type name.
                                         // Process as a regular character and continue.
-                                        typeNamebuilder.Append('[');
+                                        typeNameBuilder.Append(c);
                                     }
                                     else
                                     {
@@ -190,7 +209,7 @@ namespace Microsoft.CodeAnalysis
                                 else
                                 {
                                     // Decode array shape.
-                                    DecodeArrayShape(typeNamebuilder, ref arrayRanksBuilder);
+                                    DecodeArrayShape(typeNameBuilder, ref arrayRanksBuilder);
                                 }
 
                                 break;
@@ -205,7 +224,7 @@ namespace Microsoft.CodeAnalysis
                                 else
                                 {
                                     // Error case, process as a regular character and continue.
-                                    typeNamebuilder.Append(']');
+                                    typeNameBuilder.Append(c);
                                     Advance();
                                     break;
                                 }
@@ -233,24 +252,25 @@ namespace Microsoft.CodeAnalysis
                     }
                     else
                     {
-                        typeNamebuilder.Append(DecodeGenericName(input.Length));
+                        typeNameBuilder.Append(DecodeGenericName(_input.Length));
                         goto ExitDecodeTypeName;
                     }
                 }
 
             ExitDecodeTypeName:
-                HandleDecodedTypeName(typeNamebuilder.ToString(), decodingTopLevelType, ref topLevelType, ref nestedTypesbuilder);
+                HandleDecodedTypeName(typeNameBuilder.ToString(), decodingTopLevelType, ref topLevelType, ref nestedTypesBuilder);
                 pooledStrBuilder.Free();
 
                 return new AssemblyQualifiedTypeName(
                     topLevelType,
-                    nestedTypesbuilder != null ? nestedTypesbuilder.ToArrayAndFree() : null,
+                    nestedTypesBuilder?.ToArrayAndFree(),
                     typeArguments,
-                    arrayRanksBuilder != null ? arrayRanksBuilder.ToArrayAndFree() : null,
+                    pointerCount,
+                    arrayRanksBuilder?.ToArrayAndFree(),
                     assemblyName);
             }
 
-            private static void HandleDecodedTypeName(string decodedTypeName, bool decodingTopLevelType, ref string topLevelType, ref ArrayBuilder<string> nestedTypesbuilder)
+            private static void HandleDecodedTypeName(string decodedTypeName, bool decodingTopLevelType, ref string topLevelType, ref ArrayBuilder<string> nestedTypesBuilder)
             {
                 if (decodedTypeName.Length != 0)
                 {
@@ -261,12 +281,12 @@ namespace Microsoft.CodeAnalysis
                     }
                     else
                     {
-                        if (nestedTypesbuilder == null)
+                        if (nestedTypesBuilder == null)
                         {
-                            nestedTypesbuilder = ArrayBuilder<string>.GetInstance();
+                            nestedTypesBuilder = ArrayBuilder<string>.GetInstance();
                         }
 
-                        nestedTypesbuilder.Add(decodedTypeName);
+                        nestedTypesBuilder.Add(decodedTypeName);
                     }
                 }
             }
@@ -276,20 +296,20 @@ namespace Microsoft.CodeAnalysis
             /// </summary>
             private string DecodeGenericName(int i)
             {
-                Debug.Assert(i == input.Length || TypeNameDelimiters.Contains(input[i]));
+                Debug.Assert(i == _input.Length || s_typeNameDelimiters.Contains(_input[i]));
 
-                var length = i - offset;
+                var length = i - _offset;
                 if (length == 0)
                 {
                     return String.Empty;
                 }
 
                 // Save start of name. The name should be the emitted name including the '`'  and arity.
-                int start = offset;
+                int start = _offset;
                 AdvanceTo(i);
 
                 // Get the emitted name.
-                return input.Substring(start, offset - start);
+                return _input.Substring(start, _offset - start);
             }
 
             private AssemblyQualifiedTypeName[] DecodeTypeArguments()
@@ -361,21 +381,21 @@ namespace Microsoft.CodeAnalysis
                     return null;
                 }
 
-                int i = -1;
+                int i;
                 if (isTypeArgumentWithAssemblyName)
                 {
-                    i = input.IndexOf(']', offset);
+                    i = _input.IndexOf(']', _offset);
                     if (i < 0)
                     {
-                        i = input.Length;
+                        i = _input.Length;
                     }
                 }
                 else
                 {
-                    i = input.Length;
+                    i = _input.Length;
                 }
 
-                string name = input.Substring(offset, i - offset);
+                string name = _input.Substring(_offset, i - _offset);
                 AdvanceTo(i);
                 return name;
             }
@@ -384,7 +404,7 @@ namespace Microsoft.CodeAnalysis
             {
                 Debug.Assert(Current == '[');
 
-                int start = this.offset;
+                int start = _offset;
                 int rank = 1;
                 Advance();
 
@@ -410,23 +430,22 @@ namespace Microsoft.CodeAnalysis
                         default:
                             // Error case, process as regular characters
                             Advance();
-                            typeNameBuilder.Append(input.Substring(start, offset - start));
+                            typeNameBuilder.Append(_input.Substring(start, _offset - start));
                             return;
-
                     }
                 }
 
                 // Error case, process as regular characters
-                typeNameBuilder.Append(input.Substring(start, offset - start));
+                typeNameBuilder.Append(_input.Substring(start, _offset - start));
             }
         }
 
-        private static readonly string[] aritySuffixesOneToNine = { "`1", "`2", "`3", "`4", "`5", "`6", "`7", "`8", "`9" };
+        private static readonly string[] s_aritySuffixesOneToNine = { "`1", "`2", "`3", "`4", "`5", "`6", "`7", "`8", "`9" };
 
         internal static string GetAritySuffix(int arity)
         {
             Debug.Assert(arity > 0);
-            return (arity <= 9) ? aritySuffixesOneToNine[arity - 1] : string.Concat(GenericTypeNameManglingString, arity.ToString(CultureInfo.InvariantCulture));
+            return (arity <= 9) ? s_aritySuffixesOneToNine[arity - 1] : string.Concat(GenericTypeNameManglingString, arity.ToString(CultureInfo.InvariantCulture));
         }
 
         internal static string ComposeAritySuffixedMetadataName(string name, int arity)
@@ -512,13 +531,12 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// An ImmutableArray representing the single string "System"
         /// </summary>
-        private static readonly ImmutableArray<string> SplitQualifiedNameSystem = ImmutableArray.Create(SystemString);
+        private static readonly ImmutableArray<string> s_splitQualifiedNameSystem = ImmutableArray.Create(SystemString);
 
         internal static ImmutableArray<string> SplitQualifiedName(
               string name)
         {
             Debug.Assert(name != null);
-            Debug.Assert(name.IndexOf(MangledNameRegionStartChar) < 0);
 
             if (name.Length == 0)
             {
@@ -539,7 +557,7 @@ namespace Microsoft.CodeAnalysis
 
             if (dots == 0)
             {
-                return name == SystemString ? SplitQualifiedNameSystem : ImmutableArray.Create(name);
+                return name == SystemString ? s_splitQualifiedNameSystem : ImmutableArray.Create(name);
             }
 
             var result = ArrayBuilder<string>.GetInstance(dots + 1);
@@ -550,7 +568,7 @@ namespace Microsoft.CodeAnalysis
                 if (name[i] == DotDelimiter)
                 {
                     int len = i - start;
-                    if (len == 6 && start == 0 && name.StartsWith(SystemString))
+                    if (len == 6 && start == 0 && name.StartsWith(SystemString, StringComparison.Ordinal))
                     {
                         result.Add(SystemString);
                     }
@@ -585,20 +603,20 @@ namespace Microsoft.CodeAnalysis
             {
                 switch (pstrName[i])
                 {
-                case MangledNameRegionStartChar:
-                    angleBracketDepth++;
-                    break;
-                case MangledNameRegionEndChar:
-                    angleBracketDepth--;
-                    break;
-                case DotDelimiter:
-                    // If we see consecutive dots, the second is part of the method name
-                    // (i.e. ".ctor" or ".cctor").
-                    if (angleBracketDepth == 0 && (i == 0 || delimiter < i - 1))
-                    {
-                        delimiter = i;
-                    }
-                    break;
+                    case MangledNameRegionStartChar:
+                        angleBracketDepth++;
+                        break;
+                    case MangledNameRegionEndChar:
+                        angleBracketDepth--;
+                        break;
+                    case DotDelimiter:
+                        // If we see consecutive dots, the second is part of the method name
+                        // (i.e. ".ctor" or ".cctor").
+                        if (angleBracketDepth == 0 && (i == 0 || delimiter < i - 1))
+                        {
+                            delimiter = i;
+                        }
+                        break;
                 }
             }
             Debug.Assert(angleBracketDepth == 0);
@@ -609,7 +627,7 @@ namespace Microsoft.CodeAnalysis
                 return pstrName;
             }
 
-            if (delimiter == 6 && pstrName.StartsWith(SystemString))
+            if (delimiter == 6 && pstrName.StartsWith(SystemString, StringComparison.Ordinal))
             {
                 qualifier = SystemString;
             }
@@ -627,7 +645,7 @@ namespace Microsoft.CodeAnalysis
         {
             Debug.Assert(name != null);
 
-            if (qualifier != null && qualifier.Length > 0)
+            if (!string.IsNullOrEmpty(qualifier))
             {
                 return String.Concat(qualifier, DotDelimiterString, name);
             }
@@ -704,7 +722,7 @@ namespace Microsoft.CodeAnalysis
                     List<IGrouping<string, TypeDefinitionHandle>> typesInLastChildNamespace = null;
 
                     // if there are any types in this namespace,
-                    // they will be in the first several groups if if their key length 
+                    // they will be in the first several groups if their key length 
                     // is equal to namespaceNameLength.
                     while (pair.Key.Length == namespaceNameLength)
                     {
@@ -766,7 +784,7 @@ namespace Microsoft.CodeAnalysis
                     }
 
                 DoneWithSequence:
-                /*empty statement*/
+                    /*empty statement*/
                     ;
                 }
             } // using
@@ -791,7 +809,6 @@ namespace Microsoft.CodeAnalysis
         /// Simple name of a top level child namespace, the left-most name following parent namespace name 
         /// in the fully qualified name.
         /// </returns>
-        /// <remarks></remarks>
         private static string ExtractSimpleNameOfChildNamespace(
             int parentNamespaceNameLength,
             string fullName)
@@ -869,7 +886,7 @@ namespace Microsoft.CodeAnalysis
 
         /// <summary>
         /// Checks that the specified name is a valid metadata String and a file name.
-        /// The specification isn't entirely consistent and complete but it mentiones:
+        /// The specification isn't entirely consistent and complete but it mentions:
         /// 
         /// 22.19.2: "Name shall index a non-empty string in the String heap. It shall be in the format {filename}.{extension} (e.g., 'foo.dll', but not 'c:\utils\foo.dll')."
         /// 22.30.2: "The format of Name is {file name}.{file extension} with no path or drive letter; on POSIX-compliant systems Name contains no colon, no forward-slash, no backslash."
@@ -934,31 +951,31 @@ namespace Microsoft.CodeAnalysis
                 private const int AlgorithmSubIdOffset = 0;
                 private const int AlgorithmSubIdMask = 0x1ff;
 
-                private readonly uint flags;
+                private readonly uint _flags;
 
                 public bool IsSet
                 {
-                    get { return flags != 0; }
+                    get { return _flags != 0; }
                 }
 
                 public AlgorithmClass Class
                 {
-                    get { return (AlgorithmClass)((flags >> AlgorithmClassOffset) & AlgorithmClassMask); }
+                    get { return (AlgorithmClass)((_flags >> AlgorithmClassOffset) & AlgorithmClassMask); }
                 }
 
                 public AlgorithmSubId SubId
                 {
-                    get { return (AlgorithmSubId)((flags >> AlgorithmSubIdOffset) & AlgorithmSubIdMask); }
+                    get { return (AlgorithmSubId)((_flags >> AlgorithmSubIdOffset) & AlgorithmSubIdMask); }
                 }
 
                 public AlgorithmId(uint flags)
                 {
-                    this.flags = flags;
+                    _flags = flags;
                 }
             }
 
             // From ECMAKey.h
-            private static readonly ImmutableArray<byte> ecmaKey = ImmutableArray.Create(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0 });
+            private static readonly ImmutableArray<byte> s_ecmaKey = ImmutableArray.Create(new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0 });
 
             // From strongname.h
             //
@@ -969,7 +986,7 @@ namespace Microsoft.CodeAnalysis
             //     uint32_t SigAlgId;      // Signature algorithm ID
             //     uint32_t HashAlgId;     // Hash algorithm ID
             //     uint32_t PublicKeySize; // Size of public key data in bytes, not including the header
-            //     uint8_t  PublicKey[0];  // PublicKeySize bytes of publc key data
+            //     uint8_t  PublicKey[0];  // PublicKeySize bytes of public key data
             // }
             //
             // The offsets of each relevant field are recorded below.
@@ -985,7 +1002,7 @@ namespace Microsoft.CodeAnalysis
             private static uint ToUInt32(ImmutableArray<byte> bytes, int offset)
             {
                 Debug.Assert((bytes.Length - offset) > sizeof(int));
-                return (uint)((int)bytes[offset] | ((int)bytes[offset + 1] << 8) | ((int)bytes[offset + 2] << 16) | ((int)bytes[offset + 3] << 24));
+                return (uint)(bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24));
             }
 
             // From StrongNameInternal.cpp
@@ -1005,7 +1022,7 @@ namespace Microsoft.CodeAnalysis
                 }
 
                 // Check for the ECMA key, which does not obey the invariants checked below.
-                if (ByteSequenceComparer.Equals(bytes, ecmaKey))
+                if (ByteSequenceComparer.Equals(bytes, s_ecmaKey))
                 {
                     return true;
                 }
@@ -1031,5 +1048,19 @@ namespace Microsoft.CodeAnalysis
             }
         }
 
+        /// <summary>
+        /// Given an input string changes it to be acceptable as a part of a type name.
+        /// </summary>
+        internal static string MangleForTypeNameIfNeeded(string moduleName)
+        {
+            var pooledStrBuilder = PooledStringBuilder.GetInstance();
+            var s = pooledStrBuilder.Builder;
+            s.Append(moduleName);
+            s.Replace("Q", "QQ");
+            s.Replace("_", "Q_");
+            s.Replace('.', '_');
+
+            return pooledStrBuilder.ToStringAndFree();
+        }
     }
 }

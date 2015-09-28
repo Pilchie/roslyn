@@ -11,16 +11,14 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
-using Roslyn.Utilities;
 using System.Globalization;
-using System.Reflection;
 
 namespace Microsoft.CodeAnalysis.CompilerServer
 {
     /// <summary>
     /// The interface used by <see cref="ServerDispatcher"/> to dispatch requests.
     /// </summary>
-    interface IRequestHandler
+    internal interface IRequestHandler
     {
         BuildResponse HandleRequest(BuildRequest req, CancellationToken cancellationToken);
     }
@@ -34,30 +32,18 @@ namespace Microsoft.CodeAnalysis.CompilerServer
     /// <remarks>
     /// One instance of this is created per process.
     /// </remarks>
-    partial class ServerDispatcher
+    internal partial class ServerDispatcher
     {
-        private class ConnectionData
-        {
-            public Task<CompletionReason> ConnectionTask;
-            public Task<TimeSpan?> ChangeKeepAliveTask;
-
-            internal ConnectionData(Task<CompletionReason> connectionTask, Task<TimeSpan?> changeKeepAliveTask)
-            {
-                ConnectionTask = connectionTask;
-                ChangeKeepAliveTask = changeKeepAliveTask;
-            }
-        }
-
         /// <summary>
         /// Default time the server will stay alive after the last request disconnects.
         /// </summary>
-        private static readonly TimeSpan DefaultServerKeepAlive = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan s_defaultServerKeepAlive = TimeSpan.FromMinutes(10);
 
         /// <summary>
         /// Time to delay after the last connection before initiating a garbage collection
         /// in the server. 
         /// </summary>
-        private static readonly TimeSpan GCTimeout = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan s_GCTimeout = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// Main entry point for the process. Initialize the server dispatcher
@@ -69,6 +55,23 @@ namespace Microsoft.CodeAnalysis.CompilerServer
             CompilerServerLogger.Log("Process started");
 
             TimeSpan? keepAliveTimeout = null;
+
+            // VBCSCompiler is installed in the same directory as csc.exe and vbc.exe which is also the 
+            // location of the response files.
+            var compilerExeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Pipename should be passed as the first and only argument to the server process
+            // and it must have the form "-pipename:name". Otherwise, exit with a non-zero
+            // exit code
+            const string pipeArgPrefix = "-pipename:";
+            if (args.Length != 1 ||
+                args[0].Length <= pipeArgPrefix.Length ||
+                !args[0].StartsWith(pipeArgPrefix))
+            {
+                return CommonCompiler.Failed;
+            }
+
+            var pipeName = args[0].Substring(pipeArgPrefix.Length);
 
             try
             {
@@ -89,36 +92,31 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                 }
                 else
                 {
-                    keepAliveTimeout = DefaultServerKeepAlive;
+                    keepAliveTimeout = s_defaultServerKeepAlive;
                 }
             }
             catch (ConfigurationErrorsException e)
             {
-                keepAliveTimeout = DefaultServerKeepAlive;
+                keepAliveTimeout = s_defaultServerKeepAlive;
                 CompilerServerLogger.LogException(e, "Could not read AppSettings");
             }
 
             CompilerServerLogger.Log("Keep alive timeout is: {0} milliseconds.", keepAliveTimeout?.TotalMilliseconds ?? 0);
             FatalError.Handler = FailFast.OnFatalException;
 
-            // VBCSCompiler is installed in the same directory as csc.exe and vbc.exe which is also the 
-            // location of the response files.
-            var responseFileDirectory = CommonCompiler.GetResponseFileDirectory();
-            var dispatcher = new ServerDispatcher(new CompilerRequestHandler(responseFileDirectory), new EmptyDiagnosticListener());
+            var dispatcher = new ServerDispatcher(new CompilerRequestHandler(compilerExeDirectory), new EmptyDiagnosticListener());
 
-            // Add the process ID onto the pipe name so each process gets a semi-unique and predictable pipe 
-            // name.  The client must use this algorithm too to connect.
-            string pipeName = BuildProtocolConstants.PipeName + Process.GetCurrentProcess().Id.ToString();
-
-            dispatcher.ListenAndDispatchConnections(pipeName, keepAliveTimeout, watchAnalyzerFiles: true);
-            return 0;
+            dispatcher.ListenAndDispatchConnections(
+                pipeName,
+                keepAliveTimeout);
+            return CommonCompiler.Succeeded;
         }
 
         // Size of the buffers to use
         private const int PipeBufferSize = 0x10000;  // 64K
 
-        private readonly IRequestHandler handler;
-        private readonly IDiagnosticListener diagnosticListener;
+        private readonly IRequestHandler _handler;
+        private readonly IDiagnosticListener _diagnosticListener;
 
         /// <summary>
         /// Create a new server that listens on the given base pipe name.
@@ -127,8 +125,8 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// </summary>
         public ServerDispatcher(IRequestHandler handler, IDiagnosticListener diagnosticListener)
         {
-            this.handler = handler;
-            this.diagnosticListener = diagnosticListener;
+            _handler = handler;
+            _diagnosticListener = diagnosticListener;
         }
 
         /// <summary>
@@ -144,20 +142,19 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// test framework.  The code hooks <see cref="AppDomain.AssemblyResolve"/> in a way
         /// that prevents xUnit from running correctly and hence must be disabled. 
         /// </remarks>
-        public void ListenAndDispatchConnections(string pipeName, TimeSpan? keepAlive, bool watchAnalyzerFiles, CancellationToken cancellationToken = default(CancellationToken))
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods",
+            MessageId = "System.GC.Collect",
+            Justification = "We intentionally call GC.Collect when anticipate long period on inactivity.")]
+        public void ListenAndDispatchConnections(string pipeName, TimeSpan? keepAlive, CancellationToken cancellationToken = default(CancellationToken))
         {
             Debug.Assert(SynchronizationContext.Current == null);
 
             var isKeepAliveDefault = true;
-            var connectionList = new List<ConnectionData>();
+            var connectionList = new List<Task<ConnectionData>>();
             Task gcTask = null;
             Task timeoutTask = null;
             Task<NamedPipeServerStream> listenTask = null;
             CancellationTokenSource listenCancellationTokenSource = null;
-
-            // If we aren't being asked to watch analyzer files then simple create a Task which never 
-            // completes.  This is the behavior of AnalyzerWatcher when files don't change on disk.
-            Task analyzerTask = watchAnalyzerFiles ? AnalyzerWatcher.CreateWatchFilesTask() : new TaskCompletionSource<bool>().Task;
 
             do
             {
@@ -178,14 +175,13 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                     timeoutTask = Task.Delay(keepAlive.Value);
                 }
 
-                WaitForAnyCompletion(connectionList, new[] { listenTask, timeoutTask, gcTask, analyzerTask }, cancellationToken);
+                WaitForAnyCompletion(connectionList, new[] { listenTask, timeoutTask, gcTask }, cancellationToken);
 
                 // If there is a connection event that has highest priority. 
                 if (listenTask.IsCompleted && !cancellationToken.IsCancellationRequested)
                 {
-                    var changeKeepAliveSource = new TaskCompletionSource<TimeSpan?>();
-                    var connectionTask = CreateHandleConnectionTask(listenTask, changeKeepAliveSource, cancellationToken);
-                    connectionList.Add(new ConnectionData(connectionTask, changeKeepAliveSource.Task));
+                    var connectionTask = CreateHandleConnectionTask(listenTask, _handler, cancellationToken);
+                    connectionList.Add(connectionTask);
                     listenTask = null;
                     listenCancellationTokenSource = null;
                     timeoutTask = null;
@@ -193,7 +189,7 @@ namespace Microsoft.CodeAnalysis.CompilerServer
                     continue;
                 }
 
-                if ((timeoutTask != null && timeoutTask.IsCompleted) || analyzerTask.IsCompleted || cancellationToken.IsCancellationRequested)
+                if ((timeoutTask != null && timeoutTask.IsCompleted) || cancellationToken.IsCancellationRequested)
                 {
                     listenCancellationTokenSource.Cancel();
                     break;
@@ -219,14 +215,13 @@ namespace Microsoft.CodeAnalysis.CompilerServer
 
                 if (connectionList.Count == 0 && gcTask == null)
                 {
-                    gcTask = Task.Delay(GCTimeout);
+                    gcTask = Task.Delay(s_GCTimeout);
                 }
-
             } while (true);
 
             try
             {
-                Task.WaitAll(connectionList.Select(x => x.ConnectionTask).ToArray());
+                Task.WaitAll(connectionList.ToArray());
             }
             catch
             {
@@ -240,11 +235,10 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// The server farms out work to Task values and this method needs to wait until at least one of them
         /// has completed.
         /// </summary>
-        private void WaitForAnyCompletion(IEnumerable<ConnectionData> e, Task[] other, CancellationToken cancellationToken)
+        private void WaitForAnyCompletion(IEnumerable<Task<ConnectionData>> e, Task[] other, CancellationToken cancellationToken)
         {
             var all = new List<Task>();
-            all.AddRange(e.Select(x => x.ConnectionTask));
-            all.AddRange(e.Select(x => x.ChangeKeepAliveTask).Where(x => x != null));
+            all.AddRange(e);
             all.AddRange(other.Where(x => x != null));
 
             try
@@ -262,55 +256,48 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         /// Checks the completed connection objects.
         /// </summary>
         /// <returns>True if everything completed normally and false if there were any client disconnections.</returns>
-        private bool CheckConnectionTask(List<ConnectionData> connectionList, ref TimeSpan? keepAlive, ref bool isKeepAliveDefault)
+        private bool CheckConnectionTask(List<Task<ConnectionData>> connectionList, ref TimeSpan? keepAlive, ref bool isKeepAliveDefault)
         {
             var allFine = true;
-
-            foreach (var current in connectionList)
+            var processedCount = 0;
+            var i = 0;
+            while (i < connectionList.Count)
             {
-                if (current.ChangeKeepAliveTask != null && current.ChangeKeepAliveTask.IsCompleted)
+                var current = connectionList[i];
+                if (!current.IsCompleted)
                 {
-                    ChangeKeepAlive(current.ChangeKeepAliveTask, ref keepAlive, ref isKeepAliveDefault);
-                    current.ChangeKeepAliveTask = null;
+                    i++;
+                    continue;
                 }
 
-                if (current.ConnectionTask.IsCompleted)
-                {
-                    Debug.Assert(current.ChangeKeepAliveTask == null);
+                connectionList.RemoveAt(i);
+                processedCount++;
 
-                    if (current.ConnectionTask.Result == CompletionReason.ClientDisconnect)
-                    {
-                        allFine = false;
-                    }
+                var connectionData = current.Result;
+                ChangeKeepAlive(connectionData.KeepAlive, ref keepAlive, ref isKeepAliveDefault);
+                if (connectionData.CompletionReason == CompletionReason.ClientDisconnect)
+                {
+                    allFine = false;
                 }
             }
 
-            // Finally remove any ConnectionData for connections which are no longer active.
-            int processedCount = connectionList.RemoveAll(x => x.ConnectionTask.IsCompleted);
             if (processedCount > 0)
             {
-                this.diagnosticListener.ConnectionProcessed(processedCount);
+                _diagnosticListener.ConnectionProcessed(processedCount);
             }
 
             return allFine;
         }
 
-        private void ChangeKeepAlive(Task<TimeSpan?> task, ref TimeSpan? keepAlive, ref bool isKeepAliveDefault)
+        private void ChangeKeepAlive(TimeSpan? value, ref TimeSpan? keepAlive, ref bool isKeepAliveDefault)
         {
-            Debug.Assert(task.IsCompleted);
-            if (task.Status != TaskStatus.RanToCompletion)
-            {
-                return;
-            }
-
-            var value = task.Result;
             if (value.HasValue)
             {
                 if (isKeepAliveDefault || !keepAlive.HasValue || value.Value > keepAlive.Value)
                 {
                     keepAlive = value;
                     isKeepAliveDefault = false;
-                    this.diagnosticListener.UpdateKeepAlive(value.Value);
+                    _diagnosticListener.UpdateKeepAlive(value.Value);
                 }
             }
         }
@@ -398,15 +385,28 @@ namespace Microsoft.CodeAnalysis.CompilerServer
         }
 
         /// <summary>
-        /// Creates a Task representing the processing of the new connection.  Returns null 
-        /// if the server is unable to create a new Task object for the connection.  
+        /// Creates a Task representing the processing of the new connection.  This will return a task that
+        /// will never fail.  It will always produce a <see cref="ConnectionData"/> value.  Connection errors
+        /// will end up being represented as <see cref="CompletionReason.ClientDisconnect"/>
         /// </summary>
-        private async Task<CompletionReason> CreateHandleConnectionTask(Task<NamedPipeServerStream> pipeStreamTask, TaskCompletionSource<TimeSpan?> changeKeepAliveSource, CancellationToken cancellationToken)
+        internal static async Task<ConnectionData> CreateHandleConnectionTask(Task<NamedPipeServerStream> pipeStreamTask, IRequestHandler handler, CancellationToken cancellationToken)
         {
-            var pipeStream = await pipeStreamTask.ConfigureAwait(false);
-            var clientConnection = new NamedPipeClientConnection(pipeStream);
-            var connection = new Connection(clientConnection, this.handler);
-            return await connection.ServeConnection(changeKeepAliveSource, cancellationToken).ConfigureAwait(false);
+            Connection connection;
+            try
+            {
+                var pipeStream = await pipeStreamTask.ConfigureAwait(false);
+                var clientConnection = new NamedPipeClientConnection(pipeStream);
+                connection = new Connection(clientConnection, handler);
+            }
+            catch (Exception ex)
+            {
+                // Unable to establish a connection with the client.  The client is responsible for
+                // handling this case.  Nothing else for us to do here.
+                CompilerServerLogger.LogException(ex, "Error creating client named pipe");
+                return new ConnectionData(CompletionReason.CompilationNotStarted);
+            }
+
+            return await connection.ServeConnection(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>

@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
 
@@ -24,7 +23,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             ParseAndValidate(text, null, errors);
         }
 
-        public void ParseAndValidate(string text, CSharpParseOptions options, ErrorDescription[] errors = null)
+        public SyntaxTree ParseAndValidate(string text, CSharpParseOptions options, params ErrorDescription[] errors)
         {
             var parsedTree = ParseTree(text, options);
             var parsedText = parsedTree.GetCompilationUnitRoot();
@@ -42,6 +41,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             {
                 DiagnosticsUtils.VerifyErrorCodes(actualErrors, errors);
             }
+
+            return parsedTree;
         }
 
         #endregion
@@ -1387,7 +1388,6 @@ delegate { }();
                 }
                 N(SyntaxKind.EndOfFileToken);
             }
-
         }
 
         [Fact]
@@ -1430,7 +1430,6 @@ delegate(){ }();
                 }
                 N(SyntaxKind.EndOfFileToken);
             }
-
         }
 
         [Fact]
@@ -1551,7 +1550,6 @@ public partial bool this[int index] {}
             var tree = UsingTree(@"
 new public bool this[int index] { get; }
 ");
-
         }
 
         [Fact]
@@ -1560,7 +1558,6 @@ new public bool this[int index] { get; }
             var tree = UsingTree(@"
 new public bool this[int index] { get; }
 ");
-
         }
 
         [Fact]
@@ -1654,7 +1651,6 @@ extern alias Foo<T> { get; }
                 }
                 N(SyntaxKind.EndOfFileToken);
             }
-
         }
 
         #endregion
@@ -1898,7 +1894,6 @@ partial partial<int> Foo() { }
                                 {
                                     N(SyntaxKind.IdentifierToken);
                                 }
-
                             }
                         }
                     }
@@ -2415,7 +2410,6 @@ fixed int x[10];
                 }
                 N(SyntaxKind.EndOfFileToken);
             }
-
         }
 
         #endregion
@@ -5758,7 +5752,6 @@ fixed int x[10];
                 }
                 N(SyntaxKind.EndOfFileToken);
             }
-
         }
 
         [Fact]
@@ -6807,7 +6800,6 @@ fixed int x[10];
                 }
                 N(SyntaxKind.EndOfFileToken);
             }
-
         }
 
         [Fact]
@@ -8012,7 +8004,6 @@ T ? f(from x
 
         #endregion
 
-
         #region Global statement separators
 
         /// <summary>
@@ -8443,5 +8434,90 @@ p class A
                 new ErrorDescription { Code = 1733, Line = 1, Column = 28 },
                 new ErrorDescription { Code = 1002, Line = 1, Column = 28 });
         }
+
+        #region Shebang
+
+        [Fact]
+        public void Shebang()
+        {
+            var tree = ParseAndValidate("#!/usr/bin/env scriptcs", TestOptions.Script);
+            var root = tree.GetCompilationUnitRoot();
+
+            Assert.Empty(root.ChildNodes());
+            var eof = root.EndOfFileToken;
+            Assert.Equal(SyntaxKind.EndOfFileToken, eof.Kind());
+            Assert.Equal(SyntaxKind.ShebangTrivia, eof.GetLeadingTrivia().Single().Kind());
+
+            tree = ParseAndValidate("#! /usr/bin/env scriptcs\r\n ", TestOptions.Script);
+            root = tree.GetCompilationUnitRoot();
+
+            Assert.Empty(root.ChildNodes());
+            eof = root.EndOfFileToken;
+            Assert.Equal(SyntaxKind.EndOfFileToken, eof.Kind());
+            var leading = eof.GetLeadingTrivia().ToArray();
+            Assert.Equal(3, leading.Length);
+            Assert.Equal(SyntaxKind.ShebangTrivia, leading[0].Kind());
+            Assert.Equal(SyntaxKind.EndOfLineTrivia, leading[1].Kind());
+            Assert.Equal(SyntaxKind.WhitespaceTrivia, leading[2].Kind());
+
+            tree = ParseAndValidate(
+@"#!/usr/bin/env scriptcs
+Console.WriteLine(""Hi!"");", TestOptions.Script);
+            root = tree.GetCompilationUnitRoot();
+
+            var statement = root.ChildNodes().Single();
+            Assert.Equal(SyntaxKind.GlobalStatement, statement.Kind());
+            leading = statement.GetLeadingTrivia().ToArray();
+            Assert.Equal(2, leading.Length);
+            Assert.Equal(SyntaxKind.ShebangTrivia, leading[0].Kind());
+            Assert.Equal(SyntaxKind.EndOfLineTrivia, leading[1].Kind());
+        }
+
+        [Fact]
+        public void ShebangNotFirstCharacter()
+        {
+            ParseAndValidate(" #!/usr/bin/env scriptcs", TestOptions.Script,
+                new ErrorDescription { Code = (int)ErrorCode.ERR_PPDirectiveExpected, Line = 1, Column = 2 });
+
+            ParseAndValidate("\n#!/usr/bin/env scriptcs", TestOptions.Script,
+                new ErrorDescription { Code = (int)ErrorCode.ERR_PPDirectiveExpected, Line = 2, Column = 1 });
+
+            ParseAndValidate("\r\n#!/usr/bin/env scriptcs", TestOptions.Script,
+                new ErrorDescription { Code = (int)ErrorCode.ERR_PPDirectiveExpected, Line = 2, Column = 1 });
+
+            ParseAndValidate("#!/bin/sh\r\n#!/usr/bin/env scriptcs", TestOptions.Script,
+                new ErrorDescription { Code = (int)ErrorCode.ERR_PPDirectiveExpected, Line = 2, Column = 1 });
+        }
+
+        [Fact]
+        public void ShebangNoBang()
+        {
+            ParseAndValidate("#/usr/bin/env scriptcs", TestOptions.Script,
+                new ErrorDescription { Code = (int)ErrorCode.ERR_PPDirectiveExpected, Line = 1, Column = 1 });
+        }
+
+        [Fact]
+        public void ShebangInComment()
+        {
+            var tree = ParseAndValidate("//#!/usr/bin/env scriptcs", TestOptions.Script);
+            var root = tree.GetCompilationUnitRoot();
+
+            Assert.Empty(root.ChildNodes());
+            var eof = root.EndOfFileToken;
+            Assert.Equal(SyntaxKind.EndOfFileToken, eof.Kind());
+            Assert.Equal(SyntaxKind.SingleLineCommentTrivia, eof.GetLeadingTrivia().Single().Kind());
+        }
+
+        [Fact]
+        public void ShebangNotInScript()
+        {
+            foreach (var kind in Enum.GetValues(typeof(SourceCodeKind)).Cast<SourceCodeKind>().Where(k => k != SourceCodeKind.Script))
+            {
+                ParseAndValidate("#!/usr/bin/env scriptcs", new CSharpParseOptions(kind: kind),
+                    new ErrorDescription { Code = (int)ErrorCode.ERR_PPDirectiveExpected, Line = 1, Column = 1 });
+            }
+        }
+
+        #endregion
     }
 }

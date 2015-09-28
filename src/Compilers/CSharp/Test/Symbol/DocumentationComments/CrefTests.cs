@@ -1571,8 +1571,10 @@ class C<T, U, V>
             Assert.Equal(actualTypeParameters[0].GetHashCode(), actualTypeParameters[1].GetHashCode());
 
             Assert.NotEqual(actualTypeParameters[0], actualTypeParameters[2]);
-            Assert.NotEqual(actualTypeParameters[0].GetHashCode(), actualTypeParameters[2].GetHashCode());
 
+#if !DISABLE_GOOD_HASH_TESTS
+            Assert.NotEqual(actualTypeParameters[0].GetHashCode(), actualTypeParameters[2].GetHashCode());
+#endif
         }
 
         [Fact]
@@ -3341,7 +3343,7 @@ class Outer
             var typeOuter = global.GetMember<NamedTypeSymbol>("Outer");
             var typeInner = typeOuter.GetMember<NamedTypeSymbol>("Inner");
 
-            int position = source.IndexOf("{U}");
+            int position = source.IndexOf("{U}", StringComparison.Ordinal);
 
             AssertEx.SetEqual(model.LookupSymbols(position).Select(SymbolUtilities.ToTestDisplayString),
                 // Implicit type parameter
@@ -5706,7 +5708,6 @@ class C
             var parameterTypeContainingType = parameterType.DescendantNodes().OfType<SimpleNameSyntax>().First();
             var containingTypeInfo = model.GetSymbolInfo(parameterTypeContainingType);
             Assert.IsType<CrefTypeParameterSymbol>(containingTypeInfo.Symbol);
-
         }
 
         [WorkItem(551354, "DevDiv")]

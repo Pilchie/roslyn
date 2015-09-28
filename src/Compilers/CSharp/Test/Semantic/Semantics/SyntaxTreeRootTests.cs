@@ -87,7 +87,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
         [Fact]
         public void SyntaxNodeSyntaxTreeReturnsParentsSyntaxTree()
         {
-            var node = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression, 
+            var node = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryMinusExpression,
                 SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(3)));
             var childTree = node.Operand.SyntaxTree;
             var parentTree = node.SyntaxTree;
@@ -104,7 +104,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Semantic.UnitTests.Semantics
 
         private void CheckTree(SyntaxTree tree)
         {
-#if false
+#if false // https://github.com/dotnet/roslyn/issues/4453
             CheckAllMembers(
                 tree,
                 new Dictionary<Type, Func<object>> 

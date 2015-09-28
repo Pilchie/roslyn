@@ -25,6 +25,9 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         ReusableHoistedLocalField = '7',
         LambdaCacheField = '9',
         FixedBufferField = 'e',
+        AnonymousType = 'f',
+        TransparentIdentifier = 'h',
+        AnonymousTypeField = 'i',
         AutoPropertyBackingField = 'k',
         IteratorCurrentThreadIdField = 'l',
         IteratorFinallyMethod = 'm',
@@ -39,15 +42,15 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
         internal static bool IsTypeName(this GeneratedNameKind kind)
         {
             switch (kind)
-        {
+            {
                 case GeneratedNameKind.LambdaDisplayClass:
                 case GeneratedNameKind.StateMachineType:
                 case GeneratedNameKind.DynamicCallSiteContainerType:
-                        return true;
+                    return true;
 
                 default:
-            return false;
+                    return false;
+            }
         }
     }
-}
 }

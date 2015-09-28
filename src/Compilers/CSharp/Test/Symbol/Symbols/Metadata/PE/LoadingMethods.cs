@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols.Metadata.PE;
@@ -11,6 +11,7 @@ using Xunit;
 using System.Reflection;
 
 //test
+
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
 {
     public class LoadingMethods : CSharpTestBase
@@ -419,7 +420,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
             Assert.True(@class.Interfaces.Contains(interface2));
 
             var classMethod = (MethodSymbol)@class.GetMembers("Method").Single();   //  the method is considered to be Ordinary 
-            Assert.Equal(MethodKind.Ordinary, classMethod.MethodKind);              //  becasue it has name without '.'
+            Assert.Equal(MethodKind.Ordinary, classMethod.MethodKind);              //  because it has name without '.'
 
             var explicitImpls = classMethod.ExplicitInterfaceImplementations;
             Assert.Equal(2, explicitImpls.Length);
@@ -431,8 +432,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         public void TestExplicitImplementationGeneric()
         {
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
-                mrefs: new[] 
-                { 
+                mrefs: new[]
+                {
                     TestReferences.NetFx.v4_0_30319.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.CSharp,
                 });
@@ -467,8 +468,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         public void TestExplicitImplementationConstructed()
         {
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
-                new[] 
-                { 
+                new[]
+                {
                     TestReferences.NetFx.v4_0_30319.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.CSharp,
                 });
@@ -521,7 +522,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
             Assert.True(@class.Interfaces.Contains(implementedInterface));
 
             var classMethod = (MethodSymbol)@class.GetMembers("Method").Single();   //  the method is considered to be Ordinary 
-            Assert.Equal(MethodKind.Ordinary, classMethod.MethodKind);              //  becasue it has name without '.'
+            Assert.Equal(MethodKind.Ordinary, classMethod.MethodKind);              //  because it has name without '.'
 
             var explicitImpl = classMethod.ExplicitInterfaceImplementations.Single();
             Assert.Equal(interface2Method, explicitImpl);
@@ -558,8 +559,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         public void TestExplicitImplementationDefRefDef()
         {
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
-                new[] 
-                { 
+                new[]
+                {
                     TestReferences.NetFx.v4_0_30319.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.CSharp,
                 });
@@ -651,8 +652,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         public void TestExplicitImplementationOfUnrelatedGenericInterfaceMethod()
         {
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
-                new[] 
-                { 
+                new[]
+                {
                     TestReferences.NetFx.v4_0_30319.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.IL,
                 });
@@ -685,8 +686,8 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Symbols.Metadata.PE
         public void TestTypeParameterPositions()
         {
             var assemblies = MetadataTestHelpers.GetSymbolsForReferences(
-                new[] 
-                { 
+                new[]
+                {
                     TestReferences.NetFx.v4_0_30319.mscorlib,
                     TestReferences.SymbolsTests.ExplicitInterfaceImplementation.Methods.CSharp,
                 });
@@ -836,7 +837,7 @@ class Override : MetadataModifiers
                 Diagnostic(ErrorCode.ERR_CantOverrideNonVirtual, "M13").WithArguments("Override.M13()", "MetadataModifiers.M13()"));
         }
 
-        [Fact]
+        [ClrOnlyFact]
         public void TestVirtualnessFlags_CSharpRepresentation()
         {
             // All combinations of VirtualContract, NewSlotVTable, AbstractImpl, and FinalContract - without explicit overriding
@@ -996,12 +997,11 @@ class Override : MetadataModifiers
                         Assert.False(true, "Unexpected enum value " + expectedVirtualness);
                         break;
                 }
-            },
-            emitOptions: TestEmitters.RefEmitBug);
+            });
         }
 
         // Note that not all combinations are possible.
-        enum SymbolVirtualness
+        private enum SymbolVirtualness
         {
             NonVirtual,
             Virtual,
@@ -1172,42 +1172,42 @@ class Override : MetadataModifiers
 
             var compilation = CreateCompilationWithCustomILSource("", ilSource);
 
-            foreach(var m in compilation.GetTypeByMetadataName("cls1").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("cls1").GetMembers())
             {
                 Assert.Equal(m.Name == ".cctor" ? MethodKind.StaticConstructor : MethodKind.Constructor, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("Instance_vs_Static").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("Instance_vs_Static").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("ReturnAValue1").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("ReturnAValue1").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("ReturnAValue2").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("ReturnAValue2").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("Generic1").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("Generic1").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("Generic2").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("Generic2").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("HasParameter").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("HasParameter").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
 
-            foreach(var m in compilation.GetTypeByMetadataName("Virtual").GetMembers())
+            foreach (var m in compilation.GetTypeByMetadataName("Virtual").GetMembers())
             {
                 Assert.Equal(MethodKind.Ordinary, ((MethodSymbol)m).MethodKind);
             }
@@ -1241,7 +1241,7 @@ class Override : MetadataModifiers
                 Assert.False(((MethodSymbol)m).IsOverride);
             }
         }
-    
+
         [Fact]
         public void MemberSignature_LongFormType()
         {
@@ -1266,7 +1266,7 @@ public class D
                 Diagnostic(ErrorCode.ERR_BindToBogus, "VT").WithArguments("C.VT()"));
         }
         [WorkItem(666162, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void Repro666162()
         {
             var il = @"

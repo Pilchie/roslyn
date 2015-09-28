@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using System;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
 {
@@ -14,16 +15,39 @@ namespace Microsoft.CodeAnalysis.CSharp
     /// </summary>
     public abstract partial class CSharpSyntaxRewriter : CSharpSyntaxVisitor<SyntaxNode>
     {
-        private readonly bool visitIntoStructuredTrivia;
+        private readonly bool _visitIntoStructuredTrivia;
 
         public CSharpSyntaxRewriter(bool visitIntoStructuredTrivia = false)
         {
-            this.visitIntoStructuredTrivia = visitIntoStructuredTrivia;
+            _visitIntoStructuredTrivia = visitIntoStructuredTrivia;
         }
 
         public virtual bool VisitIntoStructuredTrivia
         {
-            get { return this.visitIntoStructuredTrivia; }
+            get { return _visitIntoStructuredTrivia; }
+        }
+
+        private int _recursionDepth;
+
+        public override SyntaxNode Visit(SyntaxNode node)
+        {
+            if (node != null)
+            {
+                _recursionDepth++;
+                if (_recursionDepth > Syntax.InternalSyntax.LanguageParser.MaxUncheckedRecursionDepth)
+                {
+                    PortableShim.RuntimeHelpers.EnsureSufficientExecutionStack();
+                }
+
+                var result = ((CSharpSyntaxNode)node).Accept(this);
+
+                _recursionDepth--;
+                return result;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public virtual SyntaxToken VisitToken(SyntaxToken token)

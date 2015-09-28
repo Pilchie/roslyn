@@ -13,12 +13,12 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     public class ExternAliasTests : CSharpTestBase
     {
-        private static MetadataReference foo1;
+        private static MetadataReference s_foo1;
         public static MetadataReference Foo1
         {
             get
             {
-                if (foo1 == null)
+                if (s_foo1 == null)
                 {
                     var src =
         @"
@@ -31,19 +31,19 @@ namespace NS
 }
 ";
                     var comp = CreateCompilationWithMscorlib(src, assemblyName: "Foo1", options: TestOptions.ReleaseDll);
-                    foo1 = comp.EmitToImageReference(aliases: ImmutableArray.Create("Bar"));
+                    s_foo1 = comp.EmitToImageReference(aliases: ImmutableArray.Create("Bar"));
                 }
 
-                return foo1;
+                return s_foo1;
             }
         }
 
-        private static MetadataReference foo2;
+        private static MetadataReference s_foo2;
         public static MetadataReference Foo2
         {
             get
             {
-                if (foo2 == null)
+                if (s_foo2 == null)
                 {
                     var src =
         @"
@@ -56,10 +56,10 @@ namespace NS
 }
 ";
                     var comp = CreateCompilationWithMscorlib(src, assemblyName: "Foo2", options: TestOptions.ReleaseDll);
-                    foo2 = comp.EmitToImageReference(aliases: ImmutableArray.Create("Bar"));
+                    s_foo2 = comp.EmitToImageReference(aliases: ImmutableArray.Create("Bar"));
                 }
 
-                return foo2;
+                return s_foo2;
             }
         }
 
@@ -111,10 +111,7 @@ Bar::NS.Foo d = new Bar::NS.Foo();
             comp.VerifyDiagnostics(
                 // (1,1): error CS7015: 'extern alias' is not valid in this context
                 // extern alias Bar;
-                Diagnostic(ErrorCode.ERR_ExternAliasNotAllowed, "extern alias Bar;"),
-                // (1,1): info CS8020: Unused extern alias.
-                // extern alias Bar;
-                Diagnostic(ErrorCode.HDN_UnusedExternAlias, "extern alias Bar;"));
+                Diagnostic(ErrorCode.ERR_ExternAliasNotAllowed, "extern alias Bar;"));
         }
 
         [Fact]

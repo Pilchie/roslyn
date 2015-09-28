@@ -14,19 +14,19 @@ namespace Microsoft.CodeAnalysis
     /// </summary>
     public struct MetadataReferenceProperties : IEquatable<MetadataReferenceProperties>
     {
-        private readonly MetadataImageKind kind;
-        private readonly ImmutableArray<string> aliases;
-        private readonly bool embedInteropTypes;
+        private readonly MetadataImageKind _kind;
+        private readonly ImmutableArray<string> _aliases;
+        private readonly bool _embedInteropTypes;
 
         /// <summary>
         /// Default properties for a module reference.
         /// </summary>
-        public static readonly MetadataReferenceProperties Module = new MetadataReferenceProperties(MetadataImageKind.Module);
+        public static MetadataReferenceProperties Module => new MetadataReferenceProperties(MetadataImageKind.Module);
 
         /// <summary>
         /// Default properties for an assembly reference.
         /// </summary>
-        public static readonly MetadataReferenceProperties Assembly = new MetadataReferenceProperties(MetadataImageKind.Assembly);
+        public static MetadataReferenceProperties Assembly => new MetadataReferenceProperties(MetadataImageKind.Assembly);
 
         /// <summary>
         /// Initializes reference properties.
@@ -38,19 +38,19 @@ namespace Microsoft.CodeAnalysis
         {
             if (!kind.IsValid())
             {
-                throw new ArgumentOutOfRangeException("kind");
+                throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
             if (kind == MetadataImageKind.Module)
             {
                 if (embedInteropTypes)
                 {
-                    throw new ArgumentException(CodeAnalysisResources.CannotEmbedInteropTypesFromModule, "embedInteropTypes");
+                    throw new ArgumentException(CodeAnalysisResources.CannotEmbedInteropTypesFromModule, nameof(embedInteropTypes));
                 }
 
                 if (!aliases.IsDefaultOrEmpty)
                 {
-                    throw new ArgumentException(CodeAnalysisResources.CannotAliasModule, "aliases");
+                    throw new ArgumentException(CodeAnalysisResources.CannotAliasModule, nameof(aliases));
                 }
             }
 
@@ -60,14 +60,14 @@ namespace Microsoft.CodeAnalysis
                 {
                     if (!alias.IsValidClrTypeName())
                     {
-                        throw new ArgumentException(CodeAnalysisResources.InvalidAlias, "aliases");
+                        throw new ArgumentException(CodeAnalysisResources.InvalidAlias, nameof(aliases));
                     }
                 }
             }
 
-            this.kind = kind;
-            this.aliases = aliases;
-            this.embedInteropTypes = embedInteropTypes;
+            _kind = kind;
+            _aliases = aliases;
+            _embedInteropTypes = embedInteropTypes;
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace Microsoft.CodeAnalysis
         /// </exception>
         public MetadataReferenceProperties WithAliases(ImmutableArray<string> aliases)
         {
-            return new MetadataReferenceProperties(this.kind, aliases, this.EmbedInteropTypes);
+            return new MetadataReferenceProperties(_kind, aliases, this.EmbedInteropTypes);
         }
 
         /// <summary>
@@ -98,16 +98,13 @@ namespace Microsoft.CodeAnalysis
         /// <exception cref="ArgumentException"><see cref="Kind"/> is <see cref="MetadataImageKind.Module"/>, as interop types can't be embedded from modules.</exception>
         public MetadataReferenceProperties WithEmbedInteropTypes(bool embedInteropTypes)
         {
-            return new MetadataReferenceProperties(this.kind, this.aliases, embedInteropTypes);
+            return new MetadataReferenceProperties(_kind, _aliases, embedInteropTypes);
         }
 
         /// <summary>
         /// The image kind (assembly or module) the reference refers to.
         /// </summary>
-        public MetadataImageKind Kind
-        {
-            get { return kind; }
-        }
+        public MetadataImageKind Kind => _kind;
 
         /// <summary>
         /// Alias that represents a global declaration space.
@@ -115,26 +112,27 @@ namespace Microsoft.CodeAnalysis
         /// <remarks>
         /// Namespaces in references whose <see cref="Aliases"/> contain <see cref="GlobalAlias"/> are available in global declaration space.
         /// </remarks>
-        public static readonly string GlobalAlias = "global";
+        public static string GlobalAlias => "global";
 
         /// <summary>
-        /// Aliases for the metadata reference, or default(<see cref="ImmutableArray"/>) if no aliases were specified.
+        /// Aliases for the metadata reference. Empty if the reference has no aliases.
         /// </summary>
         /// <remarks>
         /// In C# these aliases can be used in "extern alias" syntax to disambiguate type names. 
         /// </remarks>
         public ImmutableArray<string> Aliases
         {
-            get { return aliases; }
+            get
+            {
+                // Simplify usage - we can't avoid the _aliases field being null but we can always return empty array here:
+                return _aliases.NullToEmpty();
+            }
         }
 
         /// <summary>
         /// True if interop types defined in the referenced metadata should be embedded into the compilation referencing the metadata.
         /// </summary>
-        public bool EmbedInteropTypes
-        {
-            get { return embedInteropTypes; }
-        }
+        public bool EmbedInteropTypes => _embedInteropTypes;
 
         public override bool Equals(object obj)
         {
@@ -143,14 +141,14 @@ namespace Microsoft.CodeAnalysis
 
         public bool Equals(MetadataReferenceProperties other)
         {
-            return this.aliases.NullToEmpty().SequenceEqual(other.aliases.NullToEmpty())
-                && this.embedInteropTypes == other.embedInteropTypes
-                && this.kind == other.kind;
+            return Aliases.SequenceEqual(other.Aliases)
+                && _embedInteropTypes == other._embedInteropTypes
+                && _kind == other._kind;
         }
 
         public override int GetHashCode()
         {
-            return Hash.Combine(Hash.CombineValues(this.aliases), Hash.Combine(this.embedInteropTypes, this.kind.GetHashCode()));
+            return Hash.Combine(Hash.CombineValues(Aliases), Hash.Combine(_embedInteropTypes, _kind.GetHashCode()));
         }
 
         public static bool operator ==(MetadataReferenceProperties left, MetadataReferenceProperties right)

@@ -195,7 +195,7 @@ class C
         {
             // Here we cannot report that "no overload of M takes two arguments" because of course
             // M(1, 2) is legal. We cannot report that any argument does not correspond to a formal;
-            // all of them do. We cannot report that named arguments preceed positional arguments.
+            // all of them do. We cannot report that named arguments precede positional arguments.
             // We cannot report that any argument is not convertible to its corresponding formal;
             // all of them are convertible. The only error we can report here is that a formal 
             // parameter has no corresponding argument.
@@ -569,7 +569,7 @@ System.Nullable`1[ELong]: one
 System.Nullable`1[ELong]: <null>
 System.Nullable`1[ELong]: <null>";
 
-            CompileAndVerify(source, expectedOutput: expected, emitOptions: TestEmitters.RefEmitBug_646048);
+            CompileAndVerify(source, expectedOutput: expected);
         }
 
         [Fact]
@@ -618,12 +618,12 @@ class C
         }
     }
 }";
-            CompileAndVerify(source, expectedOutput: "123012704256" );
+            CompileAndVerify(source, expectedOutput: "123012704256");
         }
 
         [Fact]
         public void TestNamedAndOptionalParamsOnIndexers()
-        {           
+        {
             string source = @"
 using System; 
 class D
@@ -672,7 +672,6 @@ D.this[str: 'bar', i: 13].set
 D.this[str: 'baz', i: 2].set
 D.this[str: 'bah', i: 3].set";
             CompileAndVerify(source, expectedOutput: expected);
-
         }
 
         [Fact]
@@ -890,7 +889,7 @@ public class D
     }
 }";
 
-            CompileWithCustomILSource(source, ilSource );
+            CompileWithCustomILSource(source, ilSource);
         }
 
         [WorkItem(542867, "DevDiv")]
@@ -961,8 +960,8 @@ public class Parent
 ";
             var comp = CreateCompilationWithMscorlib(source, new[] { SystemRef });
             comp.VerifyDiagnostics(
-// (8,10): error CS7036: There is no argument given that corresponds to the required formal parameter 'x' of 'Parent.Foo(ref int)'
-//          Foo();
+ // (8,10): error CS7036: There is no argument given that corresponds to the required formal parameter 'x' of 'Parent.Foo(ref int)'
+ //          Foo();
  Diagnostic(ErrorCode.ERR_NoCorrespondingArgument, "Foo").WithArguments("x", "Parent.Foo(ref int)"));
         }
 
@@ -980,7 +979,7 @@ public interface IOptionalRef
 ";
             CompileAndVerify(source, new[] { SystemRef }).VerifyDiagnostics();
         }
-       
+
         [Fact]
         public void DefaultParameterValueErrors()
         {
@@ -1162,7 +1161,8 @@ public static class ErrorCases
                 Diagnostic(ErrorCode.ERR_DefaultValueTypeMustMatch, "DefaultParameterValue"));
         }
 
-        [Fact, WorkItem(544440, "DevDiv")]
+        [WorkItem(544440, "DevDiv")]
+        [ClrOnlyFact]
         public void TestBug12768()
         {
             string sourceDefinitions = @"
@@ -1296,7 +1296,7 @@ System.Runtime.InteropServices.UnknownWrapper
             // definitions in metadata:
             using (var assembly = AssemblyMetadata.CreateFromImage(verifier.EmittedAssemblyData))
             {
-                CompileAndVerify(new[] { sourceCalls }, new[] { SystemRef, assembly.GetReference() }, expectedOutput: expected );
+                CompileAndVerify(new[] { sourceCalls }, new[] { SystemRef, assembly.GetReference() }, expectedOutput: expected);
             }
         }
 
@@ -1339,7 +1339,7 @@ class C
         }
 
         [WorkItem(545337, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void TestVbDecimalAndDateTimeDefaultParameters()
         {
             var vb = @"
@@ -1474,11 +1474,11 @@ True";
                 compilationOptions: new VisualBasic.VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
             vbCompilation.VerifyDiagnostics();
 
-            var csharpCompilation = CreateCSharpCompilation("CS", csharp, 
+            var csharpCompilation = CreateCSharpCompilation("CS", csharp,
                 compilationOptions: TestOptions.ReleaseExe,
                 referencedCompilations: new[] { vbCompilation });
 
-            var verifier = CompileAndVerify(csharpCompilation , expectedOutput: expected);
+            var verifier = CompileAndVerify(csharpCompilation, expectedOutput: expected);
             verifier.VerifyIL("D.Main", il);
         }
 
@@ -1586,7 +1586,7 @@ public class D
 
             var exeComp = CreateCompilationWithMscorlib(main, new[] { new CSharpCompilationReference(libComp) }, options: TestOptions.ReleaseExe, assemblyName: "Main");
 
-            var verifier = CompileAndVerify(exeComp , expectedOutput: @"DatesMatch
+            var verifier = CompileAndVerify(exeComp, expectedOutput: @"DatesMatch
 12345678901234567890
 0
 null
@@ -1850,7 +1850,7 @@ class B
         Console.WriteLine(""{0}, {1}"", i1[0], i2[0]);
     }
 }";
-            var verifier = CompileAndVerify(source , expectedOutput:
+            var verifier = CompileAndVerify(source, expectedOutput:
 @"F2()
 F1()
 2, 3
@@ -1873,7 +1873,7 @@ F1()
   IL_001e:  ret
 }");
         }
-  
+
         [Fact]
         [WorkItem(546713, "DevDiv")]
         public void Test16631()
@@ -1985,13 +1985,15 @@ public class C
                 Assert.False(parameters[4].IsOptional);
                 Assert.False(parameters[4].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[4].ExplicitDefaultValue);
-                Assert.Equal(isFromSource ? ConstantValue.Create(0) : null, parameters[4].ExplicitDefaultConstantValue); // not imported for non-optional parameter
+                Assert.True(parameters[4].HasMetadataConstantValue);
+                Assert.Equal(ConstantValue.Create(0), parameters[4].ExplicitDefaultConstantValue);
                 Assert.Equal(isFromSource ? 1 : 0, parameters[4].GetAttributes().Length);
 
                 Assert.False(parameters[5].IsOptional);
                 Assert.False(parameters[5].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[5].ExplicitDefaultValue);
-                Assert.Equal(isFromSource ? ConstantValue.Create(1) : null, parameters[5].ExplicitDefaultConstantValue); // not imported for non-optional parameter
+                Assert.True(parameters[5].HasMetadataConstantValue);
+                Assert.Equal(ConstantValue.Create(1), parameters[5].ExplicitDefaultConstantValue);
                 Assert.Equal(isFromSource ? 1 : 0, parameters[5].GetAttributes().Length);
 
                 Assert.True(parameters[6].IsOptional);
@@ -2058,7 +2060,7 @@ public struct S
             };
 
             // TODO: RefEmit doesn't emit the default value of M1's parameter.
-            CompileAndVerify(source, new[] { SystemRef }, sourceSymbolValidator: validator(true), symbolValidator: validator(false), emitOptions: TestEmitters.RefEmitBug);
+            CompileAndVerify(source, new[] { SystemRef }, sourceSymbolValidator: validator(true), symbolValidator: validator(false));
         }
 
         [Fact]
@@ -2116,19 +2118,21 @@ public class C
                 Assert.False(parameters[4].IsOptional);
                 Assert.False(parameters[4].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[4].ExplicitDefaultValue);
-                Assert.Equal(isFromSource ? ConstantValue.Null : null, parameters[4].ExplicitDefaultConstantValue); // not imported for non-optional parameter
+                Assert.True(parameters[4].HasMetadataConstantValue);
+                Assert.Equal(ConstantValue.Null, parameters[4].ExplicitDefaultConstantValue);
                 Assert.Equal(isFromSource ? 1 : 0, parameters[4].GetAttributes().Length);
 
                 Assert.True(parameters[5].IsOptional);
                 Assert.True(parameters[5].HasExplicitDefaultValue);
                 Assert.Null(parameters[5].ExplicitDefaultValue);
-                Assert.Equal(ConstantValue.Null, parameters[5].ExplicitDefaultConstantValue); // not imported for non-optional parameter
+                Assert.Equal(ConstantValue.Null, parameters[5].ExplicitDefaultConstantValue);
                 Assert.Equal(isFromSource ? 2 : 0, parameters[5].GetAttributes().Length);
 
                 Assert.False(parameters[6].IsOptional);
                 Assert.False(parameters[6].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[6].ExplicitDefaultValue);
-                Assert.Equal(isFromSource ? ConstantValue.Create("A") : null, parameters[6].ExplicitDefaultConstantValue); // not imported for non-optional parameter
+                Assert.True(parameters[6].HasMetadataConstantValue);
+                Assert.Equal(ConstantValue.Create("A"), parameters[6].ExplicitDefaultConstantValue);
                 Assert.Equal(isFromSource ? 1 : 0, parameters[6].GetAttributes().Length);
 
                 Assert.True(parameters[7].IsOptional);
@@ -2180,13 +2184,13 @@ public class C
                 Assert.True(parameters[1].HasExplicitDefaultValue);
                 Assert.Equal(0M, parameters[1].ExplicitDefaultValue);
                 Assert.Equal(ConstantValue.Create(0M), parameters[1].ExplicitDefaultConstantValue);
-                Assert.Equal(0, parameters[1].GetAttributes().Length); 
+                Assert.Equal(0, parameters[1].GetAttributes().Length);
 
                 Assert.True(parameters[2].IsOptional);
                 Assert.True(parameters[2].HasExplicitDefaultValue);
                 Assert.Equal(1M, parameters[2].ExplicitDefaultValue);
                 Assert.Equal(ConstantValue.Create(1M), parameters[2].ExplicitDefaultConstantValue);
-                Assert.Equal(0, parameters[2].GetAttributes().Length); 
+                Assert.Equal(0, parameters[2].GetAttributes().Length);
 
                 Assert.True(parameters[3].IsOptional);
                 Assert.False(parameters[3].HasExplicitDefaultValue);
@@ -2197,12 +2201,14 @@ public class C
                 Assert.False(parameters[4].IsOptional);
                 Assert.False(parameters[4].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[4].ExplicitDefaultValue);
+                Assert.False(parameters[4].HasMetadataConstantValue);
                 Assert.Equal(isFromSource ? ConstantValue.Create(0M) : null, parameters[4].ExplicitDefaultConstantValue); // not imported for non-optional parameter
                 Assert.Equal(1, parameters[4].GetAttributes().Length); // DecimalConstantAttribute
 
                 Assert.False(parameters[5].IsOptional);
                 Assert.False(parameters[5].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[5].ExplicitDefaultValue);
+                Assert.False(parameters[5].HasMetadataConstantValue);
                 Assert.Equal(isFromSource ? ConstantValue.Create(1M) : null, parameters[5].ExplicitDefaultConstantValue); // not imported for non-optional parameter
                 Assert.Equal(1, parameters[5].GetAttributes().Length); // DecimalConstantAttribute
 
@@ -2271,12 +2277,14 @@ public class C
                 Assert.False(parameters[3].IsOptional);
                 Assert.False(parameters[3].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[3].ExplicitDefaultValue);
+                Assert.False(parameters[3].HasMetadataConstantValue);
                 Assert.Equal(isFromSource ? ConstantValue.Create(new DateTime(0)) : null, parameters[3].ExplicitDefaultConstantValue); // not imported for non-optional parameter
                 Assert.Equal(1, parameters[3].GetAttributes().Length); // DateTimeConstant
 
                 Assert.False(parameters[4].IsOptional);
                 Assert.False(parameters[4].HasExplicitDefaultValue);
                 Assert.Throws<InvalidOperationException>(() => parameters[4].ExplicitDefaultValue);
+                Assert.False(parameters[4].HasMetadataConstantValue);
                 Assert.Equal(isFromSource ? ConstantValue.Create(new DateTime(1)) : null, parameters[4].ExplicitDefaultConstantValue); // not imported for non-optional parameter
                 Assert.Equal(1, parameters[4].GetAttributes().Length); // DateTimeConstant
 
@@ -2294,7 +2302,7 @@ public class C
             };
 
             // TODO: Guess - RefEmit doesn't like DateTime constants.
-            CompileAndVerify(source, new[] { SystemRef }, sourceSymbolValidator: validator(true), symbolValidator: validator(false), emitOptions: TestEmitters.RefEmitBug);
+            CompileAndVerify(source, new[] { SystemRef }, sourceSymbolValidator: validator(true), symbolValidator: validator(false));
         }
     }
 }

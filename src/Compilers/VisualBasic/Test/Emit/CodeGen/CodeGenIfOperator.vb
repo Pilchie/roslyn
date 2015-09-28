@@ -84,7 +84,7 @@ False
         ' Function call in return expression 
         <WorkItem(541647, "DevDiv")>
         <Fact()>
-        Public Sub FuntionCallAsArgument()
+        Public Sub FunctionCallAsArgument()
             CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -157,15 +157,15 @@ End Module
   IL_0000:  ldc.i4.2
   IL_0001:  box        "Integer"
   IL_0006:  stloc.0
-  IL_0007:  ldsfld     "C._Closure$__.$I0-1 As <generated method>"
+  IL_0007:  ldsfld     "C._Closure$__.$I0-0 As <generated method>"
   IL_000c:  brfalse.s  IL_0015
-  IL_000e:  ldsfld     "C._Closure$__.$I0-1 As <generated method>"
+  IL_000e:  ldsfld     "C._Closure$__.$I0-0 As <generated method>"
   IL_0013:  br.s       IL_002b
   IL_0015:  ldsfld     "C._Closure$__.$I As C._Closure$__"
-  IL_001a:  ldftn      "Function C._Closure$__._Lambda$__0-1(Integer) As Integer"
+  IL_001a:  ldftn      "Function C._Closure$__._Lambda$__0-0(Integer) As Integer"
   IL_0020:  newobj     "Sub VB$AnonymousDelegate_0(Of Integer, Integer)..ctor(Object, System.IntPtr)"
   IL_0025:  dup
-  IL_0026:  stsfld     "C._Closure$__.$I0-1 As <generated method>"
+  IL_0026:  stsfld     "C._Closure$__.$I0-0 As <generated method>"
   IL_002b:  call       "Function System.Runtime.CompilerServices.RuntimeHelpers.GetObjectValue(Object) As Object"
   IL_0030:  pop
   IL_0031:  ldloc.0
@@ -689,7 +689,7 @@ End Module
 
         <WorkItem(541674, "DevDiv")>
         <Fact>
-        Public Sub TypeConverstionInRuntime()
+        Public Sub TypeConversionInRuntime()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -730,7 +730,7 @@ End Class
 
         <WorkItem(541673, "DevDiv")>
         <Fact>
-        Public Sub TypeConverstionInRuntime_1()
+        Public Sub TypeConversionInRuntime_1()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -778,7 +778,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInRuntime_2()
+        Public Sub TypeConversionInRuntime_2()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -820,7 +820,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInRuntime_3()
+        Public Sub TypeConversionInRuntime_3()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -863,7 +863,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface()
+        Public Sub TypeConversionInterface()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -924,7 +924,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface_1()
+        Public Sub TypeConversionInterface_1()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -985,7 +985,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface_2()
+        Public Sub TypeConversionInterface_2()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -1046,7 +1046,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface_3()
+        Public Sub TypeConversionInterface_3()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -1080,7 +1080,7 @@ End Class
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface_4()
+        Public Sub TypeConversionInterface_4()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -1121,7 +1121,7 @@ End Structure
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface_5()
+        Public Sub TypeConversionInterface_5()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">
@@ -1158,7 +1158,7 @@ End Structure
         End Sub
 
         <Fact>
-        Public Sub TypeConverstionInterface_6()
+        Public Sub TypeConversionInterface_6()
             Dim compilation1 = CompileAndVerify(
 <compilation>
     <file name="a.vb">

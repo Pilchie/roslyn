@@ -32,7 +32,7 @@ public class Program
             var comp = CreateCompilationWithMscorlib(source, options: TestOptions.ReleaseDll);
 
             comp.MakeMemberMissing(SpecialMember.System_Collections_Generic_IEnumerable_T__GetEnumerator);
-            
+
             comp.VerifyEmitDiagnostics(
     // (10,5): error CS0656: Missing compiler required member 'System.Collections.Generic.IEnumerable`1.GetEnumerator'
     //     {
@@ -500,7 +500,7 @@ namespace System
             var comp2 = CreateCompilation("", new[] { reference });
             validate(comp2);
         }
-        
+
         [Fact]
         [WorkItem(530436, "DevDiv")]
         public void AllSpecialTypes()
@@ -533,8 +533,8 @@ namespace System
         [Fact]
         [WorkItem(530436, "DevDiv")]
         public void AllWellKnownTypes()
-{
-            var refs = new []
+        {
+            var refs = new[]
             {
                 MscorlibRef_v4_0_30316_17626,
                 SystemRef_v4_0_30319_17929,
@@ -551,7 +551,6 @@ namespace System
             {
                 switch (wkt)
                 {
-                    case WellKnownType.My_InternalXmlHelper:
                     case WellKnownType.Microsoft_VisualBasic_Embedded:
                     case WellKnownType.Microsoft_VisualBasic_CompilerServices_EmbeddedOperators:
                         // Not applicable in C#.
@@ -587,12 +586,11 @@ namespace System
 
             foreach (WellKnownMember wkm in Enum.GetValues(typeof(WellKnownMember)))
             {
-                switch(wkm)
+                switch (wkm)
                 {
-                    case WellKnownMember.Count: 
+                    case WellKnownMember.Count:
                         // Not a real value;
                         continue;
-                    case WellKnownMember.My_InternalXmlHelper__Value:
                     case WellKnownMember.Microsoft_VisualBasic_Embedded__ctor:
                     case WellKnownMember.Microsoft_VisualBasic_CompilerServices_EmbeddedOperators__CompareStringStringStringBoolean:
                         // C# can't embed VB core.

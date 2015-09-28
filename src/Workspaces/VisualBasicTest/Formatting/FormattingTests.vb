@@ -1,7 +1,10 @@
-﻿Imports Microsoft.CodeAnalysis.Formatting
+﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+Imports Microsoft.CodeAnalysis.Formatting
 Imports Microsoft.CodeAnalysis.Options
 Imports Microsoft.CodeAnalysis.Test.Utilities
 Imports Microsoft.CodeAnalysis.Text
+Imports Microsoft.CodeAnalysis.VisualBasic
 Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 Imports Roslyn.Test.Utilities
 Imports Xunit
@@ -1320,6 +1323,7 @@ End Namespace]]></Code>
             AssertFormatLf2CrLf(code.Value, expected.Value)
         End Sub
 
+        <WorkItem(1087167)>
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         Public Sub MultipleAttributesOnClass()
             Dim code = <Code><![CDATA[Namespace SomeNamespace
@@ -1335,6 +1339,73 @@ End Namespace]]></Code>
     Class Foo
     End Class
 End Namespace]]></Code>
+
+            AssertFormatLf2CrLf(code.Value, expected.Value)
+        End Sub
+
+        <WorkItem(1087167)>
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        Public Sub MultipleAttributesOnParameter_1()
+            Dim code = <Code><![CDATA[Class Program
+    Sub P(
+                <Foo>
+                        <Foo>
+                    som As Integer)
+    End Sub
+End Class
+
+
+Public Class Foo
+    Inherits Attribute
+End Class]]></Code>
+
+            AssertFormatLf2CrLf(code.Value, code.Value)
+        End Sub
+
+        <WorkItem(1087167)>
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        Public Sub MultipleAttributesOnParameter_2()
+            Dim code = <Code><![CDATA[Class Program
+    Sub P(
+                        <Foo>
+                    som As Integer)
+    End Sub
+End Class
+
+
+Public Class Foo
+    Inherits Attribute
+End Class]]></Code>
+
+            AssertFormatLf2CrLf(code.Value, code.Value)
+        End Sub
+
+        <WorkItem(1087167)>
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        Public Sub MultipleAttributesOnParameter_3()
+            Dim code = <Code><![CDATA[Class Program
+    Sub P(     <Foo>
+                        <Foo>
+                    som As Integer)
+    End Sub
+End Class
+
+
+Public Class Foo
+    Inherits Attribute
+End Class]]></Code>
+
+            Dim expected = <Code><![CDATA[Class Program
+    Sub P(<Foo>
+                        <Foo>
+                    som As Integer)
+    End Sub
+End Class
+
+
+Public Class Foo
+    Inherits Attribute
+End Class]]></Code>
 
             AssertFormatLf2CrLf(code.Value, expected.Value)
         End Sub
@@ -1609,8 +1680,7 @@ End Class</Code>
             {
                 {New OptionKey(FormattingOptions.UseTabs, LanguageNames.VisualBasic), True},
                 {New OptionKey(FormattingOptions.TabSize, LanguageNames.VisualBasic), 4},
-                {New OptionKey(FormattingOptions.IndentationSize, LanguageNames.VisualBasic), 4},
-                {New OptionKey(FormattingOptions.UseTabOnlyForIndentation, LanguageNames.VisualBasic), True}
+                {New OptionKey(FormattingOptions.IndentationSize, LanguageNames.VisualBasic), 4}
             }
 
             AssertFormat(code, expected, changedOptionSet:=optionSet)
@@ -1629,7 +1699,7 @@ End Class</Code>
 
             Dim expected =
                 "Class SomeClass" + vbCrLf +
-                vbTab + "Sub Foo()			' Comment" + vbCrLf +
+                vbTab + "Sub Foo()           ' Comment" + vbCrLf +
                 vbTab + vbTab + "Foo()" + vbCrLf +
                 vbTab + "End Sub" + vbCrLf +
                 "End Class"
@@ -1865,7 +1935,7 @@ End Class</Code>
 End Class</Code>
 
             Dim expected = <Code>Class Foo
-	Sub Foo()			' Comment
+	Sub Foo()           ' Comment
 		Foo()
 	End Sub
 End Class</Code>
@@ -2306,7 +2376,7 @@ End Module
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
-        Public Sub Parenthese()
+        Public Sub Parentheses()
             Dim code = <Code>Class GenericMethod
     Sub Method(Of T)(t1 As T)
         NewMethod(Of T)(t1)
@@ -2884,7 +2954,7 @@ End Module
         <WorkItem(541628, "DevDiv")>
         <Fact>
         <Trait(Traits.Feature, Traits.Features.Formatting)>
-        Public Sub MutilpleControlVariables()
+        Public Sub MultipleControlVariables()
             Dim code = <Code>Module Program
     Sub Main(args As String())
         Dim i, j As Integer
@@ -3311,7 +3381,7 @@ End Module</Code>
         <Fact>
         <WorkItem(544459, "DevDiv")>
         <Trait(Traits.Feature, Traits.Features.Formatting)>
-        Public Sub DictionaryAcessOperator()
+        Public Sub DictionaryAccessOperator()
             Dim code = <Code>Class S
     Default Property Def(s As String) As String
         Get
@@ -3443,7 +3513,7 @@ End Module</code>
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
-        Sub SpacingAroundXmlEntityLiterals()
+        Public Sub SpacingAroundXmlEntityLiterals()
             Dim code =
 <Code><![CDATA[Class C
     Sub Bar()
@@ -3483,7 +3553,7 @@ End Class
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(17313, "DevDiv_Projects/Roslyn")>
-        Sub TestElseIfFormatting_Directive()
+        Public Sub TestElseIfFormatting_Directive()
             Dim code =
 <Code><![CDATA[
 #If True Then
@@ -3503,7 +3573,7 @@ End Class
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(529899, "DevDiv_Projects/Roslyn")>
-        Sub IndentContinuedLineOfSingleLineLambdaToFunctionKeyword()
+        Public Sub IndentContinuedLineOfSingleLineLambdaToFunctionKeyword()
             Dim code =
 <Code><![CDATA[
 Module Program
@@ -3529,7 +3599,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(604032, "DevDiv_Projects/Roslyn")>
-        Sub TestSpaceBetweenEqualsAndDotOfXml()
+        Public Sub TestSpaceBetweenEqualsAndDotOfXml()
             Dim code =
 <Code><![CDATA[
 Module Program
@@ -3578,7 +3648,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(604092, "DevDiv_Projects/Roslyn")>
-        Sub AnchorIndentToTheFirstTokenOfXmlBlock()
+        Public Sub AnchorIndentToTheFirstTokenOfXmlBlock()
             Dim code =
 <Code><![CDATA[
 Module Program
@@ -3631,7 +3701,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(530366, "DevDiv_Projects/Roslyn")>
-        Sub ForcedSpaceBetweenXmlNameTokenAndPercentGreaterThanToken()
+        Public Sub ForcedSpaceBetweenXmlNameTokenAndPercentGreaterThanToken()
             Dim code =
 <Code><![CDATA[
 Module Module1
@@ -3656,7 +3726,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(531444, "DevDiv")>
-        Sub TestElseIfFormattingForNestedSingleLineIf()
+        Public Sub TestElseIfFormattingForNestedSingleLineIf()
             Dim code =
 <Code><![CDATA[
         If True Then Console.WriteLine(1) Else If True Then Return
@@ -3669,7 +3739,7 @@ End Module
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
-        Sub TestDontCrashOnMissingTokenWithComment()
+        Public Sub TestDontCrashOnMissingTokenWithComment()
             Dim code =
 <Code><![CDATA[
 Namespace NS
@@ -3682,7 +3752,7 @@ Namespace NS
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
-        Sub TestBang()
+        Public Sub TestBang()
             Dim code =
 <Code><![CDATA[
 Imports System.Collections
@@ -3713,7 +3783,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(679864, "DevDiv")>
-        Sub InsertSpaceBetweenXMLMemberAttributeAccessAndEqualsToken()
+        Public Sub InsertSpaceBetweenXMLMemberAttributeAccessAndEqualsToken()
             Dim expected =
 <Code><![CDATA[
 Imports System
@@ -3744,7 +3814,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(923172, "DevDiv")>
-        Sub TestMemberAccessAfterOpenParen()
+        Public Sub TestMemberAccessAfterOpenParen()
             Dim expected =
 <Code><![CDATA[
 Imports System
@@ -3787,7 +3857,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(923180, "DevDiv")>
-        Sub TestXmlMemberAccessDot()
+        Public Sub TestXmlMemberAccessDot()
             Dim expected =
 <Code><![CDATA[
 Imports System
@@ -3828,7 +3898,7 @@ End Module
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         <WorkItem(530601, "DevDiv")>
-        Sub TestElasticFormattingPropertySetter()
+        Public Sub TestElasticFormattingPropertySetter()
             Dim parameterList = SyntaxFactory.ParseParameterList(String.Format("(value As {0})", "Integer"))
             Dim setter = SyntaxFactory.AccessorBlock(SyntaxKind.SetAccessorBlock,
                                                    SyntaxFactory.AccessorStatement(SyntaxKind.SetAccessorStatement, SyntaxFactory.Token(SyntaxKind.SetKeyword)).
@@ -3898,6 +3968,7 @@ End Module
         End Sub
 
         <WorkItem(796562)>
+        <WorkItem(3293, "https://github.com/dotnet/roslyn/issues/3293")>
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         Public Sub TriviaAtEndOfCaseBelongsToNextCase()
             Dim text = <Code>
@@ -3906,7 +3977,8 @@ Class X
         Select Case x
             Case 1
                 Return 2
-                ' This comment describes case 2.
+                ' This comment describes case 1
+            ' This comment describes case 2
             Case 2,
                 Return 3
         End Select
@@ -3922,7 +3994,8 @@ Class X
         Select Case x
             Case 1
                 Return 2
-            ' This comment describes case 2.
+                ' This comment describes case 1
+            ' This comment describes case 2
             Case 2,
                 Return 3
         End Select
@@ -3961,7 +4034,7 @@ End Class
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
         Public Sub ConditionalAccessFormatting()
-            Dim text = <Code>
+            Const code = "
 Module Module1
     Class G
         Public t As String
@@ -3972,15 +4045,17 @@ Module Module1
         Dim q = x ? . t ? ( 0 )
         Dim me = Me ? . ToString()
         Dim mb = MyBase ? . ToString()
-        Dim mc = MyClas ? . ToString()
+        Dim mc = MyClass ? . ToString()
         Dim i = New With {.a = 3} ? . ToString()
-        Dim s = "Test" ? . ToString()
+        Dim s = ""Test"" ? . ToString()
+        Dim s2 = $""Test"" ? . ToString()
+        Dim x1 = <a></a> ? . <b>
+        Dim x2 = <a/> ? . <b>
     End Sub
 End Module
+"
 
-</Code>
-
-            Dim expected = <Code>
+            Const expected = "
 Module Module1
     Class G
         Public t As String
@@ -3991,15 +4066,64 @@ Module Module1
         Dim q = x?.t?(0)
         Dim me = Me?.ToString()
         Dim mb = MyBase?.ToString()
-        Dim mc = MyClas?.ToString()
+        Dim mc = MyClass?.ToString()
         Dim i = New With {.a = 3}?.ToString()
-        Dim s = "Test"?.ToString()
+        Dim s = ""Test""?.ToString()
+        Dim s2 = $""Test""?.ToString()
+        Dim x1 = <a></a>?.<b>
+        Dim x2 = <a/>?.<b>
     End Sub
 End Module
+"
 
-</Code>
+            AssertFormat(code, expected)
+        End Sub
 
-            AssertFormat(text.Value, expected.Value, experimental:=True)
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        Public Sub ChainedConditionalAccessFormatting()
+            Const code = "
+Module Module1
+    Class G
+        Public t As String
+    End Class
+
+    Sub Main()
+        Dim x = New G()
+        Dim q = x ? . t ? . ToString() ? . ToString ( 0 )
+        Dim me = Me ? . ToString() ? . Length
+        Dim mb = MyBase ? . ToString() ? . Length
+        Dim mc = MyClass ? . ToString() ? . Length
+        Dim i = New With {.a = 3} ? . ToString() ? . Length
+        Dim s = ""Test"" ? . ToString() ? . Length
+        Dim s2 = $""Test"" ? . ToString() ? . Length
+        Dim x1 = <a></a> ? . <b> ? . <c>
+        Dim x2 = <a/> ? . <b> ? . <c>
+    End Sub
+End Module
+"
+
+            Const expected = "
+Module Module1
+    Class G
+        Public t As String
+    End Class
+
+    Sub Main()
+        Dim x = New G()
+        Dim q = x?.t?.ToString()?.ToString(0)
+        Dim me = Me?.ToString()?.Length
+        Dim mb = MyBase?.ToString()?.Length
+        Dim mc = MyClass?.ToString()?.Length
+        Dim i = New With {.a = 3}?.ToString()?.Length
+        Dim s = ""Test""?.ToString()?.Length
+        Dim s2 = $""Test""?.ToString()?.Length
+        Dim x1 = <a></a>?.<b>?.<c>
+        Dim x2 = <a/>?.<b>?.<c>
+    End Sub
+End Module
+"
+
+            AssertFormat(code, expected)
         End Sub
 
         <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
@@ -4134,6 +4258,85 @@ End Class
 </Code>
 
             AssertFormatLf2CrLf(text.Value, expected.Value)
+        End Sub
+
+        <WorkItem(3293, "https://github.com/dotnet/roslyn/issues/3293")>
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        Public Sub CaseCommentsRemainsUndisturbed()
+            Dim text = <Code>
+Class Program
+    Sub Main(args As String())
+        Dim s = 0
+        Select Case s
+            Case 0
+            ' Comment should not be indented
+            Case 2
+                ' comment
+                Console.WriteLine(s)
+            Case 4
+        End Select
+    End Sub
+End Class
+</Code>
+
+            Dim expected = <Code>
+Class Program
+    Sub Main(args As String())
+        Dim s = 0
+        Select Case s
+            Case 0
+            ' Comment should not be indented
+            Case 2
+                ' comment
+                Console.WriteLine(s)
+            Case 4
+        End Select
+    End Sub
+End Class
+</Code>
+
+            AssertFormatLf2CrLf(text.Value, expected.Value)
+        End Sub
+
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        Public Sub NewLineOption_LineFeedOnly()
+            Dim tree = SyntaxFactory.ParseCompilationUnit("Class C" & vbCrLf & "End Class")
+
+            ' replace all EOL trivia with elastic markers to force the formatter to add EOL back
+            tree = tree.ReplaceTrivia(tree.DescendantTrivia().Where(Function(tr) tr.IsKind(SyntaxKind.EndOfLineTrivia)), Function(o, r) SyntaxFactory.ElasticMarker)
+
+            Dim formatted = Formatter.Format(tree, DefaultWorkspace, DefaultWorkspace.Options.WithChangedOption(FormattingOptions.NewLine, LanguageNames.VisualBasic, vbLf))
+            Dim actual = formatted.ToFullString()
+
+            Dim expected = "Class C" & vbLf & "End Class"
+
+            Assert.Equal(expected, actual)
+        End Sub
+
+        <Fact, Trait(Traits.Feature, Traits.Features.Formatting)>
+        <WorkItem(2822, "https://github.com/dotnet/roslyn/issues/2822")>
+        Public Sub FormatLabelFollowedByDotExpression()
+            Dim code = <Code>
+Module Module1
+    Sub Main()
+        With New List(Of Integer)
+lab: .Capacity = 15
+        End With
+    End Sub
+End Module
+</Code>
+
+            Dim expected = <Code>
+Module Module1
+    Sub Main()
+        With New List(Of Integer)
+lab:        .Capacity = 15
+        End With
+    End Sub
+End Module
+</Code>
+
+            AssertFormatLf2CrLf(code.Value, expected.Value)
         End Sub
 
     End Class

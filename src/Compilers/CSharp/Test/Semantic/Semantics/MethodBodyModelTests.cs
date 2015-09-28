@@ -315,7 +315,7 @@ class Test
             // as a statement, and therefore gives three additional errors: that there is 
             // a missing semicolon before and after the '=', and that '=' is not a valid statement.
             // In Roslyn we now do error recovery better and treat the initialization clause
-            // as an initialzier. We therefore expect one parse error, not four.
+            // as an initializer. We therefore expect one parse error, not four.
 
             var tree = Parse(text);
             Assert.Equal(1, tree.GetDiagnostics().Count());
@@ -929,6 +929,32 @@ class Test
             var tree = Parse(text);
             var comp = CreateCompilationWithMscorlib(tree);
             comp.VerifyDiagnostics();
+        }
+
+        [Fact, WorkItem(1118749, "DevDiv")]
+        public void InstanceFieldOfEnclosingStruct()
+        {
+            var text = @"
+struct Outer
+{
+    private int f1;
+    void M() { f1 = f1 + 1; }
+    public struct Inner
+    {
+        public Inner(int xyzzy)
+        {
+            var x = f1 - 1;
+        }
+    }
+}";
+            var tree = Parse(text);
+            var comp = CreateCompilationWithMscorlib(tree);
+            Assert.Equal(0, comp.GetDeclarationDiagnostics().Count());
+            comp.GetMethodBodyDiagnostics().Verify(
+                // (10,21): error CS0120: An object reference is required for the non-static field, method, or property 'Outer.f1'
+                //             var x = f1 - 1;
+                Diagnostic(ErrorCode.ERR_ObjectRequired, "f1").WithArguments("Outer.f1").WithLocation(10, 21)
+                );
         }
     }
 }

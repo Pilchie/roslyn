@@ -648,7 +648,7 @@ class C
 
         // Inner for loop referencing the outer for loop iteration variable
         [Fact]
-        public void InnerRefOuterInteration()
+        public void InnerRefOuterIteration()
         {
             var text =
 @"
@@ -955,7 +955,7 @@ class C
 }
 ";
             var c = CompileAndVerify(source, options: TestOptions.ReleaseDll);
-            
+
             c.VerifyIL("C.Main", @"
 {
   // Code size       25 (0x19)
@@ -1468,7 +1468,8 @@ public class Foo
     public string s;
 }
 ";
-            string expectedIL = @"{
+            string expectedIL = @"
+{
   // Code size       50 (0x32)
   .maxstack  3
   .locals init (Foo V_0) //f
@@ -1482,7 +1483,7 @@ public class Foo
   IL_0017:  stloc.0
   IL_0018:  br.s       IL_0028
   IL_001a:  ldloc.0
-  IL_001b:  dup
+  IL_001b:  ldloc.0
   IL_001c:  ldfld      ""int Foo.i""
   IL_0021:  ldc.i4.1
   IL_0022:  add
@@ -1538,7 +1539,7 @@ public class myFor
     }
 }
 ";
-            CompileAndVerify(text, additionalRefs: new MetadataReference[] { CSharpRef, SystemCoreRef },  expectedOutput: @"Initialize
+            CompileAndVerify(text, additionalRefs: new MetadataReference[] { CSharpRef, SystemCoreRef }, expectedOutput: @"Initialize
 Done
 Next
 Done
@@ -1698,7 +1699,7 @@ class C
 }
 ";
 
-            var comp = CompileAndVerify(text,  additionalRefs: new[] {  SystemCoreRef }, expectedOutput: @"1
+            var comp = CompileAndVerify(text, additionalRefs: new[] { SystemCoreRef }, expectedOutput: @"1
 4
 9
 16");
@@ -1927,6 +1928,5 @@ class Program
   IL_0012:  br.s       IL_0003
 }");
         }
-
     }
 }

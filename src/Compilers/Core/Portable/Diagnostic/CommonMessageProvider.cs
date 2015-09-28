@@ -126,7 +126,6 @@ namespace Microsoft.CodeAnalysis
                     return diagnosticInfo.GetInstanceWithSeverity(DiagnosticSeverity.Hidden);
                 case ReportDiagnostic.Suppress:
                     return null;
-                case ReportDiagnostic.Default:
                 default:
                     return diagnosticInfo;
             }
@@ -137,7 +136,7 @@ namespace Microsoft.CodeAnalysis
         public abstract int ERR_FailedToCreateTempFile { get; }
 
         // command line:
-        public abstract int ERR_NoScriptsSpecified { get; }
+        public abstract int ERR_ExpectedSingleScript { get; }
         public abstract int ERR_OpenResponseFile { get; }
         public abstract int FTL_InputFileNameTooLong { get; }
         public abstract int ERR_FileNotFound { get; }
@@ -151,6 +150,10 @@ namespace Microsoft.CodeAnalysis
         public abstract int WRN_AnalyzerCannotBeCreated { get; }
         public abstract int WRN_NoAnalyzerInAssembly { get; }
         public abstract int ERR_CantReadRulesetFile { get; }
+        public abstract int ERR_CompileCancelled { get; }
+
+        // compilation options:
+        public abstract int ERR_BadCompilationOptionValue { get; }
 
         // emit options:
         public abstract int ERR_InvalidDebugInformationFormat { get; }

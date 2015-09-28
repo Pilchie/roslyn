@@ -378,7 +378,6 @@ public class E : B.N
             TestDiagnostics(c.GetDiagnostics(),
 "'iField' error CS1540: Cannot access protected member 'A.iField' via a qualifier of type 'D'; the qualifier must be of type 'B.N.NN' (or derived from it)"
             );
-
         }
 
         [WorkItem(539561, "DevDiv")]
@@ -437,7 +436,7 @@ class B
             // SPEC VIOLATION: the wrong receiver type are discarded from the candidate set, and
             // SPEC VIOLATION: then the best method is chosen.
             // SPEC VIOLATION: We should consider changing the specification to match the native
-            // SPEC VIOLATION: compiler behaviour; it is arguably sensible and would be a 
+            // SPEC VIOLATION: compiler behavior; it is arguably sensible and would be a 
             // SPEC VIOLATION: bad breaking change to fix now.
 
             CSharpCompilation c = CreateCompilationWithMscorlib(@"
@@ -454,13 +453,12 @@ public class D : B
        B b = new D();
        b.M(123);
        // According to the spec, this should choose the int version and then error;
-       // the native compiler chooses the double version. We match the native compiler behaviour.
+       // the native compiler chooses the double version. We match the native compiler behavior.
     }
 }
 ");
 
             TestDiagnostics(c.GetDiagnostics());
-
         }
 
         [Fact]
@@ -473,7 +471,7 @@ public class D : B
             // SPEC VIOLATION: the wrong receiver type are discarded from the candidate set, and
             // SPEC VIOLATION: then the best method is chosen.
             // SPEC VIOLATION: We should consider changing the specification to match the native
-            // SPEC VIOLATION: compiler behaviour; it is arguably sensible and would be a 
+            // SPEC VIOLATION: compiler behavior; it is arguably sensible and would be a 
             // SPEC VIOLATION: bad breaking change to fix now.
             //
             // This fact has interesting implications in "Color Color" scenarios; when one 
@@ -566,7 +564,6 @@ namespace CS1540
 ");
 
             TestDiagnostics(c.GetDiagnostics());
-
         }
 
         [WorkItem(539561, "DevDiv")]
@@ -653,7 +650,6 @@ public class A
 "'c_priv' error CS0122: 'C.c_priv' is inaccessible due to its protection level",
 "'D' error CS0122: 'D' is inaccessible due to its protection level"
 );
-
         }
 
         [Fact]
@@ -692,7 +688,6 @@ public class A: C
 "'c_priv' error CS0122: 'C.c_priv' is inaccessible due to its protection level",
 "'D' error CS0122: 'D' is inaccessible due to its protection level"
 );
-
         }
 
         [Fact]
@@ -872,7 +867,7 @@ internal class A
 }";
             var compilation1 = CreateCompilationWithMscorlib(source1, assemblyName: "A");
             compilation1.VerifyDiagnostics();
-            var compilationVerifier = CompileAndVerify(compilation1, emitOptions: TestEmitters.CCI);
+            var compilationVerifier = CompileAndVerify(compilation1);
             var reference1 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
             var source2 =
 @"[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(""C"")]
@@ -898,7 +893,7 @@ internal abstract class B3 : A
 }";
             var compilation2 = CreateCompilationWithMscorlib(source2, assemblyName: "B", references: new[] { reference1 });
             compilation2.VerifyDiagnostics();
-            compilationVerifier = CompileAndVerify(compilation2, emitOptions: TestEmitters.CCI);
+            compilationVerifier = CompileAndVerify(compilation2);
             var reference2 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
             var source3 =
 @"class C
@@ -945,7 +940,7 @@ public abstract class A
 }";
             var compilation1 = CreateCompilationWithMscorlib(source1, assemblyName: "A");
             compilation1.VerifyDiagnostics();
-            var compilationVerifier = CompileAndVerify(compilation1, emitOptions: TestEmitters.CCI);
+            var compilationVerifier = CompileAndVerify(compilation1);
             var reference1 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
             var source2 =
 @"[assembly: System.Runtime.CompilerServices.InternalsVisibleTo(""C"")]
@@ -956,7 +951,7 @@ public abstract class B : A
 }";
             var compilation2 = CreateCompilationWithMscorlib(source2, assemblyName: "B", references: new[] { reference1 });
             compilation2.VerifyDiagnostics();
-            compilationVerifier = CompileAndVerify(compilation2, emitOptions: TestEmitters.CCI);
+            compilationVerifier = CompileAndVerify(compilation2);
             var reference2 = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
             var source3 =
 @"class C
@@ -982,7 +977,7 @@ internal class A
 }
 ";
             var compilationA = CreateCompilationWithMscorlib(sourceA, assemblyName: "A");
-            var compilationVerifier = CompileAndVerify(compilationA, emitOptions: TestEmitters.CCI);
+            var compilationVerifier = CompileAndVerify(compilationA);
             var referenceA = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
             // Dev11 compiler doesn't allow this code, Roslyn does.
@@ -994,7 +989,7 @@ public class B
 }
 ";
             var compilationB = CreateCompilationWithMscorlib(sourceB, assemblyName: "B", references: new[] { referenceA });
-            compilationVerifier = CompileAndVerify(compilationB, emitOptions: TestEmitters.CCI);
+            compilationVerifier = CompileAndVerify(compilationB);
             var referenceB = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
             var sourceC = @"
@@ -1024,7 +1019,7 @@ internal class A
 }
 ";
             var compilationA = CreateCompilationWithMscorlib(sourceA, assemblyName: "A");
-            var compilationVerifier = CompileAndVerify(compilationA, emitOptions: TestEmitters.CCI);
+            var compilationVerifier = CompileAndVerify(compilationA);
             var referenceA = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
             var sourceB = @"
@@ -1035,7 +1030,7 @@ public class B
 }
 ";
             var compilationB = CreateCompilationWithMscorlib(sourceB, assemblyName: "B", references: new[] { referenceA });
-            compilationVerifier = CompileAndVerify(compilationB, emitOptions: TestEmitters.CCI);
+            compilationVerifier = CompileAndVerify(compilationB);
             var referenceB = MetadataReference.CreateFromImage(compilationVerifier.EmittedAssemblyData);
 
             var sourceC = @"

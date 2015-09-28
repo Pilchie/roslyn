@@ -425,8 +425,10 @@ End Class
                         Dim method3Ret = DirectCast(m3.ReturnType, ArrayTypeSymbol)
 
                         Assert.Equal(1, method1Ret.Rank)
+                        Assert.True(method1Ret.IsSZArray)
                         Assert.Same(classA, method1Ret.ElementType)
                         Assert.Equal(2, method2Ret.Rank)
+                        Assert.False(method2Ret.IsSZArray)
                         Assert.Same(classA, method2Ret.ElementType)
                         Assert.Equal(3, method3Ret.Rank)
                         Assert.Same(classA, method3Ret.ElementType)
@@ -434,7 +436,6 @@ End Class
                         Assert.Null(method1Ret.ContainingSymbol)
                         Assert.Equal(ImmutableArray.Create(Of Location)(), method1Ret.Locations)
                         Assert.Equal(ImmutableArray.Create(Of SyntaxReference)(), method1Ret.DeclaringSyntaxReferences)
-                        Assert.NotEqual(0, method1Ret.GetHashCode)
 
                         Assert.True(classA.IsMustInherit)
                         Assert.Equal(Accessibility.Public, classA.DeclaredAccessibility)
@@ -539,7 +540,7 @@ End Class
 </compilation>, validator:=AddressOf EmittedModuleRecordValidator)
         End Sub
 
-        Private Sub EmittedModuleRecordValidator(assembly As PEAssembly, _omitted As TestEmitters)
+        Private Sub EmittedModuleRecordValidator(assembly As PEAssembly)
             Dim reader = assembly.GetMetadataReader()
 
             Dim typeDefs As TypeDefinitionHandle() = reader.TypeDefinitions.AsEnumerable().ToArray()
@@ -595,7 +596,7 @@ End Class
 </compilation>, validator:=AddressOf EmitBeforeFieldInitValidator)
         End Sub
 
-        Private Sub EmitBeforeFieldInitValidator(assembly As PEAssembly, _omitted As TestEmitters)
+        Private Sub EmitBeforeFieldInitValidator(assembly As PEAssembly)
             Dim reader = assembly.GetMetadataReader()
             Dim typeDefs = reader.TypeDefinitions.AsEnumerable().ToArray()
 

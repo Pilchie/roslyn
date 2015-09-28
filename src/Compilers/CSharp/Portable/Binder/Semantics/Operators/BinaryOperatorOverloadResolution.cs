@@ -148,7 +148,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 {
                     case BinaryOperatorKind.Equal:
                     case BinaryOperatorKind.NotEqual:
-                        TypeSymbol systemDelegateType = binder.GetSpecialType(SpecialType.System_Delegate, binder.Compilation.SemanticDiagnostics, left.Syntax);
+                        TypeSymbol systemDelegateType = _binder.GetSpecialType(SpecialType.System_Delegate, _binder.Compilation.DeclarationDiagnostics, left.Syntax);
 
                         if (Conversions.ClassifyImplicitConversionFromExpression(left, systemDelegateType, ref useSiteDiagnostics).IsValid &&
                             Conversions.ClassifyImplicitConversionFromExpression(right, systemDelegateType, ref useSiteDiagnostics).IsValid)
@@ -274,19 +274,19 @@ namespace Microsoft.CodeAnalysis.CSharp
                         // two candidates (instead of the usual language-specified rules).
                         bool isExactSubtraction = right.Type?.StrippedType() == underlying;
                         operators.Add(new BinaryOperatorSignature(BinaryOperatorKind.EnumSubtraction, enumType, enumType, underlying)
-                            { Priority = 2 });
+                        { Priority = 2 });
                         operators.Add(new BinaryOperatorSignature(BinaryOperatorKind.EnumAndUnderlyingSubtraction, enumType, underlying, enumType)
-                            { Priority = isExactSubtraction ? 1 : 3 });
+                        { Priority = isExactSubtraction ? 1 : 3 });
                         operators.Add(new BinaryOperatorSignature(BinaryOperatorKind.LiftedEnumSubtraction, nullableEnum, nullableEnum, nullableUnderlying)
-                            { Priority = 12 });
+                        { Priority = 12 });
                         operators.Add(new BinaryOperatorSignature(BinaryOperatorKind.LiftedEnumAndUnderlyingSubtraction, nullableEnum, nullableUnderlying, nullableEnum)
-                            { Priority = isExactSubtraction ? 11 : 13 });
+                        { Priority = isExactSubtraction ? 11 : 13 });
 
                         // Due to a bug, the native compiler allows "underlying - enum", so Roslyn does as well.
                         operators.Add(new BinaryOperatorSignature(BinaryOperatorKind.UnderlyingAndEnumSubtraction, underlying, enumType, enumType)
-                            { Priority = 4 });
+                        { Priority = 4 });
                         operators.Add(new BinaryOperatorSignature(BinaryOperatorKind.LiftedUnderlyingAndEnumSubtraction, nullableUnderlying, nullableEnum, nullableEnum)
-                            { Priority = 14 });
+                        { Priority = 14 });
                     }
                     break;
                 case BinaryOperatorKind.Equal:
@@ -400,7 +400,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     break;
 
                 case BinaryOperatorKind.Addition:
-                    // Addtion only accepts a single enum type, so operations on non-equal identity-convertible types are not ambiguous. 
+                    // Addition only accepts a single enum type, so operations on non-equal identity-convertible types are not ambiguous. 
                     //   E operator +(E x, U y)
                     //   E operator +(U x, E y)
                     useIdentityConversion = true;
@@ -694,7 +694,6 @@ namespace Microsoft.CodeAnalysis.CSharp
             operators.Free();
 
             return hadApplicableCandidates;
-
         }
 
         private void GetUserDefinedBinaryOperatorsFromType(

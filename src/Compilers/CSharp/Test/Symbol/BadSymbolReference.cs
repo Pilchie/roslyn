@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
@@ -13,7 +13,6 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
     public class BadSymbolReference : CSharpTestBase
     {
-
         //CreateCompilationWithMscorlib(text).VerifyDiagnostics(
         //    // (6,17): error CS0023: Operator '.' cannot be applied to operand of type '<null>'
         //    Diagnostic(ErrorCode.ERR_BadUnaryOp, @"null.Length").WithArguments(".", "<null>"));
@@ -799,7 +798,7 @@ class D : C, I { }
             }
         }
 
-        [Fact()]
+        [ClrOnlyFact]
         public void MissingTypeInTypeArgumentsOfImplementedInterface()
         {
             var lib1 = CreateCompilationWithMscorlib(@"
@@ -1276,7 +1275,7 @@ namespace ErrorTest
                 );
         }
 
-        [Fact()]
+        [ClrOnlyFact]
         public void MissingBaseClass()
         {
             var lib1 = CreateCompilationWithMscorlib(@"
@@ -1408,6 +1407,5 @@ namespace ErrorTest
 
             lib4.VerifyDiagnostics(expectedErrors);
         }
-
     }
 }

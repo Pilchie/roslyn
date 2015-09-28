@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.CodeAnalysis.Text;
 using Roslyn.Test.Utilities;
 using Xunit;
+using System.Collections.Generic;
 
 namespace Microsoft.CodeAnalysis.UnitTests
 {
@@ -103,7 +104,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         }
 
         [Fact]
-        public void TestChangedTextWithMultipleConsequitiveInsertsSamePosition()
+        public void TestChangedTextWithMultipleConsecutiveInsertsSamePosition()
         {
             var text = SourceText.From("Hello World");
 
@@ -192,7 +193,6 @@ namespace Microsoft.CodeAnalysis.UnitTests
             Assert.Throws<ArgumentNullException>(() => newText.CopyTo(0, null, 0, 2));
             Assert.Throws<ArgumentOutOfRangeException>(() => newText.CopyTo(newText.Length - 1, destination, 0, 2));
             Assert.Throws<ArgumentOutOfRangeException>(() => newText.CopyTo(0, destination, destination.Length - 1, 2));
-
         }
 
         [Fact]
@@ -220,6 +220,95 @@ namespace Microsoft.CodeAnalysis.UnitTests
                 Assert.Equal(expected.Span, actual.Span);
                 Assert.Equal(expected.NewText, actual.NewText);
             }
+        }
+
+        private sealed class TextLineEqualityComparer : IEqualityComparer<TextLine>
+        {
+            public bool Equals(TextLine x, TextLine y)
+            {
+                return x.Span == y.Span;
+            }
+
+            public int GetHashCode(TextLine obj)
+            {
+                return obj.Span.GetHashCode();
+            }
+        }
+
+        private static void AssertChangedTextLinesHelper(string originalText, params TextChange[] changes)
+        {
+            var changedText = SourceText.From(originalText).WithChanges(changes);
+            Assert.Equal(SourceText.From(changedText.ToString()).Lines, changedText.Lines, new TextLineEqualityComparer());
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesSimpleSubstitution()
+        {
+            AssertChangedTextLinesHelper("Line1\r\nLine2\r\nLine3",
+                new TextChange(new TextSpan(8, 2), "IN"),
+                new TextChange(new TextSpan(15, 2), "IN"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesSubstitutionWithLongerText()
+        {
+            AssertChangedTextLinesHelper("Line1\r\nLine2\r\nLine3",
+                new TextChange(new TextSpan(8, 2), new string('a', 10)),
+                new TextChange(new TextSpan(15, 2), new string('a', 10)));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesInsertCrLf()
+        {
+            AssertChangedTextLinesHelper("Line1\r\nLine2\r\nLine3",
+                new TextChange(new TextSpan(8, 2), "\r\n"),
+                new TextChange(new TextSpan(15, 2), "\r\n"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesSimpleCr()
+        {
+            AssertChangedTextLinesHelper("Line1\rLine2\rLine3",
+                new TextChange(new TextSpan(6, 0), "aa\r"),
+                new TextChange(new TextSpan(11, 0), "aa\r"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesSimpleLf()
+        {
+            AssertChangedTextLinesHelper("Line1\nLine2\nLine3",
+                new TextChange(new TextSpan(6, 0), "aa\n"),
+                new TextChange(new TextSpan(11, 0), "aa\n"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesRemoveCrLf()
+        {
+            AssertChangedTextLinesHelper("Line1\r\nLine2\r\nLine3",
+                new TextChange(new TextSpan(4, 4), "aaaaaa"),
+                new TextChange(new TextSpan(15, 4), "aaaaaa"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesBrakeCrLf()
+        {
+            AssertChangedTextLinesHelper("Test\r\nMessage",
+                new TextChange(new TextSpan(5, 0), "aaaaaa"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLinesBrakeCrLfWithLfPrefixedAndCrSuffixed()
+        {
+            AssertChangedTextLinesHelper("Test\r\nMessage",
+                new TextChange(new TextSpan(5, 0), "\naaaaaa\r"));
+        }
+
+        [Fact]
+        public void TestOptimizedSourceTextLineInsertAtEnd()
+        {
+            AssertChangedTextLinesHelper("Line1\r\nLine2\r\nLine3\r\n",
+                new TextChange(new TextSpan(21, 0), "Line4\r\n"),
+                new TextChange(new TextSpan(21, 0), "Line5\r\n"));
         }
     }
 }

@@ -3,7 +3,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Utilities;
@@ -232,14 +231,19 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                 ? contextOpt.LeftToken
                 : syntaxTree.FindTokenOnLeftOfPosition(position, cancellationToken);
 
+            var token = contextOpt != null
+                ? contextOpt.TargetToken
+                : leftToken.GetPreviousTokenIfTouchingWord(position);
+
+            if (token.IsAnyAccessorDeclarationContext(position))
+            {
+                return false;
+            }
+
             if (syntaxTree.IsMemberDeclarationContext(position, leftToken, cancellationToken))
             {
                 return true;
             }
-
-            var token = contextOpt != null
-                ? contextOpt.TargetToken
-                : leftToken.GetPreviousTokenIfTouchingWord(position);
 
             // A member can also show up after certain types of modifiers
             if (canBePartial &&
@@ -488,16 +492,21 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                 ? contextOpt.LeftToken
                 : syntaxTree.FindTokenOnLeftOfPosition(position, cancellationToken);
 
-            if (syntaxTree.IsTypeDeclarationContext(position, leftToken, cancellationToken))
-            {
-                return true;
-            }
-
             // If we're touching the right of an identifier, move back to
             // previous token.
             var token = contextOpt != null
                 ? contextOpt.TargetToken
                 : leftToken.GetPreviousTokenIfTouchingWord(position);
+
+            if (token.IsAnyAccessorDeclarationContext(position))
+            {
+                return false;
+            }
+
+            if (syntaxTree.IsTypeDeclarationContext(position, leftToken, cancellationToken))
+            {
+                return true;
+            }
 
             // A type can also show up after certain types of modifiers
             if (canBePartial &&
@@ -1422,6 +1431,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                 return false;
             }
 
+            var expressionBody = containingMember.GetExpressionBody();
+            if (expressionBody != null)
+            {
+                return TextSpan.FromBounds(expressionBody.ArrowToken.Span.End, expressionBody.FullSpan.End).IntersectsWith(position);
+            }
+
             // Must be a property or something method-like.
             if (containingMember.HasMethodShape())
             {
@@ -1766,7 +1781,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                             var declStatement = type.Parent.Parent as LocalDeclarationStatementSyntax;
 
                             // note, this doesn't apply for cases where we know it 
-                            // absolutely is not multiplcation or a conditional expression.
+                            // absolutely is not multiplication or a conditional expression.
                             var underlyingType = type is PointerTypeSyntax
                                 ? ((PointerTypeSyntax)type).ElementType
                                 : ((NullableTypeSyntax)type).ElementType;
@@ -2134,7 +2149,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                         token = ((ArgumentListSyntax)parentMemberAccess.Parent.Parent).OpenParenToken;
                     }
                 }
-                
+
                 // Could have been parsed as a qualified name.
                 if (token.Parent.IsKind(SyntaxKind.QualifiedName))
                 {
@@ -2176,7 +2191,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
                     return true;
                 }
 
-                return semanticModelOpt.GetSymbolInfo(parentExpression).Symbol == null;
+                return semanticModelOpt.GetSymbolInfo(parentExpression, cancellationToken).Symbol == null;
             }
 
             return false;
@@ -2189,6 +2204,12 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
 
             var token = tokenOnLeftOfPosition;
             token = token.GetPreviousTokenIfTouchingWord(position);
+
+            // Not if the position is *within* a numeric literal
+            if (token.IsKind(SyntaxKind.NumericLiteralToken) && token.Span.Contains(position))
+            {
+                return false;
+            }
 
             if (token.GetAncestor<BlockSyntax>() == null)
             {
@@ -2369,7 +2390,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Extensions.ContextQuery
             }
 
             var memberAccess = (MemberAccessExpressionSyntax)token.Parent;
-            var leftHandBinding = semanticModel.GetSymbolInfo(memberAccess.Expression);
+            var leftHandBinding = semanticModel.GetSymbolInfo(memberAccess.Expression, cancellationToken);
             var symbol = leftHandBinding.GetBestOrAllSymbols().FirstOrDefault();
 
             if (symbol == null)

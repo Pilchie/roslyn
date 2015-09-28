@@ -90,13 +90,13 @@ namespace Microsoft.CodeAnalysis.FindSymbols
 
         private static string GetMetadataReferenceFilePath(MetadataReference metadataReference)
         {
-            var executabeReference = metadataReference as PortableExecutableReference;
-            if (executabeReference == null)
+            var executableReference = metadataReference as PortableExecutableReference;
+            if (executableReference == null)
             {
                 return null;
             }
 
-            return executabeReference.FilePath;
+            return executableReference.FilePath;
         }
 
         /// <summary>
@@ -141,7 +141,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
                     // Return symbols from skeleton assembly in this case so that symbols have the same language as startingCompilation.
                     list.AddRange(
                         FilterByCriteria(compilation.GetSymbolsWithName(predicate, filter, cancellationToken), filter)
-                            .Select(s => s.GetSymbolKey().Resolve(startingCompilation).Symbol).WhereNotNull());
+                            .Select(s => s.GetSymbolKey().Resolve(startingCompilation, cancellationToken: cancellationToken).Symbol).WhereNotNull());
                 }
                 else
                 {

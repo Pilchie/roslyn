@@ -106,7 +106,7 @@ namespace Microsoft.CodeAnalysis.FindSymbols
                 return null;
             }
 
-            var project = solution.GetProject(symbol.ContainingAssembly);
+            var project = solution.GetProject(symbol.ContainingAssembly, cancellationToken);
             if (project != null)
             {
                 var symbolId = symbol.GetSymbolKey();
@@ -156,12 +156,12 @@ namespace Microsoft.CodeAnalysis.FindSymbols
         {
             if (symbol == null)
             {
-                throw new ArgumentNullException("symbol");
+                throw new ArgumentNullException(nameof(symbol));
             }
 
             if (compilation == null)
             {
-                throw new ArgumentNullException("compilation");
+                throw new ArgumentNullException(nameof(compilation));
             }
 
             var key = symbol.GetSymbolKey();

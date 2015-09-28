@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
-using System.IO;
-using Microsoft.CodeAnalysis.CSharp.Symbols;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
@@ -1090,7 +1088,7 @@ public sealed class A
 ";
 
             var lib1 = CreateCompilation(
-                new[] { Parse(srcLib1) }, 
+                new[] { Parse(srcLib1) },
                 new[] { TestReferences.NetFx.v2_0_50727.mscorlib, TestReferences.NetFx.v3_5_30729.SystemCore },
                 TestOptions.ReleaseDll.WithAssemblyIdentityComparer(DesktopAssemblyIdentityComparer.Default));
 
@@ -1107,7 +1105,7 @@ class Program
                 new[] { Parse(srcLib2) },
                 new[] { MscorlibRef, new CSharpCompilationReference(lib1) },
                 TestOptions.ReleaseDll.WithAssemblyIdentityComparer(DesktopAssemblyIdentityComparer.Default));
-            
+
             lib2.VerifyDiagnostics(
                 // (6,13): error CS0012: The type 'System.Func<,>' is defined in an assembly that is not referenced. You must add a reference to assembly 'System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089'.
                 //         new A(x => x);
@@ -1216,13 +1214,13 @@ class B : C, I { }
         {
             var unavailableRef = TestReferences.SymbolsTests.UseSiteErrors.Unavailable;
             var ilRef = TestReferences.SymbolsTests.UseSiteErrors.IL;
-            
+
             var mainSource = @"
 class B : ILErrors.ClassEventsNonVirtual, ILErrors.InterfaceEvents { }
 ";
             var main = CreateCompilationWithMscorlib(mainSource, new[] { ilRef, unavailableRef });
 
-            CompileAndVerify(main, emitOptions: TestEmitters.RefEmitBug);
+            CompileAndVerify(main);
         }
 
         [Fact, WorkItem(530974, "DevDiv")]
@@ -1236,7 +1234,7 @@ class B : ILErrors.ClassEvents, ILErrors.InterfaceEvents { }
 ";
             var main = CreateCompilationWithMscorlib(mainSource, new[] { ilRef, unavailableRef });
 
-            CompileAndVerify(main, emitOptions: TestEmitters.RefEmitBug);
+            CompileAndVerify(main);
         }
 
         [Fact, WorkItem(530974, "DevDiv")]
@@ -1288,7 +1286,7 @@ class B : ILErrors.ModReqClassEventsNonVirtual, ILErrors.ModReqInterfaceEvents {
 
             foreach (var diag in compilation.GetDiagnostics())
             {
-                Assert.DoesNotContain("System.Runtime.CompilerServices.CompilerGeneratedAttribute", diag.GetMessage());
+                Assert.DoesNotContain("System.Runtime.CompilerServices.CompilerGeneratedAttribute", diag.GetMessage(), StringComparison.Ordinal);
             }
         }
 
@@ -1688,21 +1686,21 @@ class C
                 // (9,22): error CS0012: The type 'Missing' is defined in an assembly that is not referenced. You must add a reference to assembly 'Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.
                 //         var c2 = new Constructor2(2);
                 Diagnostic(ErrorCode.ERR_NoTypeDef, "Constructor2").WithArguments("Missing", "Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
-                
+
                 // (9,9): error CS0012: The type 'Missing' is defined in an assembly that is not referenced. You must add a reference to assembly 'Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.
                 //         Methods.M1(1);
                 Diagnostic(ErrorCode.ERR_NoTypeDef, "Methods.M1").WithArguments("Missing", "Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
                 // (10,9): error CS0012: The type 'Missing' is defined in an assembly that is not referenced. You must add a reference to assembly 'Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.
                 //         Methods.M2(2);
                 Diagnostic(ErrorCode.ERR_NoTypeDef, "Methods.M2").WithArguments("Missing", "Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
-                
+
                 // (14,26): error CS0012: The type 'Missing' is defined in an assembly that is not referenced. You must add a reference to assembly 'Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.
                 //         Action<int> a1 = Methods.M1;
                 Diagnostic(ErrorCode.ERR_NoTypeDef, "Methods.M1").WithArguments("Missing", "Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
                 // (15,26): error CS0012: The type 'Missing' is defined in an assembly that is not referenced. You must add a reference to assembly 'Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.
                 //         Action<int> a2 = Methods.M2;
                 Diagnostic(ErrorCode.ERR_NoTypeDef, "Methods.M2").WithArguments("Missing", "Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
-                
+
                 // (17,18): error CS0012: The type 'Missing' is defined in an assembly that is not referenced. You must add a reference to assembly 'Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null'.
                 //         var i1 = new Indexer1()[1];
                 Diagnostic(ErrorCode.ERR_NoTypeDef, "new Indexer1()[1]").WithArguments("Missing", "Missing, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
@@ -1936,7 +1934,7 @@ class Test
         }
 
         [WorkItem(708169, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void OverloadResolutionWithUnsupportedMetadata_UnsupportedMetadata_SupportedExists()
         {
             var il = @"
@@ -2059,7 +2057,7 @@ class C
         }
 
         [WorkItem(708169, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Ilasm)]
         public void OverloadResolutionWithUnsupportedMetadata_UnsupportedMetadata_SupportedDoesNotExist()
         {
             var il = @"
@@ -2158,7 +2156,6 @@ class C
         [Fact]
         public void MissingBaseTypeForCatch()
         {
-
             var source1 = @"
 using System;
 public class GeneralException : Exception {}";
@@ -2169,7 +2166,7 @@ public class GeneralException : Exception {}";
 public class SpecificException : GeneralException
 {}";
 
-            CSharpCompilation comp2 = CreateCompilationWithMscorlib(source2, new MetadataReference[] { new CSharpCompilationReference(comp1)});
+            CSharpCompilation comp2 = CreateCompilationWithMscorlib(source2, new MetadataReference[] { new CSharpCompilationReference(comp1) });
 
             var source3 = @"
 class Test

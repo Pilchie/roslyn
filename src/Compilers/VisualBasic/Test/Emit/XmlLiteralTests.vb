@@ -3,6 +3,7 @@
 Imports System.IO
 Imports System.Text
 Imports Microsoft.Cci
+Imports Microsoft.CodeAnalysis.VisualBasic.Symbols
 Imports Roslyn.Test.Utilities
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
@@ -3494,7 +3495,7 @@ End Module
                 sourceBuilder.AppendLine("End Module")
 
                 Dim sourceTree = VisualBasicSyntaxTree.ParseText(sourceBuilder.ToString())
-                Dim comp = VisualBasicCompilation.Create(Guid.NewGuid().ToString(), {sourceTree}, DefaultReferences.Concat(XmlReferences))
+                Dim comp = VisualBasicCompilation.Create(Guid.NewGuid().ToString(), {sourceTree}, DefaultVbReferences.Concat(XmlReferences))
                 CompileAndVerify(comp, expectedOutput:=<![CDATA[
 91
 10
@@ -3518,25 +3519,25 @@ End Module
             Dim strs = {space, vbCr, vbLf, vbCrLf, vbTab, "&#x20;", "&#xD;", "&#xA;", "&#x9;"}
 
             ' Empty string.
-            NormalizeAttributeValue("")
+            NormalizeAttributeValueCore("")
 
             ' Single characters.
             For Each str0 In strs
-                NormalizeAttributeValue(str0)
-                NormalizeAttributeValue("[" & str0 & "]")
+                NormalizeAttributeValueCore(str0)
+                NormalizeAttributeValueCore("[" & str0 & "]")
             Next
 
             ' Pairs of characters.
             For Each str1 In strs
                 For Each str2 In strs
                     Dim str = str1 & str2
-                    NormalizeAttributeValue(str)
-                    NormalizeAttributeValue("[" & str & "]")
+                    NormalizeAttributeValueCore(str)
+                    NormalizeAttributeValueCore("[" & str & "]")
                 Next
             Next
         End Sub
 
-        Private Sub NormalizeAttributeValue(str As String)
+        Private Sub NormalizeAttributeValueCore(str As String)
             Dim sourceBuilder = New StringBuilder()
             sourceBuilder.AppendLine("Module M")
             sourceBuilder.AppendLine("    Sub Main()")
@@ -3545,7 +3546,7 @@ End Module
             sourceBuilder.AppendLine("End Module")
 
             Dim sourceTree = VisualBasicSyntaxTree.ParseText(sourceBuilder.ToString())
-            Dim comp = VisualBasicCompilation.Create(Guid.NewGuid().ToString(), {sourceTree}, DefaultReferences.Concat(XmlReferences))
+            Dim comp = VisualBasicCompilation.Create(Guid.NewGuid().ToString(), {sourceTree}, DefaultVbReferences.Concat(XmlReferences))
             CompileAndVerify(comp, expectedOutput:="[[" & NormalizeValue(str) & "]]")
         End Sub
 
@@ -4501,11 +4502,11 @@ content
         <Fact()>
         Public Sub XmlnsNamespaceTooLong()
             Dim identifier = New String("a"c, MetadataWriter.PdbLengthLimit)
-            XmlnsNamespaceTooLong(identifier.Substring(6), tooLong:=False)
-            XmlnsNamespaceTooLong(identifier, tooLong:=True)
+            XmlnsNamespaceTooLongCore(identifier.Substring(6), tooLong:=False)
+            XmlnsNamespaceTooLongCore(identifier, tooLong:=True)
         End Sub
 
-        Private Sub XmlnsNamespaceTooLong(identifier As String, tooLong As Boolean)
+        Private Sub XmlnsNamespaceTooLongCore(identifier As String, tooLong As Boolean)
             Dim [imports] = GlobalImport.Parse({String.Format("<xmlns:p=""{0}"">", identifier)})
             Dim options = TestOptions.DebugDll.WithGlobalImports([imports])
             Dim source = String.Format(<![CDATA[
@@ -4921,6 +4922,49 @@ End Module
   <r:z />
 </p:x>
 ]]>)
+        End Sub
+
+        ''' <summary>
+        ''' My.InternalXmlHelper should be emitted into the root namespace.
+        ''' </summary>
+        <Fact()>
+        Public Sub InternalXmlHelper_RootNamespace()
+            Const source = "
+Imports System
+Imports System.Xml.Linq
+
+Class C
+    Sub M()
+        Dim a = <element attr='value'/>.@attr
+    End Sub
+End Class
+"
+            Dim tree = VisualBasicSyntaxTree.ParseText(source)
+
+            Dim refBuilder = ArrayBuilder(Of MetadataReference).GetInstance()
+            refBuilder.Add(MscorlibRef)
+            refBuilder.Add(MsvbRef)
+            refBuilder.AddRange(XmlReferences)
+            Dim refs = refBuilder.ToImmutableAndFree()
+
+            CompileAndVerify(
+                CreateCompilationWithReferences(tree, refs, TestOptions.DebugDll),
+                symbolValidator:=
+                    Sub(moduleSymbol)
+                        moduleSymbol.GlobalNamespace.
+                            GetMember(Of NamespaceSymbol)("My").
+                            GetMember(Of NamedTypeSymbol)("InternalXmlHelper")
+                    End Sub)
+
+            CompileAndVerify(
+                CreateCompilationWithReferences(tree, refs, TestOptions.DebugDll.WithRootNamespace("Root")),
+                symbolValidator:=
+                    Sub(moduleSymbol)
+                        moduleSymbol.GlobalNamespace.
+                            GetMember(Of NamespaceSymbol)("Root").
+                            GetMember(Of NamespaceSymbol)("My").
+                            GetMember(Of NamedTypeSymbol)("InternalXmlHelper")
+                    End Sub)
         End Sub
 
     End Class

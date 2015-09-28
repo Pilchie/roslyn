@@ -45,9 +45,9 @@ public class Program
 }
 ";
             var validator = GetDestructorValidator("Base");
-            var compVerifier = CompileAndVerify(text, 
-                sourceSymbolValidator: validator, 
-                symbolValidator: validator, 
+            var compVerifier = CompileAndVerify(text,
+                sourceSymbolValidator: validator,
+                symbolValidator: validator,
                 expectedOutput: @"~Base",
                 expectedSignatures: new[]
                 {
@@ -109,9 +109,9 @@ public class Program
 }
 ";
             var validator = GetDestructorValidator("Derived");
-            var compVerifier = CompileAndVerify(text, 
+            var compVerifier = CompileAndVerify(text,
                 sourceSymbolValidator: validator,
-                symbolValidator: validator, 
+                symbolValidator: validator,
                 expectedOutput: @"~Derived
 ~Base",
                 expectedSignatures: new[]
@@ -251,7 +251,7 @@ public class Program
                 symbolValidator: validator,
                 expectedOutput: @"~Derived
 ~Base",
-                expectedSignatures: new[] 
+                expectedSignatures: new[]
                 {
                 Signature("Base", "Finalize", ".method family hidebysig instance System.Void Finalize() cil managed"),
                     Signature("Derived", "Finalize", ".method family hidebysig virtual instance System.Void Finalize() cil managed")
@@ -303,8 +303,8 @@ public class Program
 ";
             var validator = GetDestructorValidator("Derived");
             var compVerifier = CompileAndVerify(text,
-                sourceSymbolValidator: validator, 
-                symbolValidator: validator, 
+                sourceSymbolValidator: validator,
+                symbolValidator: validator,
                 expectedOutput: @"~Derived
 ~Base",
                 expectedSignatures: new[]
@@ -540,7 +540,7 @@ public class B : A
                 Diagnostic(ErrorCode.WRN_FinalizeMethod, "Finalize"));
 
             // PeVerify fails
-            Assert.Throws<PeVerifyException>(()=> CompileAndVerify(compilation));
+            Assert.Throws<PeVerifyException>(() => CompileAndVerify(compilation));
         }
 
         [WorkItem(528907, "DevDiv")]
@@ -590,14 +590,14 @@ public class A
     ~A() { }
 }
 ";
-            CompileAndVerify(text, assemblyValidator: (assembly, _) =>
+            CompileAndVerify(text, assemblyValidator: (assembly) =>
             {
                 var peFileReader = assembly.GetMetadataReader();
 
                 // Find the handle and row for A.
                 var pairA = peFileReader.TypeDefinitions.AsEnumerable().
                     Select(handle => new { handle = handle, row = peFileReader.GetTypeDefinition(handle) }).
-                    Single(pair => peFileReader.GetString(pair.row.Name) == "A" && 
+                    Single(pair => peFileReader.GetString(pair.row.Name) == "A" &&
                         string.IsNullOrEmpty(peFileReader.GetString(pair.row.Namespace)));
                 TypeDefinitionHandle handleA = pairA.handle;
                 TypeDefinition typeA = pairA.row;
@@ -616,7 +616,7 @@ public class A
                 // Find the handle for System.Object's destructor.
                 MemberReferenceHandle handleDestructorObject = peFileReader.MemberReferences.AsEnumerable().
                     Select(handle => new { handle = handle, row = peFileReader.GetMemberReference(handle) }).
-                    Single(pair => pair.row.Parent == (Handle)handleObject &&
+                    Single(pair => pair.row.Parent == (EntityHandle)handleObject &&
                         peFileReader.GetString(pair.row.Name) == WellKnownMemberNames.DestructorName).handle;
 
 
@@ -629,10 +629,10 @@ public class A
                 Assert.Equal(handleA, methodImpl.Type);
 
                 // The MethodDeclaration column should point to System.Object.Finalize.
-                Assert.Equal((Handle)handleDestructorObject, methodImpl.MethodDeclaration);
+                Assert.Equal((EntityHandle)handleDestructorObject, methodImpl.MethodDeclaration);
 
                 // The MethodDeclarationColumn should point to A's destructor.
-                Assert.Equal((Handle)handleDestructorA, methodImpl.MethodBody);
+                Assert.Equal((EntityHandle)handleDestructorA, methodImpl.MethodBody);
             });
         }
 

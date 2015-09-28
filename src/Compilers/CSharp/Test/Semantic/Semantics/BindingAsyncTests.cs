@@ -46,7 +46,7 @@ class C
     }
 }";
             var tree = SyntaxFactory.ParseSyntaxTree(source);
-            var compilation = CreateCompilationWithMscorlib45(new SyntaxTree[] {tree}).VerifyDiagnostics();
+            var compilation = CreateCompilationWithMscorlib45(new SyntaxTree[] { tree }).VerifyDiagnostics();
 
             var model = compilation.GetSemanticModel(tree);
 
@@ -64,7 +64,6 @@ class C
         [Fact]
         public void AsyncDelegates()
         {
-
             var source = @"
 using System;
 using System.Threading.Tasks;
@@ -891,7 +890,15 @@ class Test
         }
     }
 }";
-            CreateCompilationWithMscorlib45(source).VerifyDiagnostics();
+            CreateCompilationWithMscorlib45(source, parseOptions: TestOptions.Regular.WithLanguageVersion(LanguageVersion.CSharp5)).VerifyDiagnostics(
+                // (20,17): error CS1984: Cannot await in the body of a finally clause
+                //                 await Task.Factory.StartNew(() => { });
+                Diagnostic(ErrorCode.ERR_BadAwaitInFinally, "await Task.Factory.StartNew(() => { })").WithLocation(20, 17),
+                // (30,17): error CS1984: Cannot await in the body of a finally clause
+                //                 await Task.Factory.StartNew(() => { });
+                Diagnostic(ErrorCode.ERR_BadAwaitInFinally, "await Task.Factory.StartNew(() => { })").WithLocation(30, 17)
+                );
+            CreateCompilationWithMscorlib45(source, parseOptions: TestOptions.Regular.WithLanguageVersion(LanguageVersion.CSharp6)).VerifyDiagnostics();
         }
 
         [Fact]
@@ -915,7 +922,12 @@ class Test
         }
     }
 }";
-            CreateCompilationWithMscorlib45(source).VerifyDiagnostics();
+            CreateCompilationWithMscorlib45(source, parseOptions: TestOptions.Regular.WithLanguageVersion(LanguageVersion.CSharp5)).VerifyDiagnostics(
+                // (12,13): error CS1985: Cannot await in a catch clause
+                //             await Task.Factory.StartNew(() => { });
+                Diagnostic(ErrorCode.ERR_BadAwaitInCatch, "await Task.Factory.StartNew(() => { })").WithLocation(12, 13)
+                );
+            CreateCompilationWithMscorlib45(source, parseOptions: TestOptions.Regular.WithLanguageVersion(LanguageVersion.CSharp6)).VerifyDiagnostics();
         }
 
         [Fact]
@@ -1370,7 +1382,7 @@ class Test
                  where l > 1 select await F1();
     }
 }";
-            CreateCompilationWithMscorlib45(source, new MetadataReference[]{ SystemRef, LinqAssemblyRef }).VerifyDiagnostics(
+            CreateCompilationWithMscorlib45(source, new MetadataReference[] { SystemRef, LinqAssemblyRef }).VerifyDiagnostics(
                 // (20,37): error CS1995: The 'await' operator may only be used in a query expression within the first collection expression of the initial 'from' clause or within the collection expression of a 'join' clause
                 //                  where l > 1 select await F1();
                 Diagnostic(ErrorCode.ERR_BadAwaitInQuery, "await F1()"));
@@ -1477,7 +1489,7 @@ class Test
                 source,
                 new MetadataReference[] { SystemRef, LinqAssemblyRef },
                 TestOptions.UnsafeReleaseDll);
-                
+
             c.VerifyDiagnostics(
                 // (22,41): error CS4004: Cannot await in an unsafe context
                 //                              join l3 in await F1() on l2 equals l3
@@ -1553,7 +1565,7 @@ class Test
                 //         var xs = from l in await F1()
                 Diagnostic(ErrorCode.ERR_BadAwaitWithoutVoidAsyncMethod, "await F1()"));
         }
-		
+
         [Fact]
         public void AsyncLacksAwaits()
         {
@@ -2314,7 +2326,7 @@ class Test
         return 0;
     }
 }";
-            CreateCompilationWithMscorlib45(source, references: new MetadataReference[] {  CSharpRef, SystemCoreRef }).VerifyDiagnostics(
+            CreateCompilationWithMscorlib45(source, references: new MetadataReference[] { CSharpRef, SystemCoreRef }).VerifyDiagnostics(
                 // (30,13): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
                 //             Meth(1);
                 Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "Meth(1)"),
@@ -3109,6 +3121,43 @@ class Test : IDisposable
         }
 
         [Fact]
+        public void UnobservedAwaitableExpression_Script()
+        {
+            var source =
+@"using System.Threading.Tasks;
+Task.FromResult(1);
+Task.FromResult(2);";
+            var compilation = CreateCompilationWithMscorlib45(source, parseOptions: TestOptions.Script);
+            compilation.VerifyDiagnostics(
+                // (2,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                // Task.FromResult(1);
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "Task.FromResult(1)").WithLocation(2, 1),
+                // (3,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                // Task.FromResult(2);
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "Task.FromResult(2)").WithLocation(3, 1));
+        }
+
+        [Fact]
+        public void UnobservedAwaitableExpression_Interactive()
+        {
+            var source0 =
+@"using System.Threading.Tasks;
+Task.FromResult(1);
+Task.FromResult(2)";
+            var submission = CSharpCompilation.CreateSubmission(
+                "s0.dll",
+                syntaxTree: SyntaxFactory.ParseSyntaxTree(source0, options: TestOptions.Interactive),
+                references: new[] { MscorlibRef_v4_0_30316_17626 });
+            submission.VerifyDiagnostics(
+                // (2,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                // Task.FromResult(1);
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "Task.FromResult(1)").WithLocation(2, 1),
+                // (3,1): warning CS4014: Because this call is not awaited, execution of the current method continues before the call is completed. Consider applying the 'await' operator to the result of the call.
+                // Task.FromResult(2);
+                Diagnostic(ErrorCode.WRN_UnobservedAwaitableExpression, "Task.FromResult(2)").WithLocation(3, 1));
+        }
+
+        [Fact]
         public void BadAsyncMethodWithNoStatementBody()
         {
             var source = @"
@@ -3187,7 +3236,6 @@ class Test
         [Fact]
         public void BadSpecialByRefVarDeclLocal()
         {
-
             var source = @"
 using System.Threading.Tasks;
 using System;
@@ -3240,7 +3288,6 @@ public class MyClass
         [Fact]
         public void AsyncInSecurityCriticalClass()
         {
-
             var source = @"
 using System.Security;
 using System.Threading.Tasks;
@@ -3305,7 +3352,6 @@ public class C
         [Fact]
         public void AsyncInDoublyNestedSecuritySafeCriticalAndSecurityCriticalClasses()
         {
-
             var source = @"
 using System.Security;
 using System.Threading.Tasks;
@@ -3332,7 +3378,6 @@ public class C
         [Fact]
         public void SecurityCriticalOnAsync()
         {
-
             var source = @"
 using System.Security;
 using System.Threading.Tasks;
@@ -3775,6 +3820,5 @@ public class Program
                 Diagnostic(ErrorCode.WRN_AsyncLacksAwaits, "async () => YAsync()").WithLocation(15, 21)
                 );
         }
-
     }
 }

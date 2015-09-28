@@ -26,7 +26,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
         ''' Creates a semantic analyzer for speculative syntax replacement.
         ''' </summary>
         ''' <param name="expression">Original expression to be replaced.</param>
-        ''' <param name="newExpression">New expession to replace the orginal expression.</param>
+        ''' <param name="newExpression">New expression to replace the original expression.</param>
         ''' <param name="semanticModel">Semantic model of <paramref name="expression"/> node's syntax tree.</param>
         ''' <param name="cancellationToken">Cancellation token.</param>
         ''' <param name="skipVerificationForReplacedNode">
@@ -234,8 +234,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                     Dim originalSingleLineLambda = DirectCast(originalLambda, SingleLineLambdaExpressionSyntax)
                     Dim replacedSingleLineLambda = DirectCast(replacedLambda, SingleLineLambdaExpressionSyntax)
 
-                    originalParams = originalSingleLineLambda.Begin.ParameterList.Parameters
-                    replacedParams = replacedSingleLineLambda.Begin.ParameterList.Parameters
+                    originalParams = originalSingleLineLambda.SubOrFunctionHeader.ParameterList.Parameters
+                    replacedParams = replacedSingleLineLambda.SubOrFunctionHeader.ParameterList.Parameters
                     originalLambdaBody = originalSingleLineLambda.Body
                     replacedLambdaBody = replacedSingleLineLambda.Body
 
@@ -243,8 +243,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                     Dim originalMultiLineLambda = DirectCast(originalLambda, MultiLineLambdaExpressionSyntax)
                     Dim replacedMultiLineLambda = DirectCast(replacedLambda, MultiLineLambdaExpressionSyntax)
 
-                    originalParams = originalMultiLineLambda.Begin.ParameterList.Parameters
-                    replacedParams = replacedMultiLineLambda.Begin.ParameterList.Parameters
+                    originalParams = originalMultiLineLambda.SubOrFunctionHeader.ParameterList.Parameters
+                    replacedParams = replacedMultiLineLambda.SubOrFunctionHeader.ParameterList.Parameters
                     originalLambdaBody = originalMultiLineLambda
                     replacedLambdaBody = replacedMultiLineLambda
 
@@ -328,6 +328,10 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
                 End If
 
                 Return Not ImplicitConversionsAreCompatible(originalExpression, newExpression)
+            ElseIf currentOriginalNode.Kind = SyntaxKind.ConditionalAccessExpression
+                Dim originalExpression = DirectCast(currentOriginalNode, ConditionalAccessExpressionSyntax)
+                Dim newExpression = DirectCast(currentReplacedNode, ConditionalAccessExpressionSyntax)
+                Return ReplacementBreaksConditionalAccessExpression(originalExpression, newExpression)
             ElseIf currentOriginalNode.Kind = SyntaxKind.VariableDeclarator Then
                 ' Heuristic: If replacing the node will result in changing the type of a local variable
                 ' that is type-inferred, we won't remove it. It's possible to do this analysis, but it's
@@ -341,8 +345,14 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
 
                 Return False
             ElseIf currentOriginalNode.Kind = SyntaxKind.CollectionInitializer Then
-                Return previousOriginalNode IsNot Nothing AndAlso
+                Return _
+                    previousOriginalNode IsNot Nothing AndAlso
                     ReplacementBreaksCollectionInitializerAddMethod(DirectCast(previousOriginalNode, ExpressionSyntax), DirectCast(previousReplacedNode, ExpressionSyntax))
+            ElseIf currentOriginalNode.Kind = SyntaxKind.Interpolation Then
+                Dim orignalInterpolation = DirectCast(currentOriginalNode, InterpolationSyntax)
+                Dim newInterpolation = DirectCast(currentReplacedNode, InterpolationSyntax)
+
+                Return ReplacementBreaksInterpolation(orignalInterpolation, newInterpolation)
             Else
                 Dim originalCollectionRangeVariableSyntax = TryCast(currentOriginalNode, CollectionRangeVariableSyntax)
                 If originalCollectionRangeVariableSyntax IsNot Nothing Then
@@ -468,6 +478,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Utilities
 
             Return Not SymbolsAreCompatible(binaryExpression, newBinaryExpression) OrElse
                 Not TypesAreCompatible(binaryExpression, newBinaryExpression)
+        End Function
+
+        Private Function ReplacementBreaksConditionalAccessExpression(conditionalAccessExpression As ConditionalAccessExpressionSyntax, newConditionalAccessExpression As ConditionalAccessExpressionSyntax) As Boolean
+            Return _
+                Not SymbolsAreCompatible(conditionalAccessExpression, newConditionalAccessExpression) OrElse
+                Not TypesAreCompatible(conditionalAccessExpression, newConditionalAccessExpression) OrElse
+                Not SymbolsAreCompatible(conditionalAccessExpression.WhenNotNull, newConditionalAccessExpression.WhenNotNull) OrElse
+                Not TypesAreCompatible(conditionalAccessExpression.WhenNotNull, newConditionalAccessExpression.WhenNotNull)
+        End Function
+
+        Private Function ReplacementBreaksInterpolation(interpolation As InterpolationSyntax, newInterpolation As InterpolationSyntax) As Boolean
+            Return Not TypesAreCompatible(interpolation.Expression, newInterpolation.Expression)
         End Function
 
         Protected Overrides Function GetForEachStatementExpression(forEachStatement As ForEachStatementSyntax) As ExpressionSyntax

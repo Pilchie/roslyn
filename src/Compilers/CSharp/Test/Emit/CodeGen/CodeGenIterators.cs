@@ -516,7 +516,7 @@ class Program
 }
 ");
         }
-        
+
         [Fact]
         public void TestIteratorWithBaseAccess()
         {
@@ -1204,23 +1204,17 @@ class Program
 
             dbg.VerifyIL("Program.M", @"
 {
-  // Code size       18 (0x12)
-  .maxstack  2
-  .locals init (Program.<M>d__1 V_0,
-                System.Collections.Generic.IEnumerator<int> V_1)
+  // Code size       14 (0xe)
+  .maxstack  3
   IL_0000:  ldc.i4.0
   IL_0001:  newobj     ""Program.<M>d__1..ctor(int)""
-  IL_0006:  stloc.0
-  IL_0007:  ldloc.0
-  IL_0008:  ldarg.0
-  IL_0009:  stfld      ""System.Collections.Generic.IEnumerable<int> Program.<M>d__1.items""
-  IL_000e:  ldloc.0
-  IL_000f:  stloc.1
-  IL_0010:  ldloc.1
-  IL_0011:  ret
+  IL_0006:  dup
+  IL_0007:  ldarg.0
+  IL_0008:  stfld      ""System.Collections.Generic.IEnumerable<int> Program.<M>d__1.items""
+  IL_000d:  ret
 }");
         }
-        
+
         [Fact]
         public void HoistedParameters_Enumerable()
         {
@@ -1587,7 +1581,7 @@ class Program
         }
 
         [Fact]
-        public void MultilevelGoto()
+        public void MultiLevelGoto()
         {
             var source =
 @"
@@ -1679,7 +1673,7 @@ class Program
         }
 
         [Fact]
-        public void MultilevelGoto001()
+        public void MultiLevelGoto001()
         {
             var source =
 @"
@@ -1782,7 +1776,6 @@ Finally1012Finally4Finally3Finally2L1
 Finally10123Finally5Finally4Finally3Finally2L1
 Finally101234Finally5Finally4Finally3Finally2L1
 Finally1");
-
         }
 
         [Fact]
@@ -1884,7 +1877,6 @@ class S<T1, T2>
 
 ";
             CompileAndVerify(source, expectedOutput: @"M");
-
         }
 
         [Fact]
@@ -1925,7 +1917,6 @@ class A
 ";
             CompileAndVerify(source, expectedOutput: @"5
 42");
-
         }
 
         [Fact]
@@ -1945,11 +1936,11 @@ class Program
 }
 ";
             //EDMAURER ensure that we use System.Environment.CurrentManagedThreadId when compiling against 4.5
-            var parsed = new [] {Parse(source)};
+            var parsed = new[] { Parse(source) };
             var comp = CreateCompilationWithMscorlib45(parsed);
             var verifier = this.CompileAndVerify(comp);
             var il = verifier.VisualizeIL("Program.<Foo>d__0.System.Collections.Generic.IEnumerable<int>.GetEnumerator()");
-            Assert.Contains("System.Environment.CurrentManagedThreadId.get", il);
+            Assert.Contains("System.Environment.CurrentManagedThreadId.get", il, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -1982,7 +1973,7 @@ namespace System
             comp.MakeMemberMissing(WellKnownMember.System_Threading_Thread__ManagedThreadId);
             var verifier = this.CompileAndVerify(comp);
             var il = verifier.VisualizeIL("Program.<Foo>d__0.System.Collections.Generic.IEnumerable<int>.GetEnumerator()");
-            Assert.Contains("System.Environment.CurrentManagedThreadId.get", il);
+            Assert.Contains("System.Environment.CurrentManagedThreadId.get", il, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -2014,7 +2005,6 @@ class Program
 
 ";
             CompileAndVerify(source, expectedOutput: @"DONE");
-
         }
 
         [Fact]
@@ -2334,7 +2324,7 @@ class Program
   IL_00ae:  ldloc.0
   IL_00af:  ret
 }");
-            Assert.True(expectedIL.IndexOf("<>_") < 0);
+            Assert.True(expectedIL.IndexOf("<>_", StringComparison.Ordinal) < 0);
         }
     }
 }

@@ -50,35 +50,36 @@ namespace Microsoft.CodeAnalysis
         [DebuggerDisplay("{GetDebuggerDisplay(), nq}")]
         protected struct ResolvedReference
         {
-            private readonly MetadataImageKind kind;
-            private readonly int index;
-            private readonly ImmutableArray<string> aliases;
-
-            public static readonly ResolvedReference Skipped = default(ResolvedReference);
+            private readonly MetadataImageKind _kind;
+            private readonly int _index;
+            private readonly ImmutableArray<string> _aliases;
 
             public ResolvedReference(int index, MetadataImageKind kind, ImmutableArray<string> aliases)
             {
                 Debug.Assert(index >= 0);
 
-                this.index = index + 1;
-                this.kind = kind;
-                this.aliases = aliases;
+                _index = index + 1;
+                _kind = kind;
+                _aliases = aliases;
             }
 
             public ImmutableArray<string> Aliases
             {
                 get
                 {
-                    Debug.Assert(!aliases.IsDefault);
-                    return aliases;
+                    Debug.Assert(!_aliases.IsDefault);
+                    return _aliases;
                 }
             }
 
+            /// <summary>
+            /// default(<see cref="ResolvedReference"/>) is considered skipped.
+            /// </summary>
             public bool IsSkipped
             {
                 get
                 {
-                    return index == 0;
+                    return _index == 0;
                 }
             }
 
@@ -87,22 +88,25 @@ namespace Microsoft.CodeAnalysis
                 get
                 {
                     Debug.Assert(!IsSkipped);
-                    return kind;
+                    return _kind;
                 }
             }
 
+            /// <summary>
+            /// Index into an array of assemblies or an array of modules, depending on <see cref="Kind"/>.
+            /// </summary>
             public int Index
             {
                 get
                 {
                     Debug.Assert(!IsSkipped);
-                    return index - 1;
+                    return _index - 1;
                 }
             }
 
             private string GetDebuggerDisplay()
             {
-                return IsSkipped ? "<skipped>" : (kind == MetadataImageKind.Assembly ? "A[" : "M[") + Index + "]: aliases=" + aliases.ToString();
+                return IsSkipped ? "<skipped>" : (_kind == MetadataImageKind.Assembly ? "A[" : "M[") + Index + "]: aliases=" + _aliases.ToString();
             }
         }
 
@@ -123,7 +127,7 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         /// <param name="compilation">The compilation whose references are being resolved.</param>
         /// <param name="references">List where to store resolved references. References from #r directives will follow references passed to the compilation constructor.</param>
-        /// <param name="boundReferenceDirectiveMap">Maps #r values to successuflly resolved metadata references. Does not contain values that failed to resolve.</param>
+        /// <param name="boundReferenceDirectiveMap">Maps #r values to successfully resolved metadata references. Does not contain values that failed to resolve.</param>
         /// <param name="boundReferenceDirectives">Unique metadata references resolved from #r directives.</param>
         /// <param name="assemblies">List where to store information about resolved assemblies to.</param>
         /// <param name="modules">List where to store information about resolved modules to.</param>
@@ -147,7 +151,6 @@ namespace Microsoft.CodeAnalysis
             // References originating from #r directives precede references supplied as arguments of the compilation.
             int referenceCount = references.Length;
             int referenceDirectiveCount = (referenceDirectiveLocations != null ? referenceDirectiveLocations.Length : 0);
-            int externalReferenceCount = referenceCount - referenceDirectiveCount;
 
             var referenceMap = new ResolvedReference[referenceCount];
 
@@ -325,6 +328,13 @@ namespace Microsoft.CodeAnalysis
                 boundReferenceDirectives = ImmutableArray<MetadataReference>.Empty;
             }
 
+            // We enumerated references in reverse order in the above code
+            // and thus assemblies and modules in the builders are reversed.
+            // Fix up all the indices and reverse the builder content now to get 
+            // the ordering matching the references.
+            // 
+            // Also fills in aliases.
+
             for (int i = 0; i < referenceMap.Length; i++)
             {
                 if (!referenceMap[i].IsSkipped)
@@ -332,6 +342,7 @@ namespace Microsoft.CodeAnalysis
                     int count = referenceMap[i].Kind == MetadataImageKind.Assembly
                         ? ((object)assembliesBuilder == null ? 0 : assembliesBuilder.Count)
                         : ((object)modulesBuilder == null ? 0 : modulesBuilder.Count);
+
                     int reversedIndex = count - 1 - referenceMap[i].Index;
                     referenceMap[i] = new ResolvedReference(reversedIndex, referenceMap[i].Kind, GetAliases(references[i], aliasMap));
                 }
@@ -346,7 +357,7 @@ namespace Microsoft.CodeAnalysis
                 assembliesBuilder.ReverseContents();
                 assemblies = assembliesBuilder.ToImmutableAndFree();
             }
-
+            
             if (modulesBuilder == null)
             {
                 modules = ImmutableArray<PEModule>.Empty;
@@ -368,7 +379,7 @@ namespace Microsoft.CodeAnalysis
                 return aliases.ToImmutableAndFree();
             }
 
-            return reference.Properties.Aliases.NullToEmpty();
+            return reference.Properties.Aliases;
         }
 
         /// <summary>
@@ -390,7 +401,7 @@ namespace Microsoft.CodeAnalysis
                 }
             }
 
-            Metadata newMetadata = null;
+            Metadata newMetadata;
             Diagnostic newDiagnostic = null;
             try
             {
@@ -512,7 +523,7 @@ namespace Microsoft.CodeAnalysis
                 aliases = ArrayBuilder<string>.GetInstance();
                 aliasMap.Add(primaryReference, aliases);
 
-                if (primaryReference.Properties.Aliases.IsDefaultOrEmpty)
+                if (primaryReference.Properties.Aliases.IsEmpty)
                 {
                     aliases.Add(MetadataReferenceProperties.GlobalAlias);
                 }
@@ -523,7 +534,7 @@ namespace Microsoft.CodeAnalysis
             }
 
             // we could avoid duplicates but there is no need to do so:
-            if (newReference.Properties.Aliases.IsDefaultOrEmpty)
+            if (newReference.Properties.Aliases.IsEmpty)
             {
                 aliases.Add(MetadataReferenceProperties.GlobalAlias);
             }
@@ -543,6 +554,7 @@ namespace Microsoft.CodeAnalysis
                 assemblies = ArrayBuilder<AssemblyData>.GetInstance();
             }
 
+            // aliases will be filled in later:
             referenceMap[referenceIndex] = new ResolvedReference(assemblies.Count, MetadataImageKind.Assembly, default(ImmutableArray<string>));
             assemblies.Add(data);
         }
@@ -585,8 +597,13 @@ namespace Microsoft.CodeAnalysis
             {
                 foreach (var other in sameSimpleNameIdentities)
                 {
-                    // only compare strong with strong (weak is never equivalent to strong and vice versa)
-                    if (other.Identity.IsStrongName && IdentityComparer.ReferenceMatchesDefinition(identity, other.Identity))
+                    // Only compare strong with strong (weak is never equivalent to strong and vice versa).
+                    // In order to eliminate duplicate references we need to try to match their identities in both directions since 
+                    // ReferenceMatchesDefinition is not neccessarily symmetric.
+                    // (e.g. System.Numerics.Vectors, Version=4.1+ matches System.Numerics.Vectors, Version=4.0, but not the other way around.)
+                    if (other.Identity.IsStrongName && 
+                        IdentityComparer.ReferenceMatchesDefinition(identity, other.Identity) &&
+                        IdentityComparer.ReferenceMatchesDefinition(other.Identity, identity))
                     {
                         equivalent = other;
                         break;
@@ -618,7 +635,7 @@ namespace Microsoft.CodeAnalysis
             {
                 Debug.Assert(equivalent.Identity.IsStrongName);
 
-                // versions migth have been unified for a Framework assembly:
+                // versions might have been unified for a Framework assembly:
                 if (identity != equivalent.Identity)
                 {
                     // Dev12 C# reports an error
@@ -628,7 +645,6 @@ namespace Microsoft.CodeAnalysis
                     // Multiple assemblies with equivalent identity have been imported: '{0}' and '{1}'. Remove one of the duplicate references.
                     MessageProvider.ReportDuplicateMetadataReferenceStrong(diagnostics, location, boundReference, identity, equivalent.MetadataReference, equivalent.Identity);
                 }
-
                 // If the versions match exactly we ignore duplicates w/o reporting errors while 
                 // Dev12 C# reports:
                 //   error CS1703: An assembly with the same identity '{0}' has already been imported. Try removing one of the duplicate references.
@@ -712,7 +728,7 @@ namespace Microsoft.CodeAnalysis
                 }
 
                 references = referencesBuilder.ToImmutable();
-                referenceDirectiveLocations = referenceDirectiveLocationsBuilder == null ? ImmutableArray<Location>.Empty : referenceDirectiveLocationsBuilder.ToImmutableAndFree();
+                referenceDirectiveLocations = referenceDirectiveLocationsBuilder?.ToImmutableAndFree() ?? ImmutableArray<Location>.Empty;
             }
             finally
             {
@@ -725,7 +741,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// For each given directive return a bound PE reference, or null if the binding fails.
         /// </summary>
-        private PortableExecutableReference ResolveReferenceDirective(string reference, Location location, TCompilation compilation)
+        private static PortableExecutableReference ResolveReferenceDirective(string reference, Location location, TCompilation compilation)
         {
             var tree = location.SourceTree;
             string basePath = (tree != null && tree.FilePath.Length > 0) ? tree.FilePath : null;
@@ -837,38 +853,45 @@ namespace Microsoft.CodeAnalysis
                 return new AssemblyReferenceBinding(reference, maxLowerVersionDefinition, versionDifference: -1);
             }
 
-            // If the reference is a winmd, see if there a substitute winmd that is
-            // sufficient. For instance, a debugger EE could construct a compilation
-            // from the modules of the running process, where the winmds loaded
-            // at runtime are distinct from those used when the exe was compiled.
+            // Handle cases where Windows.winmd is a runtime substitute for a
+            // reference to a compile-time winmd. This is for scenarios such as a
+            // debugger EE which constructs a compilation from the modules of
+            // the running process where Windows.winmd loaded at runtime is a
+            // substitute for a collection of Windows.*.winmd compile-time references.
+            if (reference.IsWindowsComponent())
+            {
+                for (int i = definitionOffset; i < definitions.Length; i++)
+                {
+                    if (definitions[i].Identity.IsWindowsRuntime())
+                    {
+                        return new AssemblyReferenceBinding(reference, i);
+                    }
+                }
+            }
+
+            // In the IDE it is possible the reference we're looking for is a
+            // compilation reference to a source assembly. However, if the reference
+            // is of ContentType WindowsRuntime then the compilation will never
+            // match since all C#/VB WindowsRuntime compilations output .winmdobjs,
+            // not .winmds, and the ContentType of a .winmdobj is Default.
+            // If this is the case, we want to ignore the ContentType mismatch and
+            // allow the compilation to match the reference.
             if (reference.ContentType == AssemblyContentType.WindowsRuntime)
             {
-                var defsByName = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 for (int i = definitionOffset; i < definitions.Length; i++)
                 {
                     var definition = definitions[i].Identity;
-                    if (definition.ContentType == AssemblyContentType.WindowsRuntime)
+                    var sourceCompilation = definitions[i].SourceCompilation;
+                    if (definition.ContentType == AssemblyContentType.Default &&
+                        sourceCompilation?.Options.OutputKind == OutputKind.WindowsRuntimeMetadata &&
+                        AssemblyIdentityComparer.SimpleNameComparer.Equals(reference.Name, definition.Name) &&
+                        reference.Version.Equals(definition.Version) &&
+                        reference.IsRetargetable == definition.IsRetargetable &&
+                        AssemblyIdentityComparer.CultureComparer.Equals(reference.CultureName, definition.CultureName) &&
+                        AssemblyIdentity.KeysEqual(reference, definition))
                     {
-                        defsByName.Add(definition.Name, i);
+                        return new AssemblyReferenceBinding(reference, i);
                     }
-                }
-
-                // The name of a winmd is a containing namespace for the assembly. Use
-                // the definition with the longest substring that matches the reference.
-                var refName = reference.Name;
-                while (true)
-                {
-                    int index;
-                    if (defsByName.TryGetValue(refName, out index))
-                    {
-                        return new AssemblyReferenceBinding(reference, index);
-                    }
-                    int separator = refName.LastIndexOf('.');
-                    if (separator < 0)
-                    {
-                        break;
-                    }
-                    refName = refName.Substring(0, separator);
                 }
             }
 

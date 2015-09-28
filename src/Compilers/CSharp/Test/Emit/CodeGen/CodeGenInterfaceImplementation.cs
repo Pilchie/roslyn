@@ -367,8 +367,7 @@ class Test
                 options: TestOptions.ReleaseExe,
                 assemblyName: "OHI_ExpImpImplVBNested003");
 
-            // TODO(tomat): seems like RefEmit test infrastructure issue
-            CompileAndVerify(comp3, emitOptions: TestEmitters.RefEmitBug, expectedOutput: @"ImpSubDerived ImpFuncDerived ImpSubDerived ImpFunc ExpSubDerived ExpFuncDerived");
+            CompileAndVerify(comp3, expectedOutput: @"ImpSubDerived ImpFuncDerived ImpSubDerived ImpFunc ExpSubDerived ExpFuncDerived");
         }
 
         [Fact]
@@ -762,12 +761,12 @@ Derived.Property",
                 {
                     Signature("Base", "Interface.Method", ".method private hidebysig newslot virtual final instance System.Void Interface.Method() cil managed"),
                     Signature("Base", "Interface.set_Property", ".method private hidebysig newslot specialname virtual final instance System.Void Interface.set_Property(System.String value) cil managed"),
-                    // Implementing members in Derived should not be marked as virtual final
-                    Signature("Derived", "Method", ".method public hidebysig instance System.Void Method() cil managed"),
+                // Implementing members in Derived should not be marked as virtual final
+                Signature("Derived", "Method", ".method public hidebysig instance System.Void Method() cil managed"),
                     Signature("Derived", "get_Property", ".method public hidebysig specialname instance System.String get_Property() cil managed"),
                     Signature("Derived", "set_Property", ".method public hidebysig specialname instance System.Void set_Property(System.String value) cil managed"),
-                    // Stubs in Derived3 "call" corresponding members in Derived above
-                    Signature("Derived3", "Interface.Method", ".method private hidebysig newslot virtual final instance System.Void Interface.Method() cil managed"),
+                // Stubs in Derived3 "call" corresponding members in Derived above
+                Signature("Derived3", "Interface.Method", ".method private hidebysig newslot virtual final instance System.Void Interface.Method() cil managed"),
                     Signature("Derived3", "Interface.set_Property", ".method private hidebysig newslot specialname virtual final instance System.Void Interface.set_Property(System.String value) cil managed"),
                 });
 
@@ -860,12 +859,12 @@ Derived.Property",
                 {
                     Signature("Base", "Interface.Method", ".method private hidebysig newslot virtual final instance System.Void Interface.Method() cil managed"),
                     Signature("Base", "Interface.set_Property", ".method private hidebysig newslot specialname virtual final instance System.Void Interface.set_Property(System.String value) cil managed"),
-                    // Implementing members in Derived should not be marked as virtual final
-                    Signature("Derived", "Method", ".method public hidebysig instance System.Void Method() cil managed"),
+                // Implementing members in Derived should not be marked as virtual final
+                Signature("Derived", "Method", ".method public hidebysig instance System.Void Method() cil managed"),
                     Signature("Derived", "get_Property", ".method public hidebysig specialname instance System.String get_Property() cil managed"),
                     Signature("Derived", "set_Property", ".method public hidebysig specialname instance System.Void set_Property(System.String value) cil managed"),
-                    // Stubs in Derived3 "call" corresponding members in Derived above
-                    Signature("Derived3", "Interface.Method", ".method private hidebysig newslot virtual final instance System.Void Interface.Method() cil managed"),
+                // Stubs in Derived3 "call" corresponding members in Derived above
+                Signature("Derived3", "Interface.Method", ".method private hidebysig newslot virtual final instance System.Void Interface.Method() cil managed"),
                     Signature("Derived3", "Interface.set_Property", ".method private hidebysig newslot specialname virtual final instance System.Void Interface.set_Property(System.String value) cil managed")
                 });
 
@@ -2107,7 +2106,6 @@ class Test
             comp.VerifyDiagnostics(
                 // (23,27): warning CS0473: Explicit interface implementation 'Explicit.I1<int, int>.Method<V>(int, System.Func<int, int, V>, int)' matches more than one interface member. Which interface member is actually chosen is implementation-dependent. Consider using a non-explicit implementation instead.
                 Diagnostic(ErrorCode.WRN_ExplicitImplCollision, "Method").WithArguments("Explicit.I1<int, int>.Method<V>(int, System.Func<int, int, V>, int)"));
-
         }
 
         [WorkItem(540581, "DevDiv")]
@@ -2539,7 +2537,7 @@ class Test
         j.Property = 0;
     }
 }";
-            CompileAndVerify(source, emitOptions: TestEmitters.RefEmitUnsupported_646042, expectedOutput: @"
+            CompileAndVerify(source, expectedOutput: @"
 C.Method
 Base.Method
 C.IY.set_Property
@@ -2636,7 +2634,7 @@ public class D : B, I
 
             var comp = CreateCompilationWithCustomILSource(source, il, options: TestOptions.DebugDll);
 
-            var verifier = CompileAndVerify(comp, emitOptions: TestEmitters.RefEmitBug, expectedSignatures: new[]
+            var verifier = CompileAndVerify(comp, expectedSignatures: new[]
             {
                 // NOTE: dev11 has the return type as void, which doesn't peverify.
                 Signature("D", "I.M", ".method private hidebysig newslot virtual final instance System.Int32& I.M() cil managed")
@@ -2743,7 +2741,7 @@ public class D : B<char>, I<char>
 
             AssertEx.Equal(baseMethods, interfaceMethods.Select(interfaceMethod => derivedType.FindImplementationForInterfaceMember(interfaceMethod)));
 
-            var verifier = CompileAndVerify(comp, emitOptions: TestEmitters.RefEmitBug, expectedSignatures: new[]
+            var verifier = CompileAndVerify(comp, expectedSignatures: new[]
             {
                 // NOTE: dev11 has the return type as void, which doesn't peverify.
                 Signature("D", "I<System.Char>.M1", ".method private hidebysig newslot virtual final instance System.Char& I<System.Char>.M1() cil managed"),

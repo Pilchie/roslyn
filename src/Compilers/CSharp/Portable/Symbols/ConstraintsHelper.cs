@@ -347,7 +347,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Location location,
             DiagnosticBag diagnostics)
         {
-            type.VisitType(CheckConstraintsSingleTypeFunc, new CheckConstraintsArgs(type.DeclaringCompilation, conversions, location, diagnostics));
+            type.VisitType(s_checkConstraintsSingleTypeFunc, new CheckConstraintsArgs(type.DeclaringCompilation, conversions, location, diagnostics));
         }
 
         public static bool CheckAllConstraints(
@@ -377,7 +377,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             }
         }
 
-        private static readonly Func<TypeSymbol, CheckConstraintsArgs, bool, bool> CheckConstraintsSingleTypeFunc = (type, arg, unused) => CheckConstraintsSingleType(type, arg);
+        private static readonly Func<TypeSymbol, CheckConstraintsArgs, bool, bool> s_checkConstraintsSingleTypeFunc = (type, arg, unused) => CheckConstraintsSingleType(type, arg);
 
         private static bool CheckConstraintsSingleType(TypeSymbol type, CheckConstraintsArgs args)
         {
@@ -405,7 +405,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             var diagnosticsBuilder = ArrayBuilder<TypeParameterDiagnosticInfo>.GetInstance();
             ArrayBuilder<TypeParameterDiagnosticInfo> useSiteDiagnosticsBuilder = null;
-            var result = CheckTypeConstraints(type, conversions, currentCompilation, diagnosticsBuilder, ref useSiteDiagnosticsBuilder);
+            var result = !typeSyntax.HasErrors && CheckTypeConstraints(type, conversions, currentCompilation, diagnosticsBuilder, ref useSiteDiagnosticsBuilder);
 
             if (useSiteDiagnosticsBuilder != null)
             {
@@ -484,7 +484,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             CSharpSyntaxNode syntaxNode,
             Compilation currentCompilation,
             DiagnosticBag diagnostics,
-            BitArray skipParameters = default(BitArray))
+            BitVector skipParameters = default(BitVector))
         {
             if (!RequiresChecking(method))
             {
@@ -564,7 +564,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Compilation currentCompilation,
             ArrayBuilder<TypeParameterDiagnosticInfo> diagnosticsBuilder,
             ref ArrayBuilder<TypeParameterDiagnosticInfo> useSiteDiagnosticsBuilder,
-            BitArray skipParameters = default(BitArray))
+            BitVector skipParameters = default(BitVector))
         {
             return CheckConstraints(
                 method,
@@ -600,7 +600,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             Compilation currentCompilation,
             ArrayBuilder<TypeParameterDiagnosticInfo> diagnosticsBuilder,
             ref ArrayBuilder<TypeParameterDiagnosticInfo> useSiteDiagnosticsBuilder,
-            BitArray skipParameters = default(BitArray))
+            BitVector skipParameters = default(BitVector))
         {
             Debug.Assert(typeParameters.Length == typeArguments.Length);
             Debug.Assert(typeParameters.Length > 0);
@@ -647,7 +647,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
                 return true;
             }
 
-            if (typeArgument.IsPointerType() || typeArgument.IsRestrictedType())
+            if (typeArgument.IsPointerType() || typeArgument.IsRestrictedType() || typeArgument.SpecialType == SpecialType.System_Void)
             {
                 // "The type '{0}' may not be used as a type argument"
                 diagnosticsBuilder.Add(new TypeParameterDiagnosticInfo(typeParameter, new CSDiagnosticInfo(ErrorCode.ERR_BadTypeArgument, typeArgument)));
@@ -656,8 +656,8 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
 
             if (typeArgument.IsStatic)
             {
-                // Caller should have already reported ERR_GenericArgIsStaticClass.
-                // (For consistency, consider moving that error reporting here.)
+                // "'{0}': static types cannot be used as type arguments"
+                diagnosticsBuilder.Add(new TypeParameterDiagnosticInfo(typeParameter, new CSDiagnosticInfo(ErrorCode.ERR_GenericArgIsStaticClass, typeArgument)));
                 return false;
             }
 
@@ -682,7 +682,7 @@ namespace Microsoft.CodeAnalysis.CSharp.Symbols
             // original definition of the type parameters using the map from the constructed symbol.
             var constraintTypes = ArrayBuilder<TypeSymbol>.GetInstance();
             HashSet<DiagnosticInfo> useSiteDiagnostics = null;
-            substitution.SubstituteTypesDistinct(typeParameter.ConstraintTypesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics), constraintTypes);
+            substitution.SubstituteTypesDistinctWithoutModifiers(typeParameter.ConstraintTypesWithDefinitionUseSiteDiagnostics(ref useSiteDiagnostics), constraintTypes);
 
             bool hasError = false;
 

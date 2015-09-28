@@ -16,9 +16,6 @@ namespace Microsoft.CodeAnalysis
     /// <summary>
     /// Provides APIs to enumerate and look up assemblies stored in the Global Assembly Cache.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1307:AccessibleFieldsMustBeginWithUpperCaseLetter")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1305:FieldNamesMustNotUseHungarianNotation")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1310:FieldNamesMustNotContainUnderscore")]
     internal static class GlobalAssemblyCache
     {
         /// <summary>
@@ -61,8 +58,8 @@ namespace Microsoft.CodeAnalysis
         private unsafe struct ASSEMBLY_INFO
         {
             public uint cbAssemblyInfo;
-            public uint dwAssemblyFlags;
-            public ulong uliAssemblySizeInKB;
+            public readonly uint dwAssemblyFlags;
+            public readonly ulong uliAssemblySizeInKB;
             public char* pszCurrentAssemblyPathBuf;
             public uint cchBuf;
         }
@@ -78,14 +75,14 @@ namespace Microsoft.CodeAnalysis
             GAC_64 = 0x40,            // C:\Windows\Assembly\GAC_64
             ROOT_EX = 0x80,           // C:\Windows\Microsoft.NET\assembly
         }
-        
-        [DllImport("clr", CharSet = CharSet.Auto, PreserveSig = true)]
+
+        [DllImport("clr", PreserveSig = true)]
         private static extern int CreateAssemblyEnum(out IAssemblyEnum ppEnum, FusionAssemblyIdentity.IApplicationContext pAppCtx, FusionAssemblyIdentity.IAssemblyName pName, ASM_CACHE dwFlags, IntPtr pvReserved);
 
-        [DllImport("clr", CharSet = CharSet.Auto, PreserveSig = true)]
+        [DllImport("clr", PreserveSig = true)]
         private static unsafe extern int GetCachePath(ASM_CACHE id, byte* path, ref int length);
 
-        [DllImport("clr", CharSet = CharSet.Auto, PreserveSig = false)]
+        [DllImport("clr", PreserveSig = false)]
         private static extern void CreateAssemblyCache(out IAssemblyCache ppAsmCache, uint dwReserved);
 
         private const int ERROR_INSUFFICIENT_BUFFER = unchecked((int)0x8007007A);
@@ -211,7 +208,11 @@ namespace Microsoft.CodeAnalysis
                 else
                 {
                     // for some reason it might happen that CreateAssemblyEnum returns non-zero HR that doesn't correspond to any exception:
-                    throw new ArgumentException("Invalid assembly name".NeedsLocalization());
+#if SCRIPTING
+                    throw new ArgumentException(Microsoft.CodeAnalysis.Scripting.ScriptingResources.InvalidAssemblyName);
+#else
+                    throw new ArgumentException(Microsoft.CodeAnalysis.WorkspaceDesktopResources.InvalidAssemblyName);
+#endif
                 }
             }
 
@@ -285,9 +286,9 @@ namespace Microsoft.CodeAnalysis
             out string location,
             bool resolveLocation)
         {
-            if (displayName == null) 
+            if (displayName == null)
             {
-                throw new ArgumentNullException("displayName");
+                throw new ArgumentNullException(nameof(displayName));
             }
 
             location = null;
@@ -323,9 +324,9 @@ namespace Microsoft.CodeAnalysis
             {
                 ASSEMBLY_INFO info = new ASSEMBLY_INFO
                 {
-                    cbAssemblyInfo = (uint)Marshal.SizeOf(typeof(ASSEMBLY_INFO)),
+                    cbAssemblyInfo = (uint)Marshal.SizeOf<ASSEMBLY_INFO>(),
                     pszCurrentAssemblyPathBuf = p,
-                    cchBuf = (uint)MAX_PATH
+                    cchBuf = MAX_PATH
                 };
 
                 IAssemblyCache assemblyCacheObject;

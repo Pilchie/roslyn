@@ -46,7 +46,6 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
         {
             MockMessageProvider provider = new MockMessageProvider();
             SyntaxTree syntaxTree = new MockSyntaxTree();
-            CultureInfo englishCulture = CultureInfo.GetCultureInfo("en");
 
             DiagnosticInfo di3 = new CustomErrorInfo(provider, "OtherSymbol", new SourceLocation(syntaxTree, new TextSpan(14, 8)));
             var d3 = new CSDiagnostic(di3, new SourceLocation(syntaxTree, new TextSpan(1, 1)));
@@ -141,12 +140,12 @@ class X
             {
                 ErrorCode errorCode = (ErrorCode)i;
                 string errorCodeName = errorCode.ToString();
-                if (errorCodeName.StartsWith("WRN"))
+                if (errorCodeName.StartsWith("WRN", StringComparison.Ordinal))
                 {
                     Assert.True(ErrorFacts.IsWarning(errorCode));
                     Assert.NotEqual(0, ErrorFacts.GetWarningLevel(errorCode));
                 }
-                else if (errorCodeName.StartsWith("ERR"))
+                else if (errorCodeName.StartsWith("ERR", StringComparison.Ordinal))
                 {
                     Assert.False(ErrorFacts.IsWarning(errorCode));
                     Assert.Equal(0, ErrorFacts.GetWarningLevel(errorCode));
@@ -176,7 +175,7 @@ class X
             {
                 ErrorCode errorCode = (ErrorCode)i;
                 string errorCodeName = errorCode.ToString();
-                if (errorCodeName.StartsWith("WRN"))
+                if (errorCodeName.StartsWith("WRN", StringComparison.Ordinal))
                 {
                     Assert.True(ErrorFacts.IsWarning(errorCode));
                     switch (errorCode)
@@ -1673,7 +1672,7 @@ public class C
             Assert.Equal(128, defineName.ValueText.Length);
             Assert.Equal(2335, defineName.Text.Length);
 
-            // Since support for identifiers inside #pragma warning directivess is new, 
+            // Since support for identifiers inside #pragma warning directives is new, 
             // we don't have any backwards compatibility constraints. So we can preserve the
             // identifier exactly as it appears in source.
             Assert.Equal(2335, errorCodeName.ValueText.Length);
@@ -1917,7 +1916,6 @@ class Program
 
             CSharpCompilationOptions commonoption = TestOptions.ReleaseExe;
             CreateCompilationWithMscorlib(text, options: commonoption).VerifyDiagnostics();
-
         }
 
         [WorkItem(546814, "DevDiv")]
@@ -1940,7 +1938,6 @@ class Program
 
             CSharpCompilationOptions commonoption = TestOptions.ReleaseExe;
             CreateCompilationWithMscorlib(text, options: commonoption).VerifyDiagnostics();
-
         }
 
         [Fact]
@@ -2015,7 +2012,7 @@ class Program
         private TextSpan GetSpanIn(SyntaxTree syntaxTree, string textToFind)
         {
             string s = syntaxTree.GetText().ToString();
-            int index = s.IndexOf(textToFind);
+            int index = s.IndexOf(textToFind, StringComparison.Ordinal);
             Assert.True(index >= 0, "textToFind not found in the tree");
             return new TextSpan(index, textToFind.Length);
         }
@@ -2043,6 +2040,25 @@ public class Test
 
             Assert.Equal(1, compilation.GetDiagnostics().Length);
             Assert.Equal(1, compilation.GetDiagnostics().Length);
+        }
+
+        [Fact]
+        public void TestArgumentEquality()
+        {
+            var text = @"
+using System;
+
+public class Test
+{
+    public static void Main()
+    {
+        (Console).WriteLine();
+    }
+}";
+            var tree = Parse(text);
+
+            // (8,10): error CS0119: 'Console' is a type, which is not valid in the given context
+            AssertEx.Equal(CreateCompilationWithMscorlib(tree).GetDiagnostics(), CreateCompilationWithMscorlib(tree).GetDiagnostics());
         }
 
         #region Mocks

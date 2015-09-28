@@ -3,46 +3,76 @@
   DefaultTargets="BuildAndTest"
   ToolsVersion="12.0">
 
-  <UsingTask
-    AssemblyFile="packages\xunit.runners.2.0.0-alpha-build2576\tools\xunit.runner.msbuild.dll"
-    TaskName="Xunit.Runner.MSBuild.xunit" />
+  <!-- At the moment Jenkins runs on a machine without any build of Visual Studio 2015.  Hence we must
+       use a 2013 compatible solution. -->
+  <PropertyGroup>
+    <RoslynSolution>$(MSBuildThisFileDirectory)Roslyn.sln</RoslynSolution>
+    <SamplesSolution>$(MSBuildThisFileDirectory)src\Samples\Samples.sln</SamplesSolution>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <RunTestArgs>$(RunTestArgs) -xml</RunTestArgs>
+    <RunTestArgs Condition="'$(Test64)' == 'true'">$(RunTestArgs) -test64</RunTestArgs>
+    <IncludePattern Condition="'$(IncludePattern)' == ''">*.UnitTests*.dll</IncludePattern>
+    <OutputDirectory>Binaries\$(Configuration)</OutputDirectory>
+    <NuGetPackageRoot>$(UserProfile)\.nuget\packages</NuGetPackageRoot>
+    <XunitVersion>1.9.2</XunitVersion>
+  </PropertyGroup>
 
   <Target Name="RestorePackages">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)\Src\.nuget\Nuget.exe&quot; restore &quot;$(MSBuildThisFileDirectory)\Src\Roslyn.sln&quot;" />
+    <Exec Command="nuget.exe restore &quot;$(MSBuildThisFileDirectory)build\ToolsetPackages\project.json&quot; "/>
+    <Exec Command="nuget.exe restore &quot;$(RoslynSolution)&quot; "/>
+    <Exec Command="nuget.exe restore &quot;$(SamplesSolution)&quot; "/>
   </Target>
 
-  <Target Name="Build"
-          DependsOnTargets="RestorePackages">
+  <Target Name="Build" DependsOnTargets="RestorePackages">
     <MSBuild BuildInParallel="true"
-             Projects="$(MSBuildThisFileDirectory)\Src\Roslyn.sln"
-             Properties="RestorePackages=false"
+             Projects="$(RoslynSolution)"
+             Properties="RestorePackages=false;TreatWarningsAsErrors=true"
+             Targets="Build"/>
+    <MSBuild BuildInParallel="true"
+             Projects="$(SamplesSolution)"
+             Properties="RestorePackages=false;TreatWarningsAsErrors=true"
              Targets="Build"/>
   </Target>
 
   <Target Name="Clean">
     <MSBuild BuildInParallel="true"
-             Projects="$(MSBuildThisFileDirectory)\Src\Roslyn.sln"
+             Projects="$(RoslynSolution)"
+             Properties="RestorePackages=false"
+             Targets="Clean"/>
+    <MSBuild BuildInParallel="true"
+             Projects="$(SamplesSolution)"
              Properties="RestorePackages=false"
              Targets="Clean"/>
   </Target>
 
   <Target Name="Rebuild">
     <MSBuild BuildInParallel="true"
-             Projects="$(MSBuildThisFileDirectory)\Src\Roslyn.sln"
-             Properties="RestorePackages=false"
+             Projects="$(RoslynSolution)"
+             Properties="RestorePackages=false;TreatWarningsAsErrors=true"
+             Targets="Rebuild"/>
+    <MSBuild BuildInParallel="true"
+             Projects="$(SamplesSolution)"
+             Properties="RestorePackages=false;TreatWarningsAsErrors=true"
              Targets="Rebuild"/>
   </Target>
 
   <Target Name="Test">
     <ItemGroup>
-      <TestAssemblies Include="Binaries\$(Configuration)\**\*.UnitTests*.dll" />
+      <AssembliesToCopyLocal Include="$(NuGetPackageRoot)\xunit\$(XunitVersion)\*.dll
+        ;$(NuGetPackageRoot)\xunit.assert\2.1.0-beta4-build3109\lib\portable-net45+netcore45+wp8+wpa81\*.dll" />
+    </ItemGroup>
+    <!-- Copy xunit stuff to output directory -->
+    <Copy SourceFiles="@(AssembliesToCopyLocal)"
+          DestinationFolder="$(OutputDirectory)"
+          SkipUnchangedFiles="true"
+          UseHardlinksIfPossible="true" />
+
+    <ItemGroup>
+      <TestAssemblies Include="$(OutputDirectory)\**\$(IncludePattern)" />
     </ItemGroup>
 
+    <Exec Command="$(OutputDirectory)\RunTests.exe $(NuGetPackageRoot)\xunit.runners\2.0.0-alpha-build2576\tools $(RunTestArgs) @(TestAssemblies, ' ')" />
 
-    <xunit
-      Assemblies="@(TestAssemblies)"
-      Html="UnitTestResults.html"
-      ShadowCopy="false" />
   </Target>
 
   <Target Name="BuildAndTest"

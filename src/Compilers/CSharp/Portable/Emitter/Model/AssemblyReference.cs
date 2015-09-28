@@ -12,24 +12,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
 {
     internal sealed class AssemblyReference : Cci.IAssemblyReference
     {
-        // Assembly identity used in metadata to refer to the target assembly.
-        // NOTE: this could be different from assemblySymbol.AssemblyName due to mapping.
-        // For example, multiple assembly symbols might be emitted into a single dynamic assembly whose identity is stored here.
-        public readonly AssemblyIdentity MetadataIdentity;
-
         // assembly symbol that represents the target assembly:
-        private readonly AssemblySymbol targetAssembly;
+        private readonly AssemblySymbol _targetAssembly;
 
-        internal AssemblyReference(AssemblySymbol assemblySymbol, Func<AssemblySymbol, AssemblyIdentity> symbolMapper)
+        internal AssemblyReference(AssemblySymbol assemblySymbol)
         {
             Debug.Assert((object)assemblySymbol != null);
-            this.MetadataIdentity = (symbolMapper != null) ? symbolMapper(assemblySymbol) : assemblySymbol.Identity;
-            this.targetAssembly = assemblySymbol;
+            _targetAssembly = assemblySymbol;
         }
+
+        public AssemblyIdentity MetadataIdentity => _targetAssembly.Identity;
 
         public override string ToString()
         {
-            return targetAssembly.ToString();
+            return _targetAssembly.ToString();
         }
 
         #region Cci.IAssemblyReference
@@ -73,6 +69,11 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
             get { return MetadataIdentity.Version; }
         }
 
+        string Cci.IAssemblyReference.GetDisplayName()
+        {
+            return MetadataIdentity.GetDisplayName();
+        }
+
         string Cci.INamedEntity.Name
         {
             get { return MetadataIdentity.Name; }
@@ -92,7 +93,6 @@ namespace Microsoft.CodeAnalysis.CSharp.Emit
         {
             return null;
         }
-
 
         #endregion
     }

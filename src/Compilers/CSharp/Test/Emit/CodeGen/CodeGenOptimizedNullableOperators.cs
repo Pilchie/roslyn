@@ -20,7 +20,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
             // literal null to object, so we do not need to allocate space on the stack 
             // for the nullable int, initialize it, and then box that to a null ref.
 
-            string[] sources = { 
+            string[] sources = {
 @"class Program
 {
     static void Main()
@@ -28,7 +28,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         System.Console.WriteLine((object)default(int?));
     }
 }
-", 
+",
 
 @"class Program
 {
@@ -37,7 +37,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         System.Console.WriteLine((object)(new int?()));
     }
 }
-", 
+",
 
 @"class Program
 {
@@ -73,7 +73,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
             // literal null to object, so we do not need to allocate space on the stack 
             // for the nullable int, initialize it, and then box that to a null ref.
 
-            string[] sources = { 
+            string[] sources = {
 @"class Program
 {
     static void Main()
@@ -81,7 +81,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.CodeGen
         System.Console.WriteLine((object)new int?(123));
     }
 }
-", 
+",
 
 @"class Program
 {
@@ -354,8 +354,8 @@ class Program
 
             var comp = CompileAndVerify(source, expectedOutput: expectedOutput);
             comp.VerifyDiagnostics(
-                // (6,17): warning CS0458: The result of the expression is always 'null' of type 'int?'
-                //         return ~-(new short?());
+    // (6,17): warning CS0458: The result of the expression is always 'null' of type 'int?'
+    //         return ~-(new short?());
     Diagnostic(ErrorCode.WRN_AlwaysNull, "-(new short?())").WithArguments("int?"));
             comp.VerifyIL("Program.M", expectedIL);
         }
@@ -820,11 +820,11 @@ class Program
 
             var comp = CompileAndVerify(source, expectedOutput: expectedOutput);
             comp.VerifyDiagnostics(
-                // (25,16): warning CS0464: Comparing with null of type 'decimal?' always produces 'false'
-                //         return ((int?)null) < new decimal?();
+// (25,16): warning CS0464: Comparing with null of type 'decimal?' always produces 'false'
+//         return ((int?)null) < new decimal?();
 Diagnostic(ErrorCode.WRN_CmpAlwaysFalse, "((int?)null) < new decimal?()").WithArguments("decimal?"),
-                // (37,16): warning CS0464: Comparing with null of type 'S?' always produces 'false'
-                //         return ((S?)null) < new S?();
+// (37,16): warning CS0464: Comparing with null of type 'S?' always produces 'false'
+//         return ((S?)null) < new S?();
 Diagnostic(ErrorCode.WRN_CmpAlwaysFalse, "((S?)null) < new S?()").WithArguments("S?"));
             comp.VerifyIL("Program.M1", expectedILTrue);
             comp.VerifyIL("Program.M2", expectedILFalse);
@@ -990,7 +990,7 @@ class Program
             comp.VerifyIL("Program.M6", expectedIL6);
         }
 
-        [Fact]
+        [Fact, WorkItem(663, "https://github.com/dotnet/roslyn/issues/663")]
         public void TestNullableComparisonOpsOneNullOneNonNull()
         {
             // An ==, !=, <, >, <= or >= operation where one operand is null and the
@@ -1000,9 +1000,10 @@ class Program
             // Note that Roslyn produces considerably more warnings here than the
             // native compiler; the native compiler only produces warnings for
             // "((int?)null) < new decimal?(N3())" and "((S?)null) < new S?(N4())".
-            // However, the native compiler does not produce the warning
-            // "comparing null with S? always produces false" -- it incorrectly warns
-            // that it produces a null of type bool? !  Roslyn does not reproduce this bug.
+            // For compatibility Roslyn reports the same diagnostics by default,
+            // but in "strict" mode (which will be part of the "warning waves" once
+            // we do that) Roslyn will report warnings for
+            // new S() == null and new S() != null.
 
             string source = @"
 struct S // User-defined relational ops
@@ -1092,7 +1093,21 @@ class Program
 }";
             string expectedIL6 = expectedIL4;
 
-            var comp = CompileAndVerify(source, expectedOutput: expectedOutput);
+            CompileAndVerify(source, expectedOutput: expectedOutput).VerifyDiagnostics(
+                // (21,16): warning CS0472: The result of the expression is always 'false' since a value of type 'int' is never equal to 'null' of type 'short?'
+                //         return new int?(N1()) == new short?();
+                Diagnostic(ErrorCode.WRN_NubExprIsConstBool, "new int?(N1()) == new short?()").WithArguments("false", "int", "short?").WithLocation(21, 16),
+                // (25,16): warning CS0472: The result of the expression is always 'true' since a value of type 'double' is never equal to 'null' of type 'double?'
+                //         return default(double?) != new short?(N2());
+                Diagnostic(ErrorCode.WRN_NubExprIsConstBool, "default(double?) != new short?(N2())").WithArguments("true", "double", "double?").WithLocation(25, 16),
+                // (29,16): warning CS0464: Comparing with null of type 'int?' always produces 'false'
+                //         return ((int?)null) < new decimal?(N3());
+                Diagnostic(ErrorCode.WRN_CmpAlwaysFalse, "((int?)null) < new decimal?(N3())").WithArguments("int?").WithLocation(29, 16),
+                // (41,16): warning CS0464: Comparing with null of type 'S?' always produces 'false'
+                //         return ((S?)null) < new S?(N4());
+                Diagnostic(ErrorCode.WRN_CmpAlwaysFalse, "((S?)null) < new S?(N4())").WithArguments("S?").WithLocation(41, 16)
+                );
+            var comp = CompileAndVerify(source, expectedOutput: expectedOutput, options: TestOptions.ReleaseExe, parseOptions: TestOptions.Regular.WithStrictFeature());
             comp.VerifyDiagnostics(
                 // (21,16): warning CS0472: The result of the expression is always 'false' since a value of type 'int' is never equal to 'null' of type 'short?'
                 //         return new int?(N1()) == new short?();
@@ -1959,7 +1974,7 @@ class Program
 }";
 
             var comp = CompileAndVerify(source, expectedOutput: expectedOutput);
-            comp.VerifyDiagnostics(    
+            comp.VerifyDiagnostics(
 // (6,16): warning CS0458: The result of the expression is always 'null' of type 'long?'
 //         return new int?() + new long?();
 Diagnostic(ErrorCode.WRN_AlwaysNull, "new int?() + new long?()").WithArguments("long?"),
@@ -2086,7 +2101,7 @@ class Program
 }";
 
             var comp = CompileAndVerify(source, expectedOutput: expectedOutput);
-            comp.VerifyDiagnostics(    
+            comp.VerifyDiagnostics(
 // (9,16): warning CS0458: The result of the expression is always 'null' of type 'int?'
 //         return new int?() + N();
 Diagnostic(ErrorCode.WRN_AlwaysNull, "new int?() + N()").WithArguments("int?"),
@@ -2181,8 +2196,5 @@ class Program
             comp.VerifyIL("Program.M1", expectedIL1);
             comp.VerifyIL("Program.M2", expectedIL2);
         }
-
-
-
     }
 }

@@ -1,8 +1,12 @@
-﻿using System;
+﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Simplification;
 using Microsoft.CodeAnalysis.Test.Utilities;
@@ -14,17 +18,17 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Editting
 {
     public class SymbolEditorTests
     {
-        private readonly SyntaxGenerator g = SyntaxGenerator.GetGenerator(new AdhocWorkspace(), LanguageNames.CSharp);
+        private readonly SyntaxGenerator _g = SyntaxGenerator.GetGenerator(new AdhocWorkspace(), LanguageNames.CSharp);
 
         private Solution GetSolution(params string[] sources)
         {
             var ws = new AdhocWorkspace();
             var pid = ProjectId.CreateNewId();
 
-            var docs = sources.Select((s, i) => 
+            var docs = sources.Select((s, i) =>
                 DocumentInfo.Create(
-                    DocumentId.CreateNewId(pid), 
-                    name: "code" + i, 
+                    DocumentId.CreateNewId(pid),
+                    name: "code" + i,
                     loader: TextLoader.From(TextAndVersion.Create(SourceText.From(s), VersionStamp.Default)))).ToList();
 
             var proj = ProjectInfo.Create(pid, VersionStamp.Default, "test", "test.dll", LanguageNames.CSharp, documents: docs,
@@ -50,7 +54,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Editting
         [Fact]
         public void TestEditOneDeclaration()
         {
-            var code = 
+            var code =
 @"class C
 {
 }";
@@ -99,11 +103,11 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests.Editting
             var symbol = GetSymbols(solution, "C").First();
             var editor = SymbolEditor.Create(solution);
 
-            var newSymbol = (INamedTypeSymbol)editor.EditOneDeclarationAsync(symbol, (e, d) => e.AddMember(d, g.MethodDeclaration("m"))).Result;
+            var newSymbol = (INamedTypeSymbol)editor.EditOneDeclarationAsync(symbol, (e, d) => e.AddMember(d, _g.MethodDeclaration("m"))).Result;
             Assert.Equal(1, newSymbol.GetMembers("m").Length);
             Assert.Equal(0, newSymbol.GetMembers("m2").Length);
 
-            newSymbol = (INamedTypeSymbol)editor.EditOneDeclarationAsync(symbol, (e, d) => e.AddMember(d, g.MethodDeclaration("m2"))).Result;
+            newSymbol = (INamedTypeSymbol)editor.EditOneDeclarationAsync(symbol, (e, d) => e.AddMember(d, _g.MethodDeclaration("m2"))).Result;
             Assert.Equal(1, newSymbol.GetMembers("m").Length);
             Assert.Equal(1, newSymbol.GetMembers("m2").Length);
 
@@ -812,8 +816,7 @@ class A
 }";
 
             var expected =
-@"class C
-: A
+@"class C : A
 {
 }
 
@@ -996,6 +999,47 @@ interface I
 
             var actual = GetActual(editor.GetChangedDocuments().First());
             Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        [WorkItem(2650, "https://github.com/dotnet/roslyn/issues/2650")]
+        public void TestEditExplicitInterfaceIndexer()
+        {
+            var code =
+@"public interface I
+{
+    int this[int item] { get; }
+}
+
+public class C  : I
+{
+    int I.this[int item]
+    {
+        get
+        {
+            return item;
+        }
+    }
+}";
+
+            var solution = GetSolution(code);
+            var typeC = (INamedTypeSymbol)GetSymbols(solution, "C").First();
+            var property = typeC.GetMembers().First(m => m.Kind == SymbolKind.Property);
+
+            var editor = SymbolEditor.Create(solution);
+
+            var newProperty = editor.EditOneDeclarationAsync(property, (e, d) =>
+            {
+                // nothing
+            });
+
+            var typeI = (INamedTypeSymbol)GetSymbols(solution, "I").First();
+            var iproperty = typeI.GetMembers().First(m => m.Kind == SymbolKind.Property);
+
+            var newIProperty = editor.EditOneDeclarationAsync(iproperty, (e, d) =>
+            {
+                // nothing;
+            });
         }
     }
 }

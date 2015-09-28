@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
@@ -1939,7 +1939,7 @@ class MyClass
         /// </summary>
         private class DocumentationCommentAdder : CSharpSyntaxRewriter
         {
-            private int count;
+            private int _count;
 
             public override SyntaxToken VisitToken(SyntaxToken token)
             {
@@ -1951,7 +1951,7 @@ class MyClass
                 }
 
                 var existingLeadingTrivia = token.LeadingTrivia;
-                var newLeadingTrivia = SyntaxFactory.ParseToken("/** " + (count++) + " */1)").LeadingTrivia;
+                var newLeadingTrivia = SyntaxFactory.ParseToken("/** " + (_count++) + " */1)").LeadingTrivia;
                 return newToken.WithLeadingTrivia(existingLeadingTrivia.Concat(newLeadingTrivia));
             }
         }
@@ -2068,7 +2068,7 @@ partial class C
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         [WorkItem(637435, "DevDiv")]
         public void NonXmlWhitespace()
         {
@@ -2107,7 +2107,7 @@ class C {{ }}
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         [WorkItem(637435, "DevDiv")]
         public void Repro637435()
         {
@@ -2338,10 +2338,9 @@ class C {{ }}
             Assert.Equal(string.Format(expectedTemplate, xmlFilePath), actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void IncludeFileResolution()
         {
-
             var xml1 = @"
 <root>
     <include file=""test.xml"" path=""//element""/> <!--relative to d1 -->
@@ -2382,7 +2381,7 @@ class C { }
 ";
             var tree = Parse(source, options: TestOptions.RegularWithDocumentationComments);
             var resolver = new XmlFileResolver(rootDir.Path);
-            var comp = CSharpCompilation.Create("Test", new[] { tree }, new [] { MscorlibRef }, TestOptions.ReleaseDll.WithXmlReferenceResolver(resolver));
+            var comp = CSharpCompilation.Create("Test", new[] { tree }, new[] { MscorlibRef }, TestOptions.ReleaseDll.WithXmlReferenceResolver(resolver));
             var actual = GetDocumentationCommentText(comp);
 
             var expected = (@"
@@ -2555,7 +2554,7 @@ class C {{ }}
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void WRN_FailedInclude_Locked_Source()
         {
             var xmlFile = Temp.CreateFile(extension: ".xml");
@@ -2592,7 +2591,7 @@ class C {{ }}
             }
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.Unknown)]
         public void WRN_FailedInclude_Locked_Xml()
         {
             var xmlFile1 = Temp.CreateFile(extension: ".xml");
@@ -2695,7 +2694,7 @@ class C {{ }}
             Assert.Equal(string.Format(expectedTemplate, xmlFilePath1), actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void WRN_XMLParseIncludeError_Source()
         {
             var xmlFile = Temp.CreateFile(extension: ".xml").WriteAllText("<OpenWithoutClose>");
@@ -2728,7 +2727,7 @@ class C {{ }}
             Assert.Equal(string.Format(expectedTemplate, xmlFilePath), actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void WRN_XMLParseIncludeError_Xml()
         {
             var xmlFile1 = Temp.CreateFile(extension: ".xml").WriteAllText("<OpenWithoutClose>");
@@ -2774,7 +2773,7 @@ class C {{ }}
 class C {{ }}
 ";
             var comp = CreateCompilationWithMscorlibAndDocumentationComments(string.Format(sourceTemplate, xmlFilePath));
-            var actual = GetDocumentationCommentText(comp, 
+            var actual = GetDocumentationCommentText(comp,
                 // 3fba660141b6.xml(1,2): warning CS1589: Unable to include XML fragment 'path' of file 'd4241d125755.xml' -- The process cannot access the file 'd4241d125755.xml' because it is being used by another process.
                 Diagnostic(ErrorCode.WRN_FailedInclude).WithArguments(xmlFilePath, "//include", "Operation caused a stack overflow."));
             var expectedTemplate = (@"
@@ -2808,7 +2807,7 @@ class C {{ }}
             var comp = CreateCompilationWithMscorlibAndDocumentationComments(string.Format(sourceTemplate, xmlFilePath));
 
             // CONSIDER: differs from dev11, but this is a reasonable recovery.
-            var actual = GetDocumentationCommentText(comp, 
+            var actual = GetDocumentationCommentText(comp,
                 // 3fba660141b6.xml(1,2): warning CS1589: Unable to include XML fragment 'path' of file 'd4241d125755.xml' -- The process cannot access the file 'd4241d125755.xml' because it is being used by another process.
                 Diagnostic(ErrorCode.WRN_FailedInclude).WithArguments(xmlFilePath, "//parent", "Operation caused a stack overflow."));
             var expectedTemplate = (@"
@@ -2843,9 +2842,9 @@ class C {{ }}
 class C {{ }}
 ";
             var comp = CreateCompilationWithMscorlibAndDocumentationComments(string.Format(sourceTemplate, xmlFilePath));
-            
+
             // CONSIDER: not checked against dev11 - just don't blow up.
-            var actual = GetDocumentationCommentText(comp, 
+            var actual = GetDocumentationCommentText(comp,
                 // 1dc0fa5fb526.xml(2,2): warning CS1589: Unable to include XML fragment '//include' of file '1dc0fa5fb526.xml' -- Operation caused a stack overflow.
                 Diagnostic(ErrorCode.WRN_FailedInclude).WithArguments(xmlFilePath, "//include", "Operation caused a stack overflow."),
                 // 1dc0fa5fb526.xml(2,2): warning CS1589: Unable to include XML fragment '//include' of file '1dc0fa5fb526.xml' -- Operation caused a stack overflow.
@@ -2996,7 +2995,7 @@ enum D {{ }}
                 // (5,5): warning CS1589: Unable to include XML fragment '.' of file '012bf028d62c.xml' -- The XPath expression evaluated to unexpected type System.Xml.Linq.XDocument.
                 // /// <include file="012bf028d62c.xml" path="."/>
                 Diagnostic(ErrorCode.WRN_FailedInclude, string.Format(@"<include file=""{0}"" path="".""/>", xmlFilePath)).WithArguments(xmlFilePath, ".", "The XPath expression evaluated to unexpected type System.Xml.Linq.XDocument."));
-            
+
             var expected = (@"
 <?xml version=""1.0""?>
 <doc>
@@ -3680,7 +3679,7 @@ class C
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void IncludedName_DuplicateNameAttribute()
         {
             var xmlFile = Temp.CreateFile(extension: ".xml").WriteAllText(@"<param name=""x"" name=""y""/>");
@@ -3785,7 +3784,7 @@ class C { }
 ";
 
             var compilation = CreateCompilationWithMscorlibAndDocumentationComments(source);
-            
+
             var type = compilation.GlobalNamespace.GetMember<NamedTypeSymbol>("C");
             var actualText = DocumentationCommentCompiler.GetDocumentationCommentXml(type, processIncludes: true, cancellationToken: default(CancellationToken));
             var expectedText =
@@ -4514,7 +4513,7 @@ class C
         }
 
         // As in dev11, the pragma has no effect.
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void PragmaDisableWarningInXmlFile()
         {
             var xmlFile = Temp.CreateFile(extension: ".xml").WriteAllText("&");
@@ -4931,7 +4930,7 @@ class A { }
         }
 
         [WorkItem(547311, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void UndeclaredXmlNamespace()
         {
             var source = @"
@@ -5455,7 +5454,7 @@ public class C : IEquatable<C>
         }
 
         [WorkItem(531505, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void Pia()
         {
             var source = @"
@@ -5478,7 +5477,7 @@ public class C { }
     </members>
 </doc>".Trim();
 
-            Action<ModuleSymbol> validator = module => 
+            Action<ModuleSymbol> validator = module =>
             {
                 ((PEModuleSymbol)module).Module.PretendThereArentNoPiaLocalTypes();
 
@@ -5682,7 +5681,7 @@ public class C {} // CS1587
                 Diagnostic(ErrorCode.WRN_MissingXMLComment, "C").WithArguments("C").WithWarningAsError(true));
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void Dev11_303769()
         {
             // XML processing instructions
@@ -5853,7 +5852,7 @@ namespace Demo
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void Dev11_142553()
         {
             // Need to cache XML files.
@@ -5913,13 +5912,13 @@ class C { }
 ";
 
             var comp = CreateCompilationWithMscorlib(
-                Parse(source, options: TestOptions.RegularWithDocumentationComments, filename: sourcePath), 
-                options: TestOptions.ReleaseDll.WithSourceReferenceResolver(SourceFileResolver.Default).WithXmlReferenceResolver(XmlFileResolver.Default), 
+                Parse(source, options: TestOptions.RegularWithDocumentationComments, filename: sourcePath),
+                options: TestOptions.ReleaseDll.WithSourceReferenceResolver(SourceFileResolver.Default).WithXmlReferenceResolver(XmlFileResolver.Default),
                 assemblyName: "Test");
 
             var actual = GetDocumentationCommentText(comp);
 
-            var expected = 
+            var expected =
 @"<?xml version=""1.0""?>
 <doc>
     <assembly>
@@ -5934,7 +5933,7 @@ class C { }
             Assert.Equal(expected, actual);
         }
 
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.DocumentationComment)]
         public void DtdDenialOfService()
         {
             var xmlFile = Temp.CreateFile(extension: ".xml").WriteAllText(
@@ -5979,7 +5978,7 @@ class C { }
 <typeparam name=""TComparator"">The type of comparator used to compare items during the search operation.</typeparam>
 <param name=""array"">The sorted array to search.</param>
 <param name=""value"">The object to search for.</param>
-<returns>If found, the index of the specified value in the given array. Otheriwse, if not found, and the value is less than one or more items in the array, a negative number which is the bitwise complement of the index of the first item that is larger than the given value. If the value is not found and it is greater than any of the items in the array, a negative number which is the bitwise complement of (the index of the last item plus 1).</returns>
+<returns>If found, the index of the specified value in the given array. Otherwise, if not found, and the value is less than one or more items in the array, a negative number which is the bitwise complement of the index of the first item that is larger than the given value. If the value is not found and it is greater than any of the items in the array, a negative number which is the bitwise complement of (the index of the last item plus 1).</returns>
 </doc>
 <doc name=""ArrayExtensions.BinarySearch(ArrayType,T)"">
 <include file=""{0}"" path=""docs/doc[@name='ArrayExtensions.BinarySearchCore']/*"" />
@@ -6037,12 +6036,12 @@ class C
     </assembly>
     <members>
         <member name=""T:C"">
-            <overloads>Searches a sorted array for a value using a binary search algorithm.</overloads><typeparam name=""T"">" + 
-            @"The type of items in the array.</typeparam><typeparam name=""TComparator"">The type of comparator used to compare " + 
-            @"items during the search operation.</typeparam><param name=""array"">The sorted array to search.</param><param name=""value"">" + 
-            @"The object to search for.</param><returns>If found, the index of the specified value in the given array. Otheriwse, if not " + 
-            @"found, and the value is less than one or more items in the array, a negative number which is the bitwise complement of the " + 
-            @"index of the first item that is larger than the given value. If the value is not found and it is greater than any of the items " + 
+            <overloads>Searches a sorted array for a value using a binary search algorithm.</overloads><typeparam name=""T"">" +
+            @"The type of items in the array.</typeparam><typeparam name=""TComparator"">The type of comparator used to compare " +
+            @"items during the search operation.</typeparam><param name=""array"">The sorted array to search.</param><param name=""value"">" +
+            @"The object to search for.</param><returns>If found, the index of the specified value in the given array. Otherwise, if not " +
+            @"found, and the value is less than one or more items in the array, a negative number which is the bitwise complement of the " +
+            @"index of the first item that is larger than the given value. If the value is not found and it is greater than any of the items " +
             @"in the array, a negative number which is the bitwise complement of (the index of the last item plus 1).</returns>
         </member>
     </members>
@@ -6119,5 +6118,32 @@ class Module1
         }
 
         #endregion Dev10 bugs
+
+        [ClrOnlyFact]
+        [WorkItem(1115058, "DevDiv")]
+        public void UnterminatedElement()
+        {
+            var source = @"
+class Module1
+{
+    ///<summary>
+    /// Something
+    ///<summary>
+    static void Main()
+    {
+        System.Console.WriteLine(""Here"");
+    }
+}";
+            var comp = CreateCompilationWithMscorlibAndDocumentationComments(source, options: TestOptions.ReleaseExe);
+
+            CompileAndVerify(comp, expectedOutput: "Here").VerifyDiagnostics(
+    // (7,1): warning CS1570: XML comment has badly formed XML -- 'Expected an end tag for element 'summary'.'
+    //     static void Main()
+    Diagnostic(ErrorCode.WRN_XMLParseError, "").WithArguments("summary").WithLocation(7, 1),
+    // (7,1): warning CS1570: XML comment has badly formed XML -- 'Expected an end tag for element 'summary'.'
+    //     static void Main()
+    Diagnostic(ErrorCode.WRN_XMLParseError, "").WithArguments("summary").WithLocation(7, 1)
+                );
+        }
     }
 }

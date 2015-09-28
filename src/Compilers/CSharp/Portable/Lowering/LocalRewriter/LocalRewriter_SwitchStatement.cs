@@ -16,7 +16,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         // For switch statements, we have an option of completely rewriting the switch header
         // and switch sections into simpler constructs, i.e. we can rewrite the switch header
         // using bound conditional goto statements and the rewrite the switch sections into
-        // bound labeleled statements.
+        // bound labeled statements.
 
         // However, all the logic for emitting the switch jump tables is language agnostic
         // and includes IL optimizations. Hence we delay the switch jump table generation
@@ -36,7 +36,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         // We need to emit this function to compute the hash value into the compiler generate
         // <PrivateImplementationDetails> class. 
         // If we have at least one string switch statement in a module that needs a
-        // hash table based jump table, we generate a single public string hash sythesized method
+        // hash table based jump table, we generate a single public string hash synthesized method
         // that is shared across the module.
 
         public override BoundNode VisitSwitchStatement(BoundSwitchStatement node)
@@ -46,6 +46,8 @@ namespace Microsoft.CodeAnalysis.CSharp
             var rewrittenExpression = (BoundExpression)Visit(node.BoundExpression);
             var rewrittenSections = VisitSwitchSections(node.SwitchSections);
 
+            // EnC: We need to insert a hidden sequence point to handle function remapping in case 
+            // the containing method is edited while methods invoked in the expression are being executed.
             var rewrittenStatement = MakeSwitchStatement(syntax, AddConditionSequencePoint(rewrittenExpression, node), rewrittenSections, node.ConstantTargetOpt, node.InnerLocals, node.BreakLabel, node);
 
             // Create the sequence point if generating debug info and
@@ -138,7 +140,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             if (rewrittenExpression.Kind != BoundKind.Local)
             {
                 BoundAssignmentOperator assignmentToTemp;
-                BoundLocal boundTemp = this.factory.StoreToTemp(rewrittenExpression, out assignmentToTemp);
+                BoundLocal boundTemp = _factory.StoreToTemp(rewrittenExpression, out assignmentToTemp);
                 var tempAssignment = new BoundExpressionStatement(exprSyntax, assignmentToTemp);
                 statementBuilder.Add(tempAssignment);
                 tempLocal = boundTemp.LocalSymbol;
@@ -263,21 +265,21 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             // If we have already generated the helper, possibly for another switch
             // or on another thread, we don't need to regenerate it.
-            var privateImplClass = module.GetPrivateImplClass(syntaxNode, diagnostics);
+            var privateImplClass = module.GetPrivateImplClass(syntaxNode, _diagnostics);
             if (privateImplClass.GetMethod(PrivateImplementationDetails.SynthesizedStringHashFunctionName) != null)
             {
                 return;
             }
 
             // cannot emit hash method if have no access to Chars.
-            var charsMember = this.compilation.GetSpecialTypeMember(SpecialMember.System_String__Chars);
+            var charsMember = _compilation.GetSpecialTypeMember(SpecialMember.System_String__Chars);
             if ((object)charsMember == null || charsMember.GetUseSiteDiagnostic() != null)
             {
                 return;
             }
 
-            TypeSymbol returnType = factory.SpecialType(SpecialType.System_UInt32);
-            TypeSymbol paramType = factory.SpecialType(SpecialType.System_String);
+            TypeSymbol returnType = _factory.SpecialType(SpecialType.System_UInt32);
+            TypeSymbol paramType = _factory.SpecialType(SpecialType.System_String);
 
             var method = new SynthesizedStringSwitchHashMethod(module.SourceModule, privateImplClass, returnType, paramType);
             privateImplClass.TryAddSynthesizedMethod(method);

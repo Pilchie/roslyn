@@ -4,12 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis
@@ -36,33 +32,17 @@ namespace Microsoft.CodeAnalysis
         /// Enumerates all referenced assemblies.
         /// </summary>
         internal abstract IEnumerable<KeyValuePair<MetadataReference, IAssemblySymbol>> GetReferencedAssemblies();
+       
+        /// <summary>
+        /// Enumerates all referenced assemblies and their aliases.
+        /// </summary>
+        internal abstract IEnumerable<ValueTuple<IAssemblySymbol, ImmutableArray<string>>> GetReferencedAssemblyAliases();
 
-        internal abstract bool TryGetReferencedAssemblySymbol(MetadataReference reference, out IAssemblySymbol symbol, out ImmutableArray<string> aliases);
+        internal abstract MetadataReference GetMetadataReference(IAssemblySymbol assemblySymbol);
     }
 
-    partial class CommonReferenceManager<TCompilation, TAssemblySymbol> : CommonReferenceManager
+    internal partial class CommonReferenceManager<TCompilation, TAssemblySymbol> : CommonReferenceManager
     {
-        internal struct ReferencedAssembly
-        {
-            public readonly TAssemblySymbol Symbol;
-
-            // All aliases given to this symbol via metadata references, may contain duplicates
-            public readonly ImmutableArray<string> Aliases;
-
-            public ReferencedAssembly(TAssemblySymbol symbol, ImmutableArray<string> aliases)
-            {
-                Debug.Assert(symbol != null && !aliases.IsDefault);
-
-                this.Symbol = symbol;
-                this.Aliases = aliases;
-            }
-
-            public bool DeclarationsAccessibleWithoutAlias()
-            {
-                return Aliases.Length == 0 || Aliases.IndexOf(MetadataReferenceProperties.GlobalAlias) >= 0;
-            }
-        }
-
         /// <summary>
         /// If the compilation being built represents an assembly its assembly name.
         /// If the compilation being built represents a module, the name of the 
@@ -79,7 +59,7 @@ namespace Microsoft.CodeAnalysis
 
         /// <summary>
         /// Metadata observed by the compiler.
-        /// May be shared accoss multiple Reference Managers.
+        /// May be shared across multiple Reference Managers.
         /// Access only under lock(<see cref="ObservedMetadata"/>).
         /// </summary>
         internal readonly Dictionary<MetadataReference, MetadataOrDiagnostic> ObservedMetadata;
@@ -87,7 +67,7 @@ namespace Microsoft.CodeAnalysis
         /// <summary>
         /// Once this is non-zero the state of the manager is fully initialized and immutable.
         /// </summary>
-        private int isBound;
+        private int _isBound;
 
         /// <summary>
         /// True if the compilation has a reference that refers back to the assembly being compiled.
@@ -95,13 +75,13 @@ namespace Microsoft.CodeAnalysis
         /// <remarks>
         /// If we have a circular reference the bound references can't be shared with other compilations.
         /// </remarks>
-        private ThreeState lazyHasCircularReference;
+        private ThreeState _lazyHasCircularReference;
 
         /// <summary>
-        /// A map from a metadata reference to an AssemblySymbol used for it. Do not access
-        /// directly, use <see cref="ReferencedAssembliesMap"/> property instead.
+        /// A map from a metadata reference to an index to <see cref="_lazyReferencedAssemblies"/> array. Do not access
+        /// directly, use <see cref="_lazyReferencedAssembliesMap"/> property instead.
         /// </summary>
-        private Dictionary<MetadataReference, ReferencedAssembly> lazyReferencedAssembliesMap;
+        private Dictionary<MetadataReference, int> _lazyReferencedAssembliesMap;
 
         /// <summary>
         /// A map from a net-module metadata reference to the index of the corresponding module
@@ -109,15 +89,15 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         /// <remarks>
         /// Subtract one from the index (for the manifest module) to find the corresponding elements
-        /// of lazyReferencedModules and lazyReferencedModulesReferences.
+        /// of <see cref="_lazyReferencedModules"/> and <see cref="_lazyReferencedModulesReferences"/>.
         /// </remarks>
-        private Dictionary<MetadataReference, int> lazyReferencedModuleIndexMap;
+        private Dictionary<MetadataReference, int> _lazyReferencedModuleIndexMap;
 
         /// <summary>
         /// Maps reference string used in #r directive to a resolved metadata reference.
         /// If multiple #r's use the same value as a reference the resolved metadata reference is the same as well.
         /// </summary>
-        private IDictionary<string, MetadataReference> lazyReferenceDirectiveMap;
+        private IDictionary<string, MetadataReference> _lazyReferenceDirectiveMap;
 
         /// <summary>
         /// Array of unique bound #r references.
@@ -126,9 +106,9 @@ namespace Microsoft.CodeAnalysis
         /// The references are in the order they appear in syntax trees. This order is currently preserved 
         /// as syntax trees are added or removed, but we might decide to share reference manager between compilations
         /// with different order of #r's. It doesn't seem this would be an issue since all #r's within the compilation
-        /// has the same "priority" with respect to each other.
+        /// have the same "priority" with respect to each other.
         /// </remarks>
-        private ImmutableArray<MetadataReference> lazyDirectiveReferences;
+        private ImmutableArray<MetadataReference> _lazyDirectiveReferences;
 
         /// <summary>
         /// Diagnostics produced during reference resolution and binding.
@@ -138,7 +118,7 @@ namespace Microsoft.CodeAnalysis
         /// compilations that share the same reference manager (such as full identity of the compilation, 
         /// simple assembly name is ok).
         /// </remarks>
-        private ImmutableArray<Diagnostic> lazyDiagnostics;
+        private ImmutableArray<Diagnostic> _lazyDiagnostics;
 
         /// <summary>
         /// COR library symbol, or null if the compilation itself is the COR library.
@@ -148,33 +128,41 @@ namespace Microsoft.CodeAnalysis
         /// here since we wouldn't be able to share the state among subsequent compilations that are derived from it
         /// (each of them has its own source assembly symbol).
         /// </remarks>
-        private TAssemblySymbol lazyCorLibraryOpt;
+        private TAssemblySymbol _lazyCorLibraryOpt;
 
         /// <summary>
         /// Standalone modules referenced by the compilation (doesn't include the manifest module of the compilation).
         /// </summary>
         /// <remarks>
-        /// lazyReferencedModules[i] corresponds to lazyReferencedModulesReferences[i].
+        /// <see cref="_lazyReferencedModules"/>[i] corresponds to <see cref="_lazyReferencedModulesReferences"/>[i].
         /// </remarks>
-        private ImmutableArray<PEModule> lazyReferencedModules;
+        private ImmutableArray<PEModule> _lazyReferencedModules;
 
         /// <summary>
         /// References of standalone modules referenced by the compilation (doesn't include the manifest module of the compilation).
         /// </summary>
         /// <remarks>
-        /// lazyReferencedModules[i] corresponds to lazyReferencedModulesReferences[i].
+        /// <see cref="_lazyReferencedModules"/>[i] corresponds to <see cref="_lazyReferencedModulesReferences"/>[i].
         /// </remarks>
-        private ImmutableArray<ModuleReferences<TAssemblySymbol>> lazyReferencedModulesReferences;
+        private ImmutableArray<ModuleReferences<TAssemblySymbol>> _lazyReferencedModulesReferences;
 
         /// <summary>
         /// Assemblies referenced directly by the source module of the compilation.
         /// </summary>
-        private ImmutableArray<TAssemblySymbol> lazyReferencedAssemblies;
+        private ImmutableArray<TAssemblySymbol> _lazyReferencedAssemblies;
+
+        /// <summary>
+        /// Assemblies referenced directly by the source module of the compilation.
+        /// </summary>
+        /// <remarks>
+        /// Aliases <see cref="_lazyAliasesOfReferencedAssemblies"/>[i] are of an assembly <see cref="_lazyReferencedAssemblies"/>[i].
+        /// </remarks>
+        private ImmutableArray<ImmutableArray<string>> _lazyAliasesOfReferencedAssemblies;
 
         /// <summary>
         /// Unified assemblies referenced directly by the source module of the compilation.
         /// </summary>
-        private ImmutableArray<UnifiedAssembly<TAssemblySymbol>> lazyUnifiedAssemblies;
+        private ImmutableArray<UnifiedAssembly<TAssemblySymbol>> _lazyUnifiedAssemblies;
 
         public CommonReferenceManager(string simpleAssemblyName, AssemblyIdentityComparer identityComparer, Dictionary<MetadataReference, MetadataOrDiagnostic> observedMetadata)
         {
@@ -191,7 +179,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyDiagnostics;
+                return _lazyDiagnostics;
             }
         }
 
@@ -200,16 +188,16 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyHasCircularReference == ThreeState.True;
+                return _lazyHasCircularReference == ThreeState.True;
             }
         }
 
-        internal Dictionary<MetadataReference, ReferencedAssembly> ReferencedAssembliesMap
+        internal Dictionary<MetadataReference, int> ReferencedAssembliesMap
         {
             get
             {
                 AssertBound();
-                return lazyReferencedAssembliesMap;
+                return _lazyReferencedAssembliesMap;
             }
         }
 
@@ -218,7 +206,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyReferencedModuleIndexMap;
+                return _lazyReferencedModuleIndexMap;
             }
         }
 
@@ -227,7 +215,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyReferenceDirectiveMap;
+                return _lazyReferenceDirectiveMap;
             }
         }
 
@@ -236,7 +224,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyDirectiveReferences;
+                return _lazyDirectiveReferences;
             }
         }
 
@@ -247,7 +235,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyCorLibraryOpt;
+                return _lazyCorLibraryOpt;
             }
         }
 
@@ -256,7 +244,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyReferencedModules;
+                return _lazyReferencedModules;
             }
         }
 
@@ -265,7 +253,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyReferencedModulesReferences;
+                return _lazyReferencedModulesReferences;
             }
         }
 
@@ -274,7 +262,16 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyReferencedAssemblies;
+                return _lazyReferencedAssemblies;
+            }
+        }
+
+        internal ImmutableArray<ImmutableArray<string>> AliasesOfReferencedAssemblies
+        {
+            get
+            {
+                AssertBound();
+                return _lazyAliasesOfReferencedAssemblies;
             }
         }
 
@@ -283,7 +280,7 @@ namespace Microsoft.CodeAnalysis
             get
             {
                 AssertBound();
-                return lazyUnifiedAssemblies;
+                return _lazyUnifiedAssemblies;
             }
         }
 
@@ -295,35 +292,39 @@ namespace Microsoft.CodeAnalysis
         [Conditional("DEBUG")]
         internal void AssertUnbound()
         {
-            Debug.Assert(isBound == 0);
-            Debug.Assert(lazyHasCircularReference == ThreeState.Unknown);
-            Debug.Assert(lazyReferencedAssembliesMap == null);
-            Debug.Assert(lazyReferencedModuleIndexMap == null);
-            Debug.Assert(lazyReferenceDirectiveMap == null);
-            Debug.Assert(lazyDirectiveReferences.IsDefault);
-            Debug.Assert(lazyReferencedModules.IsDefault);
-            Debug.Assert(lazyReferencedModulesReferences.IsDefault);
-            Debug.Assert(lazyReferencedAssemblies.IsDefault);
-            Debug.Assert(lazyUnifiedAssemblies.IsDefault);
-            Debug.Assert(lazyCorLibraryOpt == null);
+            Debug.Assert(_isBound == 0);
+            Debug.Assert(_lazyHasCircularReference == ThreeState.Unknown);
+            Debug.Assert(_lazyReferencedAssembliesMap == null);
+            Debug.Assert(_lazyReferencedModuleIndexMap == null);
+            Debug.Assert(_lazyReferenceDirectiveMap == null);
+            Debug.Assert(_lazyDirectiveReferences.IsDefault);
+            Debug.Assert(_lazyReferencedModules.IsDefault);
+            Debug.Assert(_lazyReferencedModulesReferences.IsDefault);
+            Debug.Assert(_lazyReferencedAssemblies.IsDefault);
+            Debug.Assert(_lazyAliasesOfReferencedAssemblies.IsDefault);
+            Debug.Assert(_lazyUnifiedAssemblies.IsDefault);
+            Debug.Assert(_lazyCorLibraryOpt == null);
         }
 
         [Conditional("DEBUG")]
         internal void AssertBound()
         {
-            Debug.Assert(isBound != 0);
-            Debug.Assert(lazyHasCircularReference != ThreeState.Unknown);
-            Debug.Assert(lazyReferencedAssembliesMap != null);
-            Debug.Assert(lazyReferencedModuleIndexMap != null);
-            Debug.Assert(lazyReferenceDirectiveMap != null);
-            Debug.Assert(!lazyDirectiveReferences.IsDefault);
-            Debug.Assert(!lazyReferencedModules.IsDefault);
-            Debug.Assert(!lazyReferencedModulesReferences.IsDefault);
-            Debug.Assert(!lazyReferencedAssemblies.IsDefault);
-            Debug.Assert(!lazyUnifiedAssemblies.IsDefault);
+            Debug.Assert(_isBound != 0);
+            Debug.Assert(_lazyHasCircularReference != ThreeState.Unknown);
+            Debug.Assert(_lazyReferencedAssembliesMap != null);
+            Debug.Assert(_lazyReferencedModuleIndexMap != null);
+            Debug.Assert(_lazyReferenceDirectiveMap != null);
+            Debug.Assert(!_lazyDirectiveReferences.IsDefault);
+            Debug.Assert(!_lazyReferencedModules.IsDefault);
+            Debug.Assert(!_lazyReferencedModulesReferences.IsDefault);
+            Debug.Assert(!_lazyReferencedAssemblies.IsDefault);
+            Debug.Assert(!_lazyAliasesOfReferencedAssemblies.IsDefault);
+            Debug.Assert(!_lazyUnifiedAssemblies.IsDefault);
 
             // lazyCorLibrary is null if the compilation is corlib
-            Debug.Assert(lazyReferencedAssemblies.Length == 0 || lazyCorLibraryOpt != null);
+            Debug.Assert(_lazyReferencedAssemblies.Length == 0 || _lazyCorLibraryOpt != null);
+
+            Debug.Assert(_lazyReferencedAssemblies.Length == _lazyAliasesOfReferencedAssemblies.Length);
         }
 
         [Conditional("DEBUG")]
@@ -336,7 +337,7 @@ namespace Microsoft.CodeAnalysis
         {
             get
             {
-                return isBound != 0;
+                return _isBound != 0;
             }
         }
 
@@ -344,7 +345,7 @@ namespace Microsoft.CodeAnalysis
         /// Call only while holding <see cref="CommonReferenceManager.SymbolCacheAndReferenceManagerStateGuard"/>.
         /// </summary>
         internal void InitializeNoLock(
-            Dictionary<MetadataReference, ReferencedAssembly> referencedAssembliesMap,
+            Dictionary<MetadataReference, int> referencedAssembliesMap,
             Dictionary<MetadataReference, int> referencedModulesMap,
             IDictionary<string, MetadataReference> boundReferenceDirectiveMap,
             ImmutableArray<MetadataReference> boundReferenceDirectives,
@@ -354,6 +355,7 @@ namespace Microsoft.CodeAnalysis
             ImmutableArray<PEModule> referencedModules,
             ImmutableArray<ModuleReferences<TAssemblySymbol>> referencedModulesReferences,
             ImmutableArray<TAssemblySymbol> referencedAssemblies,
+            ImmutableArray<ImmutableArray<string>> aliasesOfReferencedAssemblies,
             ImmutableArray<UnifiedAssembly<TAssemblySymbol>> unifiedAssemblies)
         {
             AssertUnbound();
@@ -361,64 +363,74 @@ namespace Microsoft.CodeAnalysis
             Debug.Assert(referencedModules.Length == referencedModulesReferences.Length);
             Debug.Assert(referencedModules.Length == referencedModulesMap.Count);
 
-            this.lazyReferencedAssembliesMap = referencedAssembliesMap;
-            this.lazyReferencedModuleIndexMap = referencedModulesMap;
-            this.lazyDiagnostics = diagnostics;
-            this.lazyReferenceDirectiveMap = boundReferenceDirectiveMap;
-            this.lazyDirectiveReferences = boundReferenceDirectives;
+            _lazyReferencedAssembliesMap = referencedAssembliesMap;
+            _lazyReferencedModuleIndexMap = referencedModulesMap;
+            _lazyDiagnostics = diagnostics;
+            _lazyReferenceDirectiveMap = boundReferenceDirectiveMap;
+            _lazyDirectiveReferences = boundReferenceDirectives;
 
-            this.lazyCorLibraryOpt = corLibraryOpt;
-            this.lazyReferencedModules = referencedModules;
-            this.lazyReferencedModulesReferences = referencedModulesReferences;
-            this.lazyReferencedAssemblies = referencedAssemblies;
-            this.lazyUnifiedAssemblies = unifiedAssemblies;
-            this.lazyHasCircularReference = containsCircularReferences.ToThreeState();
+            _lazyCorLibraryOpt = corLibraryOpt;
+            _lazyReferencedModules = referencedModules;
+            _lazyReferencedModulesReferences = referencedModulesReferences;
+            _lazyReferencedAssemblies = referencedAssemblies;
+            _lazyAliasesOfReferencedAssemblies = aliasesOfReferencedAssemblies;
+            _lazyUnifiedAssemblies = unifiedAssemblies;
+            _lazyHasCircularReference = containsCircularReferences.ToThreeState();
 
             // once we flip this bit the state of the manager is immutable and available to any readers:
-            Interlocked.Exchange(ref isBound, 1);
+            Interlocked.Exchange(ref _isBound, 1);
         }
 
         #region Compilation APIs Implementation
 
         // for testing purposes
-        internal IEnumerable<string> ExternAliases
-        {
-            get
-            {
-                return ReferencedAssembliesMap.Values.SelectMany(entry => entry.Aliases);
-            }
-        }
+        internal IEnumerable<string> ExternAliases => AliasesOfReferencedAssemblies.SelectMany(aliases => aliases);
 
         internal sealed override IEnumerable<KeyValuePair<MetadataReference, IAssemblySymbol>> GetReferencedAssemblies()
         {
-            return ReferencedAssembliesMap.Select(ra => KeyValuePair.Create(ra.Key, (IAssemblySymbol)ra.Value.Symbol));
-        }
-
-        internal sealed override bool TryGetReferencedAssemblySymbol(MetadataReference reference, out IAssemblySymbol symbol, out ImmutableArray<string> aliases)
-        {
-            ReferencedAssembly result;
-            if (ReferencedAssembliesMap.TryGetValue(reference, out result))
-            {
-                symbol = result.Symbol;
-                aliases = result.Aliases;
-                return true;
-            }
-
-            symbol = null;
-            aliases = default(ImmutableArray<string>);
-            return false;
+            return ReferencedAssembliesMap.Select(ra => KeyValuePair.Create(ra.Key, (IAssemblySymbol)ReferencedAssemblies[ra.Value]));
         }
 
         internal TAssemblySymbol GetReferencedAssemblySymbol(MetadataReference reference)
         {
-            ReferencedAssembly result;
-            return ReferencedAssembliesMap.TryGetValue(reference, out result) ? result.Symbol : null;
+            int index;
+            return ReferencedAssembliesMap.TryGetValue(reference, out index) ? ReferencedAssemblies[index] : null;
         }
 
         internal int GetReferencedModuleIndex(MetadataReference reference)
         {
             int index;
             return ReferencedModuleIndexMap.TryGetValue(reference, out index) ? index : -1;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="MetadataReference"/> that corresponds to the assembly symbol. 
+        /// </summary>
+        internal override MetadataReference GetMetadataReference(IAssemblySymbol assemblySymbol)
+        {
+            foreach (var entry in ReferencedAssembliesMap)
+            {
+                if ((object)ReferencedAssemblies[entry.Value] == assemblySymbol)
+                {
+                    return entry.Key;
+                }
+            }
+
+            return null;
+        }
+
+        internal override IEnumerable<ValueTuple<IAssemblySymbol, ImmutableArray<string>>> GetReferencedAssemblyAliases()
+        {
+            for (int i = 0; i < ReferencedAssemblies.Length; i++)
+            {
+                yield return ValueTuple.Create((IAssemblySymbol)ReferencedAssemblies[i], AliasesOfReferencedAssemblies[i]);
+            }
+        }
+
+        public bool DeclarationsAccessibleWithoutAlias(int referencedAssemblyIndex)
+        {
+            var aliases = AliasesOfReferencedAssemblies[referencedAssemblyIndex];
+            return aliases.Length == 0 || aliases.IndexOf(MetadataReferenceProperties.GlobalAlias, StringComparer.Ordinal) >= 0;
         }
 
         #endregion

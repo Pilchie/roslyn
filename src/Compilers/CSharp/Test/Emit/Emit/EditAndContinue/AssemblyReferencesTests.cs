@@ -55,7 +55,7 @@ class C
             var c2 = c1.WithSource(src2);
             var md1 = AssemblyMetadata.CreateFromStream(c1.EmitToStream());
             var baseline = EmitBaseline.CreateInitialBaseline(md1.GetModules()[0], handle => default(EditAndContinueMethodDebugInformation));
-            
+
             var mdStream = new MemoryStream();
             var ilStream = new MemoryStream();
             var pdbStream = new MemoryStream();
@@ -71,7 +71,7 @@ class C
 
             c2.EmitDifference(baseline, edits, mdStream, ilStream, pdbStream, updatedMethods);
 
-            var actualIL = ilStream.ToArray().GetMethodIL();
+            var actualIL = ImmutableArray.Create(ilStream.ToArray()).GetMethodIL();
             var expectedIL = @"
 {
   // Code size        7 (0x7)
@@ -86,7 +86,7 @@ class C
         }
 
         /// <summary>
-        /// The baseline metadata might have more referneces than the current compilation. 
+        /// The baseline metadata might have more references than the current compilation. 
         /// References that aren't found in the compilation are treated as missing.
         /// </summary>
         [Fact]
@@ -99,7 +99,7 @@ class C
     public static int F(object a) { return 1; }
     public static void Main() { Console.WriteLine(F(null)); } 
 }
-";            
+";
             string src2 = @"
 using System;
 class C 
@@ -142,7 +142,7 @@ class C
 
             c2.EmitDifference(baseline, edits, mdStream, ilStream, pdbStream, updatedMethods);
 
-            var actualIL = ilStream.ToArray().GetMethodIL();
+            var actualIL = ImmutableArray.Create(ilStream.ToArray()).GetMethodIL();
 
             // Symbol matcher should ignore overloads with missing type symbols and match 
             // F(object).

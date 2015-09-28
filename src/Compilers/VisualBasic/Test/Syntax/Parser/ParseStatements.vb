@@ -4001,7 +4001,7 @@ End Namespace
                     end synclock
 
                     '
-                    ' test this case in the else part of the single line if statment
+                    ' test this case in the else part of the single line if statement
 
                     If True Then else try : 
                     finally
@@ -4154,7 +4154,7 @@ End Module
     End Sub
 
     <WorkItem(545543, "DevDiv")>
-    <Fact>
+    <ConditionalFact(GetType(WindowsOnly))>
     Public Sub ParseValidUseOfBlockWithinMultiLineLambda()
         Dim compilationDef =
 <compilation name="LambdaTests_err">
@@ -4182,7 +4182,7 @@ End Module
     End Sub
 
     <WorkItem(545543, "DevDiv")>
-    <Fact>
+    <ConditionalFact(GetType(WindowsOnly))>
     Public Sub ParseValidUseOfNonBlockWithinSingleLineLambda()
         Dim compilationDef =
 <compilation name="LambdaTests_err">
@@ -4212,7 +4212,7 @@ End Module
     End Sub
 
     <WorkItem(545543, "DevDiv")>
-    <Fact>
+    <ConditionalFact(GetType(WindowsOnly))>
     Public Sub ParseValidUseOfBlockWithinSingleLineLambda()
         'Subtle Variation with Single line Statement Lambda and a Block Construct
         Dim compilationDef =
@@ -6498,14 +6498,14 @@ Module M
 End Module
 ]]>.Value
         ' Source containing underscores and spaces.
-        LineContinuationTrivia(source, "_")
+        LineContinuationTriviaCore(source, "_")
         ' Source containing underscores and tabs.
-        LineContinuationTrivia(source.Replace(" "c, vbTab), "_")
+        LineContinuationTriviaCore(source.Replace(" "c, vbTab), "_")
         ' Source containing full-width underscores and spaces.
         LineContinuationTriviaErr(source.Replace("_"c, FULLWIDTH_LOW_LINE), "" + FULLWIDTH_LOW_LINE)
     End Sub
 
-    Private Sub LineContinuationTrivia(source As String, charAsString As String)
+    Private Sub LineContinuationTriviaCore(source As String, charAsString As String)
         Dim tree = ParseAndVerify(source)
         Dim tokens = tree.GetRoot().DescendantTokens().Select(Function(t) t.Node).ToArray()
         Dim allTrivia = tree.GetRoot().DescendantTrivia().ToArray()
@@ -6553,11 +6553,11 @@ Label:::
     End Sub
 End Module
 ]]>.Value
-        ConsecutiveColonsTrivia(source, ":")
-        ConsecutiveColonsTrivia(source.Replace(":"c, FULLWIDTH_COLON), FULLWIDTH_COLON_STRING)
+        ConsecutiveColonsTriviaCore(source, ":")
+        ConsecutiveColonsTriviaCore(source.Replace(":"c, FULLWIDTH_COLON), FULLWIDTH_COLON_STRING)
     End Sub
 
-    Private Sub ConsecutiveColonsTrivia(source As String, singleColon As String)
+    Private Sub ConsecutiveColonsTriviaCore(source As String, singleColon As String)
         Dim tree = ParseAndVerify(source)
         Dim tokens = tree.GetRoot().DescendantTokens().Select(Function(t) t.Node).ToArray()
         Dim allTrivia = tree.GetRoot().DescendantTrivia().ToArray()

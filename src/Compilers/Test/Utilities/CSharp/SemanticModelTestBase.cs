@@ -8,11 +8,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Text;
 using Xunit;
+using Roslyn.Test.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
-    using Roslyn.Test.Utilities;
-
     public abstract class SemanticModelTestBase : CSharpTestBase
     {
         protected List<SyntaxNode> GetSyntaxNodeList(SyntaxTree syntaxTree)
@@ -43,9 +42,9 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 
         protected int GetPositionForBinding(string code)
         {
-            string tag = "/*pos*/";
+            const string tag = "/*pos*/";
 
-            return code.IndexOf(tag) + tag.Length;
+            return code.IndexOf(tag, StringComparison.Ordinal) + tag.Length;
         }
 
         protected SyntaxNode GetSyntaxNodeForBinding(List<SyntaxNode> synList)
@@ -63,10 +62,10 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                 string exprFullText = node.ToFullString();
                 exprFullText = exprFullText.Trim();
 
-                if (exprFullText.StartsWith(startString))
+                if (exprFullText.StartsWith(startString, StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains(endString))
-                        if (exprFullText.EndsWith(endString))
+                        if (exprFullText.EndsWith(endString, StringComparison.Ordinal))
                             return node;
                         else
                             continue;
@@ -74,10 +73,10 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                         return node;
                 }
 
-                if (exprFullText.EndsWith(endString))
+                if (exprFullText.EndsWith(endString, StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains(startString))
-                        if (exprFullText.StartsWith(startString))
+                        if (exprFullText.StartsWith(startString, StringComparison.Ordinal))
                             return node;
                         else
                             continue;
@@ -118,16 +117,16 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             var tagName = string.Format("bind{0}", index == 0 ? String.Empty : index.ToString());
             var startComment = string.Format("/*<{0}>*/", tagName);
             var endComment = string.Format("/*</{0}>*/", tagName);
-            
+
             foreach (var exprSyntax in exprSynList)
             {
                 string exprFullText = exprSyntax.ToFullString();
                 exprFullText = exprFullText.Trim();
 
-                if (exprFullText.StartsWith(startComment))
+                if (exprFullText.StartsWith(startComment, StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains(endComment))
-                        if (exprFullText.EndsWith(endComment))
+                        if (exprFullText.EndsWith(endComment, StringComparison.Ordinal))
                             return exprSyntax;
                         else
                             continue;
@@ -135,10 +134,10 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
                         return exprSyntax;
                 }
 
-                if (exprFullText.EndsWith(endComment))
+                if (exprFullText.EndsWith(endComment, StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains(startComment))
-                        if (exprFullText.StartsWith(startComment))
+                        if (exprFullText.StartsWith(startComment, StringComparison.Ordinal))
                             return exprSyntax;
                         else
                             continue;
@@ -197,7 +196,7 @@ namespace Microsoft.CodeAnalysis.CSharp.UnitTests
             var compilation = CreateCompilationWithMscorlib(testSrc, new[] { SystemCoreRef });
             var tree = compilation.SyntaxTrees[0];
             var model = compilation.GetSemanticModel(tree);
-            var position = testSrc.IndexOf(subStrForPreprocessNameIndex);
+            var position = testSrc.IndexOf(subStrForPreprocessNameIndex, StringComparison.Ordinal);
             var nameSyntaxToBind = tree.GetRoot().FindToken(position, findInsideTrivia: true).Parent as IdentifierNameSyntax;
 
             return model.GetPreprocessingSymbolInfo(nameSyntaxToBind);

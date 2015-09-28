@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests
 {
-    public class ParsingErrorRecoveryTests
+    public class ParsingErrorRecoveryTests : CSharpTestBase
     {
         private CompilationUnitSyntax ParseTree(string text, CSharpParseOptions options = null)
         {
@@ -5494,7 +5494,7 @@ class C
             Assert.False(pd.AccessorList.OpenBraceToken.IsMissing);
             Assert.NotNull(pd.AccessorList.CloseBraceToken);
             Assert.True(pd.AccessorList.CloseBraceToken.IsMissing);
-            Assert.Equal(2, pd.AccessorList.Accessors.Count);
+            Assert.Equal(1, pd.AccessorList.Accessors.Count);
             var acc = pd.AccessorList.Accessors[0];
             Assert.Equal(SyntaxKind.GetAccessorDeclaration, acc.Kind());
             Assert.NotNull(acc.Keyword);
@@ -5508,10 +5508,9 @@ class C
             Assert.True(acc.Body.CloseBraceToken.IsMissing);
             Assert.Equal(SyntaxKind.None, acc.SemicolonToken.Kind());
 
-            Assert.Equal(3, file.Errors().Length);
+            Assert.Equal(2, file.Errors().Length);
             Assert.Equal((int)ErrorCode.ERR_RbraceExpected, file.Errors()[0].Code);
-            Assert.Equal((int)ErrorCode.ERR_GetOrSetExpected, file.Errors()[1].Code);
-            Assert.Equal((int)ErrorCode.ERR_RbraceExpected, file.Errors()[2].Code);
+            Assert.Equal((int)ErrorCode.ERR_RbraceExpected, file.Errors()[1].Code);
         }
 
         [Fact]
@@ -6210,7 +6209,7 @@ class C
             Assert.Equal(text, file.ToFullString());
             Assert.Equal(2, file.Errors().Length);
             Assert.Equal((int)ErrorCode.ERR_MemberNeedsType, file.Errors()[0].Code); //for the missing 'void'
-            Assert.Equal((int)ErrorCode.ERR_UnexpectedCharacter, file.Errors()[1].Code); //colon is unexpected
+            Assert.Equal((int)ErrorCode.ERR_UnexpectedToken, file.Errors()[1].Code); //colon is unexpected
 
             // CONSIDER: Dev10 actually gives 'CS1002: ; expected', because it thinks you were trying to
             // specify a method without a body.  This is a little silly, since we already know the method
@@ -6338,7 +6337,7 @@ public class Test
         }
 
         [WorkItem(542236, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void InsertOpenBraceBeforeCodes()
         {
             var text = @"{
@@ -6352,7 +6351,7 @@ public class Test
             Assert.Equal("{\r\n", syntaxTree.GetCompilationUnitRoot().GetLeadingTrivia().Node.ToFullString());
 
             // The issue (9391) was exhibited while enumerating the diagnostics
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 "(1,2): error CS1031: Type expected",
                 "(1,1): error CS1022: Type or namespace definition, or end-of-file expected",
@@ -6380,7 +6379,7 @@ class C { }
             Assert.Equal(text, syntaxTree.GetCompilationUnitRoot().ToFullString());
 
             // 9553: Several of the locations were incorrect and one was negative
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 // Error on the return type, because in C# syntax it goes after the operator and implicit/explicit keywords
                 "(2,1): error CS1553: Declaration is not valid; use '+ operator <dest-type> (...' instead",
@@ -6413,7 +6412,7 @@ class C
             SyntaxTree syntaxTree = SyntaxFactory.ParseSyntaxTree(text);
             Assert.Equal(text, syntaxTree.GetCompilationUnitRoot().ToFullString());
 
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 "(6,10): error CS1001: Identifier expected",
                 "(6,10): error CS1002: ; expected",
@@ -6438,7 +6437,7 @@ class C
             SyntaxTree syntaxTree = SyntaxFactory.ParseSyntaxTree(text);
             Assert.Equal(text, syntaxTree.GetCompilationUnitRoot().ToFullString());
 
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 "(6,10): error CS1001: Identifier expected",
                 "(6,10): error CS1002: ; expected",
@@ -6463,7 +6462,7 @@ class C
             SyntaxTree syntaxTree = SyntaxFactory.ParseSyntaxTree(text);
             Assert.Equal(text, syntaxTree.GetCompilationUnitRoot().ToFullString());
 
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 "(6,10): error CS1001: Identifier expected",
                 "(6,10): error CS1002: ; expected",
@@ -6489,7 +6488,7 @@ class C
             SyntaxTree syntaxTree = SyntaxFactory.ParseSyntaxTree(text);
             Assert.Equal(text, syntaxTree.GetCompilationUnitRoot().ToFullString());
 
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 "(6,10): error CS1001: Identifier expected",
                 "(6,10): error CS1002: ; expected",
@@ -6513,7 +6512,7 @@ class C
             SyntaxTree syntaxTree = SyntaxFactory.ParseSyntaxTree(text);
             Assert.Equal(text, syntaxTree.GetCompilationUnitRoot().ToFullString());
 
-            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[] 
+            Assert.True(syntaxTree.GetDiagnostics().Select(d => ((IFormattable)d).ToString(null, EnsureEnglishUICulture.PreferredOrNull)).SequenceEqual(new[]
             {
                 "(6,18): error CS1003: Syntax error, ',' expected",
                 "(6,19): error CS1002: ; expected",
@@ -6555,22 +6554,22 @@ _ _::this
             syntaxTree.GetDiagnostics().Verify(
                 // (2,4): error CS1003: Syntax error, '.' expected
                 // _ _::this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_SyntaxError, "::").WithArguments(".", "::"),
+                Diagnostic(ErrorCode.ERR_SyntaxError, "::").WithArguments(".", "::"),
                 // (3,1): error CS1551: Indexers must have at least one parameter
                 // 
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_IndexerNeedsParam, ""),
+                Diagnostic(ErrorCode.ERR_IndexerNeedsParam, ""),
                 // (2,10): error CS1003: Syntax error, '[' expected
                 // _ _::this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_SyntaxError, "").WithArguments("[", ""),
+                Diagnostic(ErrorCode.ERR_SyntaxError, "").WithArguments("[", ""),
                 // (2,10): error CS1003: Syntax error, ']' expected
                 // _ _::this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_SyntaxError, "").WithArguments("]", ""),
+                Diagnostic(ErrorCode.ERR_SyntaxError, "").WithArguments("]", ""),
                 // (2,10): error CS1514: { expected
                 // _ _::this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_LbraceExpected, ""),
+                Diagnostic(ErrorCode.ERR_LbraceExpected, ""),
                 // (2,10): error CS1513: } expected
                 // _ _::this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
         }
 
         [WorkItem(649806, "DevDiv")]
@@ -6601,7 +6600,7 @@ class C
 
                 // (4,17): error CS1043: { or ; expected
                 //     int P { set . } }
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_SemiOrLBraceExpected, "."),
+                Diagnostic(ErrorCode.ERR_SemiOrLBraceExpected, "."),
 
                 // We see this diagnostic because we're trying to skip bad tokens in the block and 
                 // the "expected" token (i.e. the one we report when we see something that's not a
@@ -6610,7 +6609,7 @@ class C
 
                 // (4,17): error CS1513: } expected
                 //     int P { set . } }
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, "."));
+                Diagnostic(ErrorCode.ERR_RbraceExpected, "."));
         }
 
         [WorkItem(680733, "DevDiv")]
@@ -6670,7 +6669,7 @@ class C {}");
             AssertEqualRoundtrip(
 @"/// <see cref=""operator}=""/>
 class C {}");
-            
+
             AssertEqualRoundtrip(
 @"/// <see cref=""operator}}=""/>
 class C {}");
@@ -6699,19 +6698,19 @@ class C : I
             tree.GetDiagnostics().Verify(
                 // (4,22): error CS1001: Identifier expected
                 //     int I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_IdentifierExpected, "<"),
+                Diagnostic(ErrorCode.ERR_IdentifierExpected, "<"),
                 // (4,22): error CS7002: Unexpected use of a generic name
                 //     int I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_UnexpectedGenericName, "<"),
+                Diagnostic(ErrorCode.ERR_UnexpectedGenericName, "<"),
                 // (4,24): error CS1003: Syntax error, '>' expected
                 //     int I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_SyntaxError, "{").WithArguments(">", "{"),
+                Diagnostic(ErrorCode.ERR_SyntaxError, "{").WithArguments(">", "{"),
                 // (4,25): error CS1513: } expected
                 //     int I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""),
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""),
                 // (4,25): error CS1513: } expected
                 //     int I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
         }
 
         [WorkItem(684816, "DevDiv")]
@@ -6730,22 +6729,22 @@ class C : I
             tree.GetDiagnostics().Verify(
                 // (4,26): error CS1001: Identifier expected
                 //     event D I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_IdentifierExpected, "<"),
+                Diagnostic(ErrorCode.ERR_IdentifierExpected, "<"),
                 // (4,26): error CS1001: Identifier expected
                 //     event D I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_IdentifierExpected, "<"),
+                Diagnostic(ErrorCode.ERR_IdentifierExpected, "<"),
                 // (4,28): error CS1003: Syntax error, '>' expected
                 //     event D I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_SyntaxError, "{").WithArguments(">", "{"),
+                Diagnostic(ErrorCode.ERR_SyntaxError, "{").WithArguments(">", "{"),
                 // (4,26): error CS7002: Unexpected use of a generic name
                 //     event D I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_UnexpectedGenericName, "<"),
+                Diagnostic(ErrorCode.ERR_UnexpectedGenericName, "<"),
                 // (4,29): error CS1513: } expected
                 //     event D I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""),
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""),
                 // (4,29): error CS1513: } expected
                 //     event D I./*missing*/< {
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
         }
 
         [WorkItem(684816, "DevDiv")]
@@ -6764,13 +6763,13 @@ class C : I
             tree.GetDiagnostics().Verify(
                 // (4,14): error CS0071: An explicit interface implementation of an event must use event accessor syntax
                 //     event D I::
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_ExplicitEventFieldImpl, "::"),
+                Diagnostic(ErrorCode.ERR_ExplicitEventFieldImpl, "::"),
                 // (4,14): error CS0687: The namespace alias qualifier '::' always resolves to a type or namespace so is illegal here. Consider using '.' instead.
                 //     event D I::
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_AliasQualAsExpression, "::"),
+                Diagnostic(ErrorCode.ERR_AliasQualAsExpression, "::"),
                 // (4,16): error CS1513: } expected
                 //     event D I::
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
         }
 
         [WorkItem(684816, "DevDiv")]
@@ -6789,16 +6788,16 @@ class C
             tree.GetDiagnostics().Verify(
                 // (4,25): error CS1001: Identifier expected
                 //     event System.Action this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_IdentifierExpected, "this"),
+                Diagnostic(ErrorCode.ERR_IdentifierExpected, "this"),
                 // (4,29): error CS1514: { expected
                 //     event System.Action this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_LbraceExpected, ""),
+                Diagnostic(ErrorCode.ERR_LbraceExpected, ""),
                 // (4,29): error CS1513: } expected
                 //     event System.Action this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""),
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""),
                 // (4,29): error CS1513: } expected
                 //     event System.Action this
-                CSharpTestBase.Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
+                Diagnostic(ErrorCode.ERR_RbraceExpected, ""));
         }
 
         [WorkItem(697022, "DevDiv")]
@@ -6844,7 +6843,7 @@ static
 
 
         [WorkItem(947819, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void MissingOpenBraceForClass()
         {
             var source = @"namespace n
@@ -6861,7 +6860,7 @@ static
         }
 
         [WorkItem(947819, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void MissingOpenBraceForStruct()
         {
             var source = @"namespace n
@@ -6878,7 +6877,7 @@ static
         }
 
         [WorkItem(947819, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void MissingNameForStruct()
         {
             var source = @"namespace n
@@ -6897,7 +6896,7 @@ static
         }
 
         [WorkItem(947819, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact]
         public void MissingNameForClass()
         {
             var source = @"namespace n

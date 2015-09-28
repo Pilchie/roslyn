@@ -550,7 +550,7 @@ class B
     }
 }";
             CreateCompilationWithMscorlib(source).VerifyDiagnostics(    // (11,13): error CS0103: The name 'x' does not exist in the current context
-                //         A.F(x);
+                                                                        //         A.F(x);
                 Diagnostic(ErrorCode.ERR_NameNotInContext, "x").WithArguments("x"),
                 // (11,11): error CS0122: 'A.F' is inaccessible due to its protection level
                 //         A.F(x);
@@ -854,7 +854,6 @@ public interface IInterfaceBase
         [Fact]
         public void UnimplementedInterfaceSquiggleLocation_FullyQualified()
         {
-
             // Using fully Qualified names
             string scenarioCode = @"
 public class ITT
@@ -940,7 +939,6 @@ namespace test
         [Fact]
         public void UnimplementedInterfaceSquiggleLocation_InterfaceInheritenceScenario02()
         {
-
             // Two interfaces, only the  second is implemented 
             string scenarioCode = @"
 public class ITT
@@ -1419,8 +1417,8 @@ public class Test
     }
 }", references: new List<MetadataReference>() { TestReferences.SymbolsTests.NoPia.NoPIAGenericsAsm1 })
 .VerifyDiagnostics(
-                // (2,20): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
-                // using ClassAlias = Class1;
+    // (2,20): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
+    // using ClassAlias = Class1;
     Diagnostic(ErrorCode.ERR_GenericsUsedAcrossAssemblies, "Class1").WithArguments("System.Collections.Generic.List<FooStruct>", "NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
     // (7,28): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
     //         int a = ClassAlias.Class1Foo();
@@ -1451,15 +1449,14 @@ public class Test
     }
 }", references: new List<MetadataReference>() { TestReferences.SymbolsTests.NoPia.NoPIAGenericsAsm1 })
 .VerifyDiagnostics(
-                // (2,20): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
-                // using ClassAlias = Class1;
+    // (2,20): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
+    // using ClassAlias = Class1;
     Diagnostic(ErrorCode.ERR_GenericsUsedAcrossAssemblies, "Class1").WithArguments("System.Collections.Generic.List<FooStruct>", "NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null")
             );
 
             // NOTE: Dev10 errors:
             // <fine-name>(8,17): error CS0143: The type 'Class1' has no constructors defined
             // <fine-name>(9,17): error CS0143: The type 'Class1' has no constructors defined
-
         }
 
         [WorkItem(541466, "DevDiv")]
@@ -1475,16 +1472,16 @@ public class Test
     ClassAlias b = null;
     ClassAlias m() { return null; }
     void m2(ClassAlias p) { }
-}", references: new List<MetadataReference>() { TestReferences.SymbolsTests.NoPia.NoPIAGenericsAsm1})
+}", references: new List<MetadataReference>() { TestReferences.SymbolsTests.NoPia.NoPIAGenericsAsm1 })
 .VerifyDiagnostics(
-                // (2,20): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
-                // using ClassAlias = Class1;
+    // (2,20): error CS1769: Type 'System.Collections.Generic.List<FooStruct>' from assembly 'NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' cannot be used across assembly boundaries because it has a generic type parameter that is an embedded interop type.
+    // using ClassAlias = Class1;
     Diagnostic(ErrorCode.ERR_GenericsUsedAcrossAssemblies, "Class1").WithArguments("System.Collections.Generic.List<FooStruct>", "NoPIAGenerics1-Asm1, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null"),
-                // (6,16): warning CS0414: The field 'Test.b' is assigned but its value is never used
-                //     ClassAlias b = null;
+    // (6,16): warning CS0414: The field 'Test.b' is assigned but its value is never used
+    //     ClassAlias b = null;
     Diagnostic(ErrorCode.WRN_UnreferencedFieldAssg, "b").WithArguments("Test.b"),
-                // (5,16): warning CS0414: The field 'Test.a' is assigned but its value is never used
-                //     ClassAlias a = null;
+    // (5,16): warning CS0414: The field 'Test.a' is assigned but its value is never used
+    //     ClassAlias a = null;
     Diagnostic(ErrorCode.WRN_UnreferencedFieldAssg, "a").WithArguments("Test.a")
             );
 
@@ -1530,7 +1527,6 @@ public class Test
         [Fact]
         public void UseSiteErrorViaImplementedInterfaceMember_1()
         {
-
             var source1 = @"
 using System;
 using System.Runtime.InteropServices;
@@ -1584,7 +1580,6 @@ public class BarImpl : IBar
         [Fact]
         public void UseSiteErrorViaImplementedInterfaceMember_2()
         {
-
             var source1 = @"
 using System;
 using System.Runtime.InteropServices;
@@ -1641,7 +1636,6 @@ public class BarImpl : IBar
         [Fact]
         public void UseSiteErrorViaImplementedInterfaceMember_3()
         {
-
             var source1 = @"
 using System;
 using System.Runtime.InteropServices;
@@ -1690,7 +1684,6 @@ public class BarImpl : IBar
         [Fact]
         public void UseSiteErrorViaImplementedInterfaceMember_4()
         {
-
             var source1 = @"
 using System;
 using System.Runtime.InteropServices;
@@ -1921,7 +1914,7 @@ partial class C
     partial void F(int j) { }
 }
 ";
-            CompileAndVerify(source, options: TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.All), symbolValidator: module => 
+            CompileAndVerify(source, options: TestOptions.ReleaseDll.WithMetadataImportOptions(MetadataImportOptions.All), symbolValidator: module =>
             {
                 var method = module.GlobalNamespace.GetMember<TypeSymbol>("C").GetMember<MethodSymbol>("F");
                 Assert.Equal("i", method.Parameters[0].Name);
@@ -2037,9 +2030,9 @@ class Program
                 //         bool c = true;
                 Diagnostic(ErrorCode.WRN_UnreferencedVarAssg, "c").WithArguments("c").WithLocation(6, 14));
         }
-
         [Fact, WorkItem(543426, "DevDiv")]
-        void NestedInterfaceImplementationWithOuterGenericType()
+
+        private void NestedInterfaceImplementationWithOuterGenericType()
         {
             CompileAndVerify(@"
 namespace System.ServiceModel
@@ -2265,7 +2258,7 @@ class C<T> : System.Attribute { }";
 
         [WorkItem(545869, "DevDiv")]
         [Fact]
-        public void TestSealedOverridenMembers()
+        public void TestSealedOverriddenMembers()
         {
             CompileAndVerify(
 @"using System;
@@ -2374,10 +2367,10 @@ class C
     static void T() { }
 }";
 
-                CreateCompilationWithMscorlib(source).VerifyDiagnostics(
-                    // (6,9): error CS0119: 'T' is a type, which is not valid in the given context
-                    //         T();
-                    Diagnostic(ErrorCode.ERR_BadSKunknown, "T").WithArguments("T", "type").WithLocation(6, 9));
+            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
+                // (6,9): error CS0119: 'T' is a type, which is not valid in the given context
+                //         T();
+                Diagnostic(ErrorCode.ERR_BadSKunknown, "T").WithArguments("T", "type").WithLocation(6, 9));
         }
 
         [Fact, WorkItem(1078958, "DevDiv")]
@@ -2396,7 +2389,7 @@ class C
     static void T<U>() { }
 }";
 
-                CreateCompilationWithMscorlib(source).VerifyDiagnostics();
+            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
         }
 
         [Fact, WorkItem(1078961, "DevDiv")]
@@ -2513,7 +2506,7 @@ class C
         [Fact, WorkItem(1078961, "DevDiv")]
         public void Bug1078961_5()
         {
-             const string source = @"
+            const string source = @"
 class C
 {
     class T { }
@@ -2530,6 +2523,174 @@ class C
 }";
 
             CompileAndVerify(source, expectedOutput: "True");
+        }
+
+        [Fact, WorkItem(3096, "https://github.com/dotnet/roslyn/issues/3096")]
+        public void CastToDelegate_01()
+        {
+            var sourceText = @"namespace NS
+{
+    public static class A
+    {
+        public delegate void Action();
+
+        public static void M()
+        {
+            RunAction(A.B<string>.M0);
+            RunAction((Action)A.B<string>.M1);
+        }
+
+        private static void RunAction(Action action) { }
+
+        private class B<T>
+        {
+            public static void M0() { }
+            public static void M1() { }
+        }
+    }
+}";
+
+            var compilation = CreateCompilationWithMscorlib(sourceText, options: TestOptions.DebugDll);
+
+            compilation.VerifyDiagnostics();
+
+            var tree = compilation.SyntaxTrees.Single();
+            var model = compilation.GetSemanticModel(tree);
+
+            var identifierNameM0 = tree
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<IdentifierNameSyntax>()
+                .First(x => x.Parent.IsKind(SyntaxKind.SimpleMemberAccessExpression) && x.Identifier.ValueText.Equals("M0"));
+
+            Assert.Equal("A.B<string>.M0", identifierNameM0.Parent.ToString());
+            var m0Symbol = model.GetSymbolInfo(identifierNameM0);
+
+            Assert.Equal("void NS.A.B<System.String>.M0()", m0Symbol.Symbol.ToTestDisplayString());
+            Assert.Equal(CandidateReason.None, m0Symbol.CandidateReason);
+
+            var identifierNameM1 = tree
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<IdentifierNameSyntax>()
+                .First(x => x.Parent.IsKind(SyntaxKind.SimpleMemberAccessExpression) && x.Identifier.ValueText.Equals("M1"));
+
+            Assert.Equal("A.B<string>.M1", identifierNameM1.Parent.ToString());
+            var m1Symbol = model.GetSymbolInfo(identifierNameM1);
+
+            Assert.Equal("void NS.A.B<System.String>.M1()", m1Symbol.Symbol.ToTestDisplayString());
+            Assert.Equal(CandidateReason.None, m1Symbol.CandidateReason);
+        }
+
+        [Fact, WorkItem(3096, "https://github.com/dotnet/roslyn/issues/3096")]
+        public void CastToDelegate_02()
+        {
+            var sourceText = @"
+class A
+{
+    public delegate void MyDelegate<T>(T a);
+
+    public void Test()
+    {
+        UseMyDelegate((MyDelegate<int>)MyMethod);
+        UseMyDelegate((MyDelegate<long>)MyMethod);
+        UseMyDelegate((MyDelegate<float>)MyMethod);
+        UseMyDelegate((MyDelegate<double>)MyMethod);
+    }
+
+    private void UseMyDelegate<T>(MyDelegate<T> f) { }
+
+    private static void MyMethod(int a) { }
+    private static void MyMethod(long a) { }
+    private static void MyMethod(float a) { }
+    private static void MyMethod(double a) { }
+}";
+
+            var compilation = CreateCompilationWithMscorlib(sourceText, options: TestOptions.DebugDll);
+
+            compilation.VerifyDiagnostics();
+
+            var tree = compilation.SyntaxTrees.Single();
+            var model = compilation.GetSemanticModel(tree);
+
+            var identifiers = tree
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<IdentifierNameSyntax>()
+                .Where(x => x.Identifier.ValueText.Equals("MyMethod")).ToArray();
+
+            Assert.Equal(4, identifiers.Length);
+
+            Assert.Equal("(MyDelegate<int>)MyMethod", identifiers[0].Parent.ToString());
+            Assert.Equal("void A.MyMethod(System.Int32 a)", model.GetSymbolInfo(identifiers[0]).Symbol.ToTestDisplayString());
+
+            Assert.Equal("(MyDelegate<long>)MyMethod", identifiers[1].Parent.ToString());
+            Assert.Equal("void A.MyMethod(System.Int64 a)", model.GetSymbolInfo(identifiers[1]).Symbol.ToTestDisplayString());
+
+            Assert.Equal("(MyDelegate<float>)MyMethod", identifiers[2].Parent.ToString());
+            Assert.Equal("void A.MyMethod(System.Single a)", model.GetSymbolInfo(identifiers[2]).Symbol.ToTestDisplayString());
+
+            Assert.Equal("(MyDelegate<double>)MyMethod", identifiers[3].Parent.ToString());
+            Assert.Equal("void A.MyMethod(System.Double a)", model.GetSymbolInfo(identifiers[3]).Symbol.ToTestDisplayString());
+        }
+
+        [Fact, WorkItem(3096, "https://github.com/dotnet/roslyn/issues/3096")]
+        public void CastToDelegate_03()
+        {
+            var sourceText = @"namespace NS
+{
+    public static class A
+    {
+        public delegate void Action();
+
+        public static void M()
+        {
+            var b = new A.B<string>();
+            RunAction(b.M0);
+            RunAction((Action)b.M1);
+        }
+
+        private static void RunAction(Action action) { }
+
+        public class B<T>
+        {
+        }
+
+        public static void M0<T>(this B<T> x) { }
+        public static void M1<T>(this B<T> x) { }
+    }
+}";
+
+            var compilation = CreateCompilationWithMscorlibAndSystemCore(sourceText, options: TestOptions.DebugDll);
+
+            compilation.VerifyDiagnostics();
+
+            var tree = compilation.SyntaxTrees.Single();
+            var model = compilation.GetSemanticModel(tree);
+
+            var identifierNameM0 = tree
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<IdentifierNameSyntax>()
+                .First(x => x.Parent.IsKind(SyntaxKind.SimpleMemberAccessExpression) && x.Identifier.ValueText.Equals("M0"));
+
+            Assert.Equal("b.M0", identifierNameM0.Parent.ToString());
+            var m0Symbol = model.GetSymbolInfo(identifierNameM0);
+
+            Assert.Equal("void NS.A.B<System.String>.M0<System.String>()", m0Symbol.Symbol.ToTestDisplayString());
+            Assert.Equal(CandidateReason.None, m0Symbol.CandidateReason);
+
+            var identifierNameM1 = tree
+                .GetRoot()
+                .DescendantNodes()
+                .OfType<IdentifierNameSyntax>()
+                .First(x => x.Parent.IsKind(SyntaxKind.SimpleMemberAccessExpression) && x.Identifier.ValueText.Equals("M1"));
+
+            Assert.Equal("b.M1", identifierNameM1.Parent.ToString());
+            var m1Symbol = model.GetSymbolInfo(identifierNameM1);
+
+            Assert.Equal("void NS.A.B<System.String>.M1<System.String>()", m1Symbol.Symbol.ToTestDisplayString());
+            Assert.Equal(CandidateReason.None, m1Symbol.CandidateReason);
         }
     }
 }

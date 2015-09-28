@@ -24,17 +24,17 @@ namespace Microsoft.CodeAnalysis
         /// </summary>
         private partial class CompilationTracker
         {
-            private static readonly Func<ProjectState, string> logBuildCompilationAsync = LogBuildCompilationAsync;
+            private static readonly Func<ProjectState, string> s_logBuildCompilationAsync = LogBuildCompilationAsync;
 
-            public ProjectState ProjectState { get; private set; }
+            public ProjectState ProjectState { get; }
 
             /// <summary>
             /// Access via the <see cref="ReadState"/> and <see cref="WriteState"/> methods.
             /// </summary>
-            private State stateDoNotAccessDirectly;
+            private State _stateDoNotAccessDirectly;
 
             // guarantees only one thread is building at a time
-            private readonly AsyncSemaphore buildLock = new AsyncSemaphore(initialCount: 1);
+            private readonly SemaphoreSlim _buildLock = new SemaphoreSlim(initialCount: 1);
 
             private CompilationTracker(
                 ProjectState project,
@@ -43,7 +43,7 @@ namespace Microsoft.CodeAnalysis
                 Contract.ThrowIfNull(project);
 
                 this.ProjectState = project;
-                this.stateDoNotAccessDirectly = state;
+                _stateDoNotAccessDirectly = state;
             }
 
             /// <summary>
@@ -57,18 +57,18 @@ namespace Microsoft.CodeAnalysis
 
             private State ReadState()
             {
-                return Volatile.Read(ref this.stateDoNotAccessDirectly);
+                return Volatile.Read(ref _stateDoNotAccessDirectly);
             }
 
             private void WriteState(State state, Solution solution)
             {
-                if (solution.solutionServices.SupportsCachingRecoverableObjects)
+                if (solution._solutionServices.SupportsCachingRecoverableObjects)
                 {
                     // Allow the cache service to create a strong reference to the compilation
-                    solution.solutionServices.CacheService.CacheObjectIfCachingEnabledForKey(this.ProjectState.Id, state, state.Compilation.GetValue());
+                    solution._solutionServices.CacheService.CacheObjectIfCachingEnabledForKey(this.ProjectState.Id, state, state.Compilation.GetValue());
                 }
 
-                Volatile.Write(ref this.stateDoNotAccessDirectly, state);
+                Volatile.Write(ref _stateDoNotAccessDirectly, state);
             }
 
             /// <summary>
@@ -322,7 +322,7 @@ namespace Microsoft.CodeAnalysis
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    using (await this.buildLock.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))
+                    using (await _buildLock.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))
                     {
                         var state = this.ReadState();
 
@@ -379,7 +379,7 @@ namespace Microsoft.CodeAnalysis
                 try
                 {
                     using (Logger.LogBlock(FunctionId.Workspace_Project_CompilationTracker_BuildCompilationAsync,
-                                           logBuildCompilationAsync, this.ProjectState, cancellationToken))
+                                           s_logBuildCompilationAsync, this.ProjectState, cancellationToken))
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -396,7 +396,7 @@ namespace Microsoft.CodeAnalysis
                         // build this compilation at a time.
                         if (lockGate)
                         {
-                            using (await this.buildLock.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))
+                            using (await _buildLock.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))
                             {
                                 return await BuildCompilationAsync(solution, cancellationToken).ConfigureAwait(false);
                             }
@@ -701,14 +701,14 @@ namespace Microsoft.CodeAnalysis
                         var projectId = this.ProjectState.Id;
                         var version = await this.GetDependentSemanticVersionAsync(solution, cancellationToken).ConfigureAwait(false);
 
-                        // get or build compilation up to decleration state. this compilation will be used to provide live xml doc comment
+                        // get or build compilation up to declaration state. this compilation will be used to provide live xml doc comment
                         var declarationCompilation = await this.GetOrBuildDeclarationCompilationAsync(solution, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                         MetadataReference reference;
                         if (!MetadataOnlyReference.TryGetReference(solution, projectReference, declarationCompilation, version, out reference))
                         {
                             // using async build lock so we don't get multiple consumers attempting to build metadata-only images for the same compilation.
-                            using (await this.buildLock.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))
+                            using (await _buildLock.DisposableWaitAsync(cancellationToken).ConfigureAwait(false))
                             {
                                 // okay, we still don't have one. bring the compilation to final state since we are going to use it to create skeleton assembly
                                 var compilation = await this.GetOrBuildCompilationAsync(solution, lockGate: false, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -762,18 +762,18 @@ namespace Microsoft.CodeAnalysis
 
             // Dependent Versions are stored on compilation tracker so they are more likely to survive when unrelated solution branching occurs.
 
-            private AsyncLazy<VersionStamp> lazyDependentVersion;
-            private AsyncLazy<VersionStamp> lazyDependentSemanticVersion;
+            private AsyncLazy<VersionStamp> _lazyDependentVersion;
+            private AsyncLazy<VersionStamp> _lazyDependentSemanticVersion;
 
             public async Task<VersionStamp> GetDependentVersionAsync(Solution solution, CancellationToken cancellationToken)
             {
-                if (this.lazyDependentVersion == null)
+                if (_lazyDependentVersion == null)
                 {
                     // note: solution is captured here, but it will go away once GetValueAsync executes.
-                    Interlocked.CompareExchange(ref this.lazyDependentVersion, new AsyncLazy<VersionStamp>(c => ComputeDependentVersionAsync(solution, c), cacheResult: true), null);
+                    Interlocked.CompareExchange(ref _lazyDependentVersion, new AsyncLazy<VersionStamp>(c => ComputeDependentVersionAsync(solution, c), cacheResult: true), null);
                 }
 
-                return await this.lazyDependentVersion.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                return await _lazyDependentVersion.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }
 
             private async Task<VersionStamp> ComputeDependentVersionAsync(Solution solution, CancellationToken cancellationToken)
@@ -799,13 +799,13 @@ namespace Microsoft.CodeAnalysis
 
             public async Task<VersionStamp> GetDependentSemanticVersionAsync(Solution solution, CancellationToken cancellationToken)
             {
-                if (this.lazyDependentSemanticVersion == null)
+                if (_lazyDependentSemanticVersion == null)
                 {
                     // note: solution is captured here, but it will go away once GetValueAsync executes.
-                    Interlocked.CompareExchange(ref this.lazyDependentSemanticVersion, new AsyncLazy<VersionStamp>(c => ComputeDependentSemanticVersionAsync(solution, c), cacheResult: true), null);
+                    Interlocked.CompareExchange(ref _lazyDependentSemanticVersion, new AsyncLazy<VersionStamp>(c => ComputeDependentSemanticVersionAsync(solution, c), cacheResult: true), null);
                 }
 
-                return await this.lazyDependentSemanticVersion.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                return await _lazyDependentSemanticVersion.GetValueAsync(cancellationToken).ConfigureAwait(false);
             }
 
             private async Task<VersionStamp> ComputeDependentSemanticVersionAsync(Solution solution, CancellationToken cancellationToken)

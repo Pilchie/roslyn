@@ -1,4 +1,4 @@
-﻿' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+' Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
 Imports System.IO
 Imports System.Linq
@@ -406,7 +406,7 @@ End Namespace
             Dim typeBlocks = n1Syntax.DescendantNodes().OfType(Of TypeBlockSyntax)()
             For Each tb In typeBlocks
                 sym1 = model1.GetDeclaredSymbol(DirectCast(tb, VisualBasicSyntaxNode))
-                sym2 = model1.GetDeclaredSymbol(DirectCast(tb.Begin, VisualBasicSyntaxNode))
+                sym2 = model1.GetDeclaredSymbol(DirectCast(tb.BlockStatement, VisualBasicSyntaxNode))
                 Assert.Equal(sym1.ToDisplayString(SymbolDisplayFormat.TestFormat), sym2.ToDisplayString(SymbolDisplayFormat.TestFormat))
                 Assert.Equal(sym1, sym2)
             Next
@@ -424,14 +424,14 @@ End Namespace
             sym1 = model1.GetDeclaredSymbol(DirectCast(c1Syntax, VisualBasicSyntaxNode))
             Assert.Equal("N1.C1", sym1.ToDisplayString(SymbolDisplayFormat.TestFormat))
 
-            sym2 = model1.GetDeclaredSymbol(DirectCast(c1Syntax.Begin, VisualBasicSyntaxNode))
+            sym2 = model1.GetDeclaredSymbol(DirectCast(c1Syntax.BlockStatement, VisualBasicSyntaxNode))
             Assert.Equal(sym1, sym2)
 
             ' Test MethodBlock Members of C1
             Dim methodBlocks = c1Syntax.DescendantNodes().OfType(Of MethodBlockSyntax)()
             For Each mb In methodBlocks
                 sym1 = model1.GetDeclaredSymbol(DirectCast(mb, VisualBasicSyntaxNode))
-                sym2 = model1.GetDeclaredSymbol(DirectCast(mb.Begin, VisualBasicSyntaxNode))
+                sym2 = model1.GetDeclaredSymbol(DirectCast(mb.BlockStatement, VisualBasicSyntaxNode))
                 Assert.Equal(sym1.ToDisplayString(SymbolDisplayFormat.TestFormat), sym2.ToDisplayString(SymbolDisplayFormat.TestFormat))
                 Assert.Equal(sym1, sym2)
             Next
@@ -1421,7 +1421,7 @@ End Module
 
             Dim treeA = CompilationUtils.GetTree(compilation, "a.vb")
             Dim bindingsA = compilation.GetSemanticModel(treeA)
-            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("lambdaParam")).Parent
+            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("lambdaParam", StringComparison.Ordinal)).Parent
             Dim symbol = bindingsA.GetDeclaredSymbolFromSyntaxNode(node)
 
             Assert.NotNull(symbol)
@@ -1628,13 +1628,19 @@ Imports VB6 = Microsoft.VisualBasic
     </file>
 </compilation>, options)
 
+            compilation.AssertTheseDiagnostics(<expected>
+BC40056: Namespace or type specified in the Imports 'Microsoft.VisualBasic' doesn't contain any public member or cannot be found. Make sure the namespace or the type is defined and contains at least one public member. Make sure the imported element name doesn't use any aliases.
+Imports VB6 = Microsoft.VisualBasic
+              ~~~~~~~~~~~~~~~~~~~~~
+                                               </expected>)
+
             Dim treeA = CompilationUtils.GetTree(compilation, "a.vb")
             Dim bindingsA = compilation.GetSemanticModel(treeA)
-            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("VB6")).Parent.Parent
+            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("VB6", StringComparison.Ordinal)).Parent.Parent
             Dim symbol = bindingsA.GetDeclaredSymbol(node)
 
             Assert.Equal(SyntaxKind.SimpleImportsClause, node.Kind)
-            Assert.Null(symbol)
+            Assert.Equal("VB6=Microsoft.VisualBasic", symbol.ToTestDisplayString())
 
         End Sub
 
@@ -2131,7 +2137,7 @@ End Class
 
             Dim tree = CompilationUtils.GetTree(compilation, "a.vb")
             Dim semanticModel = compilation.GetSemanticModel(tree)
-            Dim node = tree.GetCompilationUnitRoot().FindToken(tree.GetCompilationUnitRoot().ToFullString().IndexOf("F(2)")).Parent
+            Dim node = tree.GetCompilationUnitRoot().FindToken(tree.GetCompilationUnitRoot().ToFullString().IndexOf("F(2)", StringComparison.Ordinal)).Parent
             Dim symbol = DirectCast(semanticModel.GetDeclaredSymbol(node), FieldSymbol)
             Assert.Equal("F", symbol.Name)
             Assert.Equal("System.Int32()", symbol.Type.ToTestDisplayString())
@@ -2494,22 +2500,22 @@ End Namespace
 
             Dim treeA = CompilationUtils.GetTree(compilation, "a.vb")
             Dim bindingsA = compilation.GetSemanticModel(treeA)
-            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate")).Parent
+            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", StringComparison.Ordinal)).Parent
             Assert.Equal(SyntaxKind.DelegateFunctionStatement, node.Kind)
             Dim symbol = bindingsA.GetDeclaredSymbol(node)
             Assert.Equal("Foo.Bar.Server.FD", symbol.ToString())
 
-            node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", 30)).Parent
+            node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", 30, StringComparison.Ordinal)).Parent
             Assert.Equal(SyntaxKind.DelegateSubStatement, node.Kind)
             symbol = bindingsA.GetDeclaredSymbol(node)
             Assert.Equal("Foo.Bar.Server.FD2", symbol.ToString())
 
-            node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", 140)).Parent
+            node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", 140, StringComparison.Ordinal)).Parent
             Assert.Equal(SyntaxKind.DelegateFunctionStatement, node.Kind)
             symbol = bindingsA.GetDeclaredSymbol(node)
             Assert.Equal("Foo.Bar.Server.C1.FD3", symbol.ToString())
 
-            node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", 160)).Parent
+            node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("Delegate", 160, StringComparison.Ordinal)).Parent
             Assert.Equal(SyntaxKind.DelegateSubStatement, node.Kind)
             symbol = bindingsA.GetDeclaredSymbol(node)
             Assert.Equal("Foo.Bar.Server.C1.FD4", symbol.ToString())
@@ -2536,7 +2542,7 @@ End Module
 
             Dim treeA = CompilationUtils.GetTree(compilation, "a.vb")
             Dim bindingsA = compilation.GetSemanticModel(treeA)
-            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("lambdaParam")).Parent
+            Dim node = treeA.GetCompilationUnitRoot().FindToken(treeA.GetCompilationUnitRoot().ToFullString().IndexOf("lambdaParam", StringComparison.Ordinal)).Parent
             Dim symbol = bindingsA.GetDeclaredSymbolFromSyntaxNode(node)
 
             Assert.NotNull(symbol)
@@ -2828,7 +2834,7 @@ End Module
         End Sub
 
         <Fact(), WorkItem(545106, "DevDiv")>
-        Public Sub GetDeclaedSymbolForDeclaredControlVariable()
+        Public Sub GetDeclaredSymbolForDeclaredControlVariable()
             Dim compilation = CreateCompilationWithMscorlibAndVBRuntime(
 <compilation>
     <file name="a.vb"><![CDATA[

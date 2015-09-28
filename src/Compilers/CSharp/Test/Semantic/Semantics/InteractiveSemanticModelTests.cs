@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
@@ -44,7 +45,6 @@ namespace Foo.Bar
         [Fact]
         public void CompilationChain_OverloadsWithParams()
         {
-
             CompileAndVerifyBindInfo(@"
 public static string[] str = null;
 public static void Foo(string[] r, string i) { str = r;}
@@ -91,7 +91,7 @@ void Foo() {};
         }
 
         [Fact]
-        public void BindBoolenField()
+        public void BindBooleanField()
         {
             var testSrc = @"
 bool result = true ;
@@ -293,10 +293,10 @@ var x = from c in ""foo"" select /*<bind>*/c/*</bind>*/";
                 string exprFullText = node.ToFullString();
                 exprFullText = exprFullText.Trim();
 
-                if (exprFullText.StartsWith("/*<bind>*/"))
+                if (exprFullText.StartsWith("/*<bind>*/", StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains("/*</bind>*/"))
-                        if (exprFullText.EndsWith("/*</bind>*/"))
+                        if (exprFullText.EndsWith("/*</bind>*/", StringComparison.Ordinal))
                             return node;
                         else
                             continue;
@@ -304,10 +304,10 @@ var x = from c in ""foo"" select /*<bind>*/c/*</bind>*/";
                         return node;
                 }
 
-                if (exprFullText.EndsWith("/*</bind>*/"))
+                if (exprFullText.EndsWith("/*</bind>*/", StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains("/*<bind>*/"))
-                        if (exprFullText.StartsWith("/*<bind>*/"))
+                        if (exprFullText.StartsWith("/*<bind>*/", StringComparison.Ordinal))
                             return node;
                         else
                             continue;
@@ -350,11 +350,11 @@ var x = from c in ""foo"" select /*<bind>*/c/*</bind>*/";
                 string exprFullText = exprSyntax.ToFullString();
                 exprFullText = exprFullText.Trim();
 
-                if (exprFullText.StartsWith("/*<bind>*/"))
+                if (exprFullText.StartsWith("/*<bind>*/", StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains("/*</bind>*/"))
                     {
-                        if (exprFullText.EndsWith("/*</bind>*/"))
+                        if (exprFullText.EndsWith("/*</bind>*/", StringComparison.Ordinal))
                         {
                             return exprSyntax;
                         }
@@ -369,11 +369,11 @@ var x = from c in ""foo"" select /*<bind>*/c/*</bind>*/";
                     }
                 }
 
-                if (exprFullText.EndsWith("/*</bind>*/"))
+                if (exprFullText.EndsWith("/*</bind>*/", StringComparison.Ordinal))
                 {
                     if (exprFullText.Contains("/*<bind>*/"))
                     {
-                        if (exprFullText.StartsWith("/*<bind>*/"))
+                        if (exprFullText.StartsWith("/*<bind>*/", StringComparison.Ordinal))
                         {
                             return exprSyntax;
                         }

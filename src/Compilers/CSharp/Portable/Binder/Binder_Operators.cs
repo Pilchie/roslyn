@@ -30,7 +30,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     case BinaryOperatorKind.Subtraction:
                         return BindEventAssignment(node, (BoundEventAccess)left, right, kindOperator, diagnostics);
 
-                        // fallthrough for other operators, if RHS is dynamic we produce dynamic operation, otherwise we'll report an error ...
+                        // fall-through for other operators, if RHS is dynamic we produce dynamic operation, otherwise we'll report an error ...
                 }
             }
 
@@ -255,7 +255,6 @@ namespace Microsoft.CodeAnalysis.CSharp
                     // CONSIDER: better error code?  ERR_EventNeedsBothAccessors?
                     Error(diagnostics, ErrorCode.ERR_MissingPredefinedMember, node, delegateType, SourceEventSymbol.GetAccessorName(eventSymbol.Name, isAddition));
                 }
-
             }
             else if (eventSymbol.IsWindowsRuntimeEvent)
             {
@@ -1251,8 +1250,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case BinaryOperatorKind.UnderlyingAndEnumSubtraction:
                     return right.Type;
                 default:
-                    Debug.Assert(false, "Unexpected non-enum operation in GetEnumType");
-                    return null;
+                    throw ExceptionUtilities.UnexpectedValue(kind);
             }
         }
 
@@ -1273,8 +1271,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     return underlyingType;
 
                 default:
-                    Debug.Assert(false, "Unexpected underlying enum type.");
-                    return underlyingType;
+                    throw ExceptionUtilities.UnexpectedValue(underlyingType);
             }
         }
 
@@ -1338,8 +1335,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                     break;
 
                 default:
-                    Debug.Assert(false, "Unexpected operator kind");
-                    break;
+                    throw ExceptionUtilities.UnexpectedValue(newKind.Operator());
             }
 
             var constantValue = FoldBinaryOperator(syntax, newKind, newLeftOperand, newRightOperand, operatorType, diagnostics);
@@ -1436,7 +1432,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             {
                 if (concatResult.IsBad)
                 {
-                    Error(diagnostics, ErrorCode.ERR_ContantStringTooLong, syntax);
+                    Error(diagnostics, ErrorCode.ERR_ConstantStringTooLong, syntax);
                 }
 
                 return concatResult;
@@ -1807,10 +1803,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case SyntaxKind.ExclusiveOrExpression: return BinaryOperatorKind.Xor;
                 case SyntaxKind.LogicalAndExpression: return BinaryOperatorKind.LogicalAnd;
                 case SyntaxKind.LogicalOrExpression: return BinaryOperatorKind.LogicalOr;
+                default: throw ExceptionUtilities.UnexpectedValue(kind);
             }
-
-            Debug.Assert(false, "Bad syntax kind in binary operator binding");
-            return BinaryOperatorKind.Error;
         }
 
         private BoundExpression BindIncrementOperator(CSharpSyntaxNode node, ExpressionSyntax operandSyntax, SyntaxToken operatorToken, DiagnosticBag diagnostics)
@@ -2376,10 +2370,8 @@ namespace Microsoft.CodeAnalysis.CSharp
                 case SyntaxKind.UnaryMinusExpression: return UnaryOperatorKind.UnaryMinus;
                 case SyntaxKind.LogicalNotExpression: return UnaryOperatorKind.LogicalNegation;
                 case SyntaxKind.BitwiseNotExpression: return UnaryOperatorKind.BitwiseComplement;
+                default: throw ExceptionUtilities.UnexpectedValue(kind);
             }
-
-            Debug.Assert(false, "Bad syntax kind in unary operator binding");
-            return UnaryOperatorKind.Error;
         }
 
         private static BindValueKind GetBinaryAssignmentKind(SyntaxKind kind)
@@ -2439,7 +2431,7 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return null;
             }
 
-            if (operand.Syntax.Kind() != SyntaxKind.NumericLiteralExpression)
+            if (node.Operand != operand.Syntax || operand.Syntax.Kind() != SyntaxKind.NumericLiteralExpression)
             {
                 return null;
             }
@@ -2538,12 +2530,12 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return new BoundIsOperator(node, operand, typeExpression, Conversion.NoConversion, resultType, hasErrors: true);
             }
 
-            // BREAKING CHANGE: The native compiler allows "x is C" where C is a static class. This
-            // BREAKING CHANGE: is strictly illegal according to the specification (see the section
-            // BREAKING CHANGE: called "Referencing Static Class Types".) We break with the native
-            // BREAKING CHANGE: compiler here and turn this into an error, as it should be.
-
-            if (targetType.IsStatic)
+            // The native compiler allows "x is C" where C is a static class. This
+            // is strictly illegal according to the specification (see the section
+            // called "Referencing Static Class Types".) To retain compatibility we
+            // allow it, but when /feature:strict is enabled we break with the native
+            // compiler and turn this into an error, as it should be.
+            if (targetType.IsStatic && Compilation.FeatureStrictEnabled)
             {
                 Error(diagnostics, ErrorCode.ERR_StaticInAsOrIs, node, targetType);
                 return new BoundIsOperator(node, operand, typeExpression, Conversion.NoConversion, resultType, hasErrors: true);
@@ -2632,7 +2624,6 @@ namespace Microsoft.CodeAnalysis.CSharp
 
         internal static ConstantValue GetIsOperatorConstantResult(TypeSymbol operandType, TypeSymbol targetType, ConversionKind conversionKind, ConstantValue operandConstantValue)
         {
-
             Debug.Assert((object)targetType != null);
 
             // SPEC:    The result of the operation depends on D and T as follows:
@@ -2883,7 +2874,7 @@ namespace Microsoft.CodeAnalysis.CSharp
             // Is and As operator should have null ConstantValue as they are not constant expressions.
             // However we perform analysis of is/as expressions at bind time to detect if the expression 
             // will always evaluate to a constant to generate warnings (always true/false/null).
-            // We also need this analysis result during rewrite to optimize away redundant isint instructions.
+            // We also need this analysis result during rewrite to optimize away redundant isinst instructions.
             // We store the conversion kind from expression's operand type to target type to enable these
             // optimizations during is/as operator rewrite.            
 
@@ -2926,15 +2917,16 @@ namespace Microsoft.CodeAnalysis.CSharp
                 return new BoundAsOperator(node, operand, typeExpression, Conversion.NoConversion, resultType, hasErrors: true);
             }
 
-            // BREAKING CHANGE: The C# specification states in the section called 
-            // BREAKING CHANGE: "Referencing Static Class Types" that it is always
-            // BREAKING CHANGE: illegal to use "as" with a static type. The
-            // BREAKING CHANGE: native compiler actually allows "null as C" for
-            // BREAKING CHANGE: a static type C to be an expression of type C.
-            // BREAKING CHANGE: It also allows "someObject as C" if "someObject"
-            // BREAKING CHANGE: is of type object.
-
-            if (targetType.IsStatic)
+            // The C# specification states in the section called 
+            // "Referencing Static Class Types" that it is always
+            // illegal to use "as" with a static type. The
+            // native compiler actually allows "null as C" for
+            // a static type C to be an expression of type C.
+            // It also allows "someObject as C" if "someObject"
+            // is of type object. To retain compatibility we
+            // allow it, but when /feature:strict is enabled we break with the native
+            // compiler and turn this into an error, as it should be.
+            if (targetType.IsStatic && Compilation.FeatureStrictEnabled)
             {
                 Error(diagnostics, ErrorCode.ERR_StaticInAsOrIs, node, targetType);
                 return new BoundAsOperator(node, operand, typeExpression, Conversion.NoConversion, resultType, hasErrors: true);

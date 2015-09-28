@@ -3,16 +3,12 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Instrumentation;
-using Microsoft.CodeAnalysis.Text;
 using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.CSharp
@@ -269,29 +265,26 @@ namespace Microsoft.CodeAnalysis.CSharp
         #region serialization
 
 
-        private static readonly RecordingObjectBinder defaultBinder = new ConcurrentRecordingObjectBinder();
+        private static readonly RecordingObjectBinder s_defaultBinder = new ConcurrentRecordingObjectBinder();
 
         /// <summary>
         /// Serialize the syntax node into a byte stream.
         /// </summary>
         public override void SerializeTo(Stream stream, CancellationToken cancellationToken = default(CancellationToken))
         {
-            using (Logger.LogBlock(FunctionId.CSharp_SyntaxNode_SerializeTo, cancellationToken: cancellationToken))
+            if (stream == null)
             {
-                if (stream == null)
-                {
-                    throw new ArgumentNullException("stream");
-                }
+                throw new ArgumentNullException(nameof(stream));
+            }
 
-                if (!stream.CanWrite)
-                {
-                    throw new InvalidOperationException(CSharpResources.TheStreamCannotBeWritten);
-                }
+            if (!stream.CanWrite)
+            {
+                throw new InvalidOperationException(CSharpResources.TheStreamCannotBeWritten);
+            }
 
-                using (var writer = new ObjectWriter(stream, GetDefaultObjectWriterData(), binder: defaultBinder, cancellationToken: cancellationToken))
-                {
-                    writer.WriteValue(this.Green);
-                }
+            using (var writer = new ObjectWriter(stream, GetDefaultObjectWriterData(), binder: s_defaultBinder, cancellationToken: cancellationToken))
+            {
+                writer.WriteValue(this.Green);
             }
         }
 
@@ -300,55 +293,52 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// </summary>
         public static SyntaxNode DeserializeFrom(Stream stream, CancellationToken cancellationToken = default(CancellationToken))
         {
-            using (Logger.LogBlock(FunctionId.CSharp_SyntaxNode_DeserializeFrom, cancellationToken: cancellationToken))
+            if (stream == null)
             {
-                if (stream == null)
-                {
-                    throw new ArgumentNullException("stream");
-                }
+                throw new ArgumentNullException(nameof(stream));
+            }
 
-                if (!stream.CanRead)
-                {
-                    throw new InvalidOperationException(CSharpResources.TheStreamCannotBeReadFrom);
-                }
+            if (!stream.CanRead)
+            {
+                throw new InvalidOperationException(CSharpResources.TheStreamCannotBeReadFrom);
+            }
 
-                using (var reader = new ObjectReader(stream, defaultData: GetDefaultObjectReaderData(), binder: defaultBinder))
-                {
-                    var root = (Syntax.InternalSyntax.CSharpSyntaxNode)reader.ReadValue();
-                    return root.CreateRed();
-                }
+            using (var reader = new ObjectReader(stream, defaultData: GetDefaultObjectReaderData(), binder: s_defaultBinder))
+            {
+                var root = (Syntax.InternalSyntax.CSharpSyntaxNode)reader.ReadValue();
+                return root.CreateRed();
             }
         }
 
-        private static ObjectWriterData defaultObjectWriterData;
+        private static ObjectWriterData s_defaultObjectWriterData;
         private static ObjectWriterData GetDefaultObjectWriterData()
         {
-            if (defaultObjectWriterData == null)
+            if (s_defaultObjectWriterData == null)
             {
                 var data = new ObjectWriterData(GetSerializationData());
-                Interlocked.CompareExchange(ref defaultObjectWriterData, data, null);
+                Interlocked.CompareExchange(ref s_defaultObjectWriterData, data, null);
             }
 
-            return defaultObjectWriterData;
+            return s_defaultObjectWriterData;
         }
 
-        private static ObjectReaderData defaultObjectReaderData;
+        private static ObjectReaderData s_defaultObjectReaderData;
         private static ObjectReaderData GetDefaultObjectReaderData()
         {
-            if (defaultObjectReaderData == null)
+            if (s_defaultObjectReaderData == null)
             {
                 var data = new ObjectReaderData(GetSerializationData());
-                Interlocked.CompareExchange(ref defaultObjectReaderData, data, null);
+                Interlocked.CompareExchange(ref s_defaultObjectReaderData, data, null);
             }
 
-            return defaultObjectReaderData;
+            return s_defaultObjectReaderData;
         }
 
-        private static IEnumerable<object> serializationData;
+        private static IEnumerable<object> s_serializationData;
 
         private static IEnumerable<object> GetSerializationData()
         {
-            if (serializationData == null)
+            if (s_serializationData == null)
             {
                 var data =
                     // known assemblies names and types (not in generated list)
@@ -398,10 +388,10 @@ namespace Microsoft.CodeAnalysis.CSharp
                         })
                     .ToImmutableArray();
 
-                System.Threading.Interlocked.CompareExchange(ref serializationData, data, null);
+                System.Threading.Interlocked.CompareExchange(ref s_serializationData, data, null);
             }
 
-            return serializationData;
+            return s_serializationData;
         }
         #endregion
 
@@ -449,6 +439,16 @@ namespace Microsoft.CodeAnalysis.CSharp
         public new IEnumerable<Diagnostic> GetDiagnostics()
         {
             return this.SyntaxTree.GetDiagnostics(this);
+        }
+
+        internal sealed override SyntaxNode TryGetCorrespondingLambdaBody(SyntaxNode body)
+        {
+            return LambdaUtilities.TryGetCorrespondingLambdaBody(body, this);
+        }
+
+        internal override SyntaxNode GetLambda()
+        {
+            return LambdaUtilities.GetLambda(this);
         }
 
         #region Directives
@@ -551,7 +551,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (!FullSpan.Contains(position))
             {
-                throw new ArgumentOutOfRangeException("position");
+                throw new ArgumentOutOfRangeException(nameof(position));
             }
 
             SyntaxNodeOrToken childNodeOrToken = ChildSyntaxList.ChildThatContainsPosition(this, position);
@@ -574,7 +574,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns></returns>
         public new SyntaxToken GetFirstToken(bool includeZeroWidth = false, bool includeSkipped = false, bool includeDirectives = false, bool includeDocumentationComments = false)
         {
-            return (SyntaxToken)base.GetFirstToken(includeZeroWidth, includeSkipped, includeDirectives, includeDocumentationComments);
+            return base.GetFirstToken(includeZeroWidth, includeSkipped, includeDirectives, includeDocumentationComments);
         }
 
         /// <summary>
@@ -587,7 +587,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns></returns>
         internal SyntaxToken GetFirstToken(Func<SyntaxToken, bool> predicate, Func<SyntaxTrivia, bool> stepInto = null)
         {
-            return (SyntaxToken)SyntaxNavigator.Instance.GetFirstToken(this, SyntaxNavigator.ToCommon(predicate), SyntaxNavigator.ToCommon(stepInto));
+            return SyntaxNavigator.Instance.GetFirstToken(this, predicate, stepInto);
         }
 
         /// <summary>
@@ -602,7 +602,7 @@ namespace Microsoft.CodeAnalysis.CSharp
         /// <returns></returns>
         public new SyntaxToken GetLastToken(bool includeZeroWidth = false, bool includeSkipped = false, bool includeDirectives = false, bool includeDocumentationComments = false)
         {
-            return (SyntaxToken)base.GetLastToken(includeZeroWidth, includeSkipped, includeDirectives, includeDocumentationComments);
+            return base.GetLastToken(includeZeroWidth, includeSkipped, includeDirectives, includeDocumentationComments);
         }
 
         internal SyntaxToken FindTokenInternal(int position)
@@ -714,7 +714,7 @@ namespace Microsoft.CodeAnalysis.CSharp
 
             if (!this.FullSpan.Contains(position))
             {
-                throw new ArgumentOutOfRangeException("position");
+                throw new ArgumentOutOfRangeException(nameof(position));
             }
 
             return this.FindTokenInternal(position);
@@ -963,9 +963,9 @@ namespace Microsoft.CodeAnalysis.CSharp
             return SyntaxNodeRemover.RemoveNodes(this, nodes.Cast<CSharpSyntaxNode>(), options);
         }
 
-        protected internal override SyntaxNode NormalizeWhitespaceCore(string indentation, bool elasticTrivia)
+        protected internal override SyntaxNode NormalizeWhitespaceCore(string indentation, string eol, bool elasticTrivia)
         {
-            return SyntaxFormatter.Format(this, indentation, elasticTrivia);
+            return SyntaxNormalizer.Normalize(this, indentation, eol, elasticTrivia);
         }
 
         protected override bool IsEquivalentToCore(SyntaxNode node, bool topLevel = false)

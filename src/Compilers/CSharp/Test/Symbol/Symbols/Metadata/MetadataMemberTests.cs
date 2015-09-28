@@ -1,12 +1,13 @@
-﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
+// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.CodeAnalysis.CSharp.Symbols;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp.Test.Utilities;
 using Microsoft.CodeAnalysis.Test.Utilities;
 using Roslyn.Test.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
 namespace Microsoft.CodeAnalysis.CSharp.UnitTests
@@ -390,7 +391,7 @@ class C
             Assert.Equal(1, classC.GetMembers(WellKnownMemberNames.StaticConstructorName).Length);
         }
 
-        [Fact]
+        [ClrOnlyFact]
         public void ImportDecimalConstantAttribute()
         {
             const string ilSource = @"
@@ -412,7 +413,7 @@ class B {
   }
 }
 ";
-            CompileWithCustomILSource(cSharpSource, ilSource, emitOptions: TestEmitters.RefEmitBug, expectedOutput: "10");
+            CompileWithCustomILSource(cSharpSource, ilSource, expectedOutput: "10");
         }
 
         [Fact]
@@ -430,7 +431,7 @@ class B {
             var csharp = @"";
 
             var compilation = CreateCompilationWithCustomILSource(csharp, il);
-            
+
             var namespaceA = compilation.GlobalNamespace.GetMember<NamespaceSymbol>("A");
 
             var members = namespaceA.GetMembers("B");
@@ -472,9 +473,9 @@ class B {
 
             var comp = CreateCompilationWithCustomILSource(csharp, VTableGapClassIL);
             comp.VerifyDiagnostics();
-            
+
             var type = comp.GlobalNamespace.GetMember<NamedTypeSymbol>("Class");
-            AssertEx.None(type.GetMembersUnordered(), symbol => symbol.Name.StartsWith("_VtblGap"));
+            AssertEx.None(type.GetMembersUnordered(), symbol => symbol.Name.StartsWith("_VtblGap", StringComparison.Ordinal));
 
             // Dropped entirely.
             Assert.Equal(0, type.GetMembers("_VtblGap1_1").Length);
@@ -669,6 +670,5 @@ class Test
                 Assert.True(memberNames2.Contains(m), m);
             }
         }
-
     }
 }

@@ -6,7 +6,7 @@ Imports PrimitiveTypeCode = Microsoft.Cci.PrimitiveTypeCode
 
 Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
 
-    Partial Class CodeGenerator
+    Friend Partial Class CodeGenerator
 
         Private Shared Function IsSimpleType(type As PrimitiveTypeCode) As Boolean
             Dim result = False
@@ -390,8 +390,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.CodeGen
         End Sub
 
         Private Function ConversionHasSideEffects(conversion As BoundConversion) As Boolean
-            ' only some intrinsic conversions are sideeffect free
-            ' the only sideeffect of an intrinsic conversion is a throw when we fail to convert.
+            ' only some intrinsic conversions are side-effect free
+            ' the only side-effect of an intrinsic conversion is a throw when we fail to convert.
             ' 
             ' unchecked numeric conv does not throw
             ' implicit ref cast does not throw

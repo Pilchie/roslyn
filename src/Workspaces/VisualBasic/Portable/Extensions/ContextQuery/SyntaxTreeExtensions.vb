@@ -69,9 +69,9 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
             ' If we're within a method/event/property, then always no
             Dim method = targetToken.GetAncestor(Of MethodBlockBaseSyntax)()
             If method IsNot Nothing AndAlso
-               (method.End Is Nothing OrElse
-                method.End.IsMissing OrElse
-                method.End.BlockKeyword <> targetToken) Then
+               (method.EndBlockStatement Is Nothing OrElse
+                method.EndBlockStatement.IsMissing OrElse
+                method.EndBlockStatement.BlockKeyword <> targetToken) Then
 
                 Return False
             End If
@@ -387,7 +387,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
             If syntaxTree.IsInPreprocessorDirectiveContext(position, cancellationToken) OrElse
                syntaxTree.IsInInactiveRegion(position, cancellationToken) OrElse
                syntaxTree.IsEntirelyWithinComment(position, cancellationToken) OrElse
-               syntaxTree.IsEntirelyWithinStringOrCharLiteral(position, cancellationToken) Then
+               syntaxTree.IsEntirelyWithinStringOrCharOrNumericLiteral(position, cancellationToken) Then
 
                 Return False
             End If
@@ -451,7 +451,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
             If syntaxTree.IsInPreprocessorDirectiveContext(position, cancellationToken) OrElse
                syntaxTree.IsInInactiveRegion(position, cancellationToken) OrElse
                syntaxTree.IsEntirelyWithinComment(position, cancellationToken) OrElse
-               syntaxTree.IsEntirelyWithinStringOrCharLiteral(position, cancellationToken) Then
+               syntaxTree.IsEntirelyWithinStringOrCharOrNumericLiteral(position, cancellationToken) Then
 
                 Return False
             End If
@@ -488,7 +488,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
             Dim statementLambdaHeader = targetToken.GetAncestor(Of LambdaHeaderSyntax)()
             If statementLambdaHeader IsNot Nothing AndAlso statementLambdaHeader.Parent.IsKind(SyntaxKind.SingleLineSubLambdaExpression,
                                                                                                     SyntaxKind.MultiLineSubLambdaExpression) Then
-                Return statementLambdaHeader.ParameterList Is Nothing AndAlso targetToken = statementLambdaHeader.Keyword OrElse
+                Return statementLambdaHeader.ParameterList Is Nothing AndAlso targetToken = statementLambdaHeader.DeclarationKeyword OrElse
                        statementLambdaHeader.ParameterList IsNot Nothing AndAlso targetToken = statementLambdaHeader.ParameterList.CloseParenToken
             End If
 
@@ -496,7 +496,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
         End Function
 
         ' PERF: Use UShort instead of SyntaxKind so the compiler can use array literal initialization.
-        Private ReadOnly multilineStatementBlockStartKinds As SyntaxKind() = DirectCast(New UShort() {
+        Private ReadOnly s_multilineStatementBlockStartKinds As SyntaxKind() = DirectCast(New UShort() {
             SyntaxKind.MultiLineFunctionLambdaExpression,
             SyntaxKind.MultiLineSubLambdaExpression,
             SyntaxKind.SubBlock,
@@ -548,7 +548,7 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
             Return syntaxTree.IsInStatementBlockOfKind(position,
                                                        targetToken,
                                                        cancellationToken,
-                                                       multilineStatementBlockStartKinds)
+                                                       s_multilineStatementBlockStartKinds)
         End Function
 
         <Extension()>
@@ -829,8 +829,8 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.Extensions.ContextQuery
 
             Dim multiLineLambda = TryCast(expression, MultiLineLambdaExpressionSyntax)
             If multiLineLambda IsNot Nothing Then
-                If multiLineLambda.End IsNot Nothing Then
-                    Return multiLineLambda.End.BlockKeyword
+                If multiLineLambda.EndSubOrFunctionStatement IsNot Nothing Then
+                    Return multiLineLambda.EndSubOrFunctionStatement.BlockKeyword
                 End If
             End If
 

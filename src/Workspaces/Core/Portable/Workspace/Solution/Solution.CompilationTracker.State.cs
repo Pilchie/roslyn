@@ -23,11 +23,11 @@ namespace Microsoft.CodeAnalysis
 
                 // strong reference to declaration only compilation. 
                 // this doesn't make any expensive information such as symbols or references alive. just
-                // things like decleration table alive.
-                public Compilation DeclarationOnlyCompilation { get; private set; }
+                // things like declaration table alive.
+                public Compilation DeclarationOnlyCompilation { get; }
 
                 // The compilation available.  May be an InProgress, Full Declaration, or Final compilation
-                public ValueSource<Compilation> Compilation { get; private set; }
+                public ValueSource<Compilation> Compilation { get; }
 
                 // The Final compilation if available, otherwise an empty IValueSource
                 public virtual ValueSource<Compilation> FinalCompilation
@@ -66,7 +66,7 @@ namespace Microsoft.CodeAnalysis
                     // If we don't have any intermediate projects to process, just initialize our
                     // DeclarationState now.
                     return intermediateProjects.Length == 0
-                        ? (State)new FullDeclarationState(compilation)
+                        ? new FullDeclarationState(compilation)
                         : (State)new InProgressState(compilation, intermediateProjects);
                 }
 
@@ -75,7 +75,7 @@ namespace Microsoft.CodeAnalysis
                     SolutionServices services)
                 {
                     return services.SupportsCachingRecoverableObjects
-                        ? (ValueSource<Compilation>)new WeakConstantValueSource<Compilation>(compilation)
+                        ? new WeakConstantValueSource<Compilation>(compilation)
                         : (ValueSource<Compilation>)new ConstantValueSource<Compilation>(compilation);
                 }
             }
@@ -84,7 +84,7 @@ namespace Microsoft.CodeAnalysis
             // DeclarationCompilation from by iteratively processing IntermediateProjects
             private sealed class InProgressState : State
             {
-                public ImmutableArray<ValueTuple<ProjectState, CompilationTranslationAction>> IntermediateProjects { get; private set; }
+                public ImmutableArray<ValueTuple<ProjectState, CompilationTranslationAction>> IntermediateProjects { get; }
 
                 public InProgressState(
                     Compilation inProgressCompilation,

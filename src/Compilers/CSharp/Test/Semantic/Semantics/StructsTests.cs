@@ -183,7 +183,7 @@ class Program
 
         // Overriding base System.Object methods on struct
         [WorkItem(540990, "DevDiv")]
-        [Fact]
+        [ClrOnlyFact(ClrOnlyReason.MemberOrder)]
         public void TestOverridingBaseConstructorStruct()
         {
             var text = @"
@@ -337,12 +337,12 @@ class Test
         {
             var oldMsCorLib = TestReferences.NetFx.v4_0_21006.mscorlib;
 
-            var c1 = CSharpCompilation.Create("C1", 
+            var c1 = CSharpCompilation.Create("C1",
                 new[] { Parse(@"public struct S { }") },
                 new[] { oldMsCorLib },
                 TestOptions.ReleaseDll);
 
-            var c2 = CSharpCompilation.Create("C2", 
+            var c2 = CSharpCompilation.Create("C2",
                 new[] { Parse(@"public class C { void M() { S s = new S(); System.Console.WriteLine(s);} }") },
                 new[] { MscorlibRef, new CSharpCompilationReference(c1) },
                 TestOptions.ReleaseDll);
@@ -361,7 +361,7 @@ class Test
             Assert.True(method.IsDefaultValueTypeConstructor());
 
             //TODO (tomat)
-            CompileAndVerify(c2, emitOptions: TestEmitters.RefEmitBug).VerifyIL("C.M", @"
+            CompileAndVerify(c2).VerifyIL("C.M", @"
 {
   // Code size       20 (0x14)
   .maxstack  1
@@ -441,7 +441,7 @@ public class C
             // Calls constructor (vs initobj), then initobj
             var compilation = CreateCompilationWithCustomILSource(csharpSource, ilSource);
             // TODO (tomat)
-            CompileAndVerify(compilation, emitOptions: TestEmitters.RefEmitBug).VerifyIL("C.M", @"
+            CompileAndVerify(compilation).VerifyIL("C.M", @"
 {
   // Code size       35 (0x23)
   .maxstack  1
@@ -495,7 +495,7 @@ public class C
             // Shouldn't there be an error for trying to call an inaccessible ctor?
             var comp = CreateCompilationWithCustomILSource(csharpSource, ilSource);
 
-            CompileAndVerify(comp, emitOptions: TestEmitters.RefEmitBug).VerifyIL("C.M", @"
+            CompileAndVerify(comp).VerifyIL("C.M", @"
 {
   // Code size       39 (0x27)
   .maxstack  1
@@ -584,7 +584,7 @@ public struct X
         }
 
         [Fact]
-        public void StructParameterlssCtorNotPublic()
+        public void StructParameterlessCtorNotPublic()
         {
             string source = @"
 public struct X
@@ -603,12 +603,12 @@ public struct X1
 
 ";
             CreateExperimentalCompilationWithMscorlib45(source).VerifyDiagnostics(
-    // (4,13): error CS8075: Parameterless struct constructors must be public
-    //     private X()
-    Diagnostic(ErrorCode.ERR_ParameterlessStructCtorsMustBePublic, "X").WithLocation(4, 13),
-    // (11,5): error CS8075: Parameterless struct constructors must be public
+    // (11,5): error CS0568: Structs cannot contain explicit parameterless constructors
     //     X1()
-    Diagnostic(ErrorCode.ERR_ParameterlessStructCtorsMustBePublic, "X1").WithLocation(11, 5)
+    Diagnostic(ErrorCode.ERR_StructsCantContainDefaultConstructor, "X1").WithLocation(11, 5),
+    // (4,13): error CS0568: Structs cannot contain explicit parameterless constructors
+    //     private X()
+    Diagnostic(ErrorCode.ERR_StructsCantContainDefaultConstructor, "X").WithLocation(4, 13)
                 );
         }
     }

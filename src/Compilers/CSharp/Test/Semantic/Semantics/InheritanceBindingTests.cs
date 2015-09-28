@@ -3713,7 +3713,6 @@ abstract class Derived2 : Derived
 }
 ";
             CompileAndVerifyDiagnostics(text, new ErrorDescription[] {
-
                 new ErrorDescription { Code = (int)ErrorCode.WRN_NewOrOverrideExpected, Line = 28, Column = 17, IsWarning = true }, //1
                 new ErrorDescription { Code = (int)ErrorCode.ERR_HidingAbstractMethod, Line = 28, Column = 17, IsWarning = false }, //1.get/set
                 new ErrorDescription { Code = (int)ErrorCode.WRN_NewOrOverrideExpected, Line = 29, Column = 26, IsWarning = true }, //2
@@ -3794,7 +3793,6 @@ abstract class Derived2 : Derived
 }
 ";
             CompileAndVerifyDiagnostics(text, new ErrorDescription[] {
-
                 new ErrorDescription { Code = (int)ErrorCode.WRN_NewOrOverrideExpected, Line = 28, Column = 17, IsWarning = true }, //1
                 new ErrorDescription { Code = (int)ErrorCode.ERR_HidingAbstractMethod, Line = 28, Column = 17, IsWarning = false }, //1.get/set
                 new ErrorDescription { Code = (int)ErrorCode.WRN_NewOrOverrideExpected, Line = 29, Column = 26, IsWarning = true }, //2
@@ -4046,7 +4044,6 @@ public class Derived : Base<int>, Interface<int, int>
 }
 ";
             CreateCompilationWithMscorlib(text).VerifyDiagnostics();
-
         }
 
         [Fact]
@@ -5779,7 +5776,6 @@ class C2 : C1, I1, I2
             var c2Type = comp.Assembly.Modules[0].GlobalNamespace.GetTypeMembers("C2").Single();
             comp.VerifyDiagnostics(DiagnosticDescription.None);
             Assert.True(c2Type.Interfaces.All(iface => iface.Name == "I1" || iface.Name == "I2"));
-
         }
         [WorkItem(540451, "DevDiv")]
         [Fact]
@@ -5837,7 +5833,7 @@ class Class2 : I2 // Implicit implementation
         }
 
         [Fact]
-        public void TestExplicitImplSigntureMismatches()
+        public void TestExplicitImplSignatureMismatches()
         {
             // Tests: 
             // Mismatching ref / out in signature of implemented member
@@ -6677,7 +6673,7 @@ class Test
         public void TestErrorsOverridingGenericNestedClasses_HideTypeParameter()
         {
             // Tests:
-            // In signature / name of overriden member, use generic type whose open type (C<T>) matches signature
+            // In signature / name of overridden member, use generic type whose open type (C<T>) matches signature
             // in base class - but the closed type (C<string> / C<U>) does not match
 
             var source = @"
@@ -7140,9 +7136,9 @@ class Test
                 // (20,23): warning CS0473: Explicit interface implementation 'Explicit.I1<int, int>.Method(int, int[])' matches more than one interface member. Which interface member is actually chosen is implementation-dependent. Consider using a non-explicit implementation instead.
                 Diagnostic(ErrorCode.WRN_ExplicitImplCollision, "Method").WithArguments("Explicit.I1<int, int>.Method(int, int[])"));
         }
-
         [Fact]
-        void TestErrorsOverridingImplementingMember()
+
+        private void TestErrorsOverridingImplementingMember()
         {
             // Tests:
             // Members that implement interface members are usually marked as virtual sealed -
@@ -7235,13 +7231,10 @@ class Derived : Base, I
 }
 class Test
 {
-    public static void Main() { I i = new Derived(); i.Finalze(i.Finalize()); }
+    public static void Main() { I i = new Derived(); i.Finalize(i.Finalize()); }
 }";
 
-            CreateCompilationWithMscorlib(source).VerifyDiagnostics(
-                // (17,56): error CS1061: 'I' does not contain a definition for 'Finalze' and no extension method 'Finalze' accepting a first argument of type 'I' could be found (are you missing a using directive or an assembly reference?)
-                //     public static void Main() { I i = new Derived(); i.Finalze(i.Finalize()); }
-                Diagnostic(ErrorCode.ERR_NoSuchMemberOrExtension, "Finalze").WithArguments("I", "Finalze"));
+            CreateCompilationWithMscorlib(source).VerifyDiagnostics();
         }
 
         [WorkItem(542361, "DevDiv")]

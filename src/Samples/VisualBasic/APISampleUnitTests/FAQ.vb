@@ -42,7 +42,7 @@ Namespace APISampleUnitTestsVB
         Public ReadOnly Property Mscorlib As MetadataReference
             Get
                 If _Mscorlib Is Nothing Then
-                    _Mscorlib = MetadataReference.CreateFromAssembly(GetType(Object).Assembly)
+                    _Mscorlib = MetadataReference.CreateFromFile(GetType(Object).Assembly.Location)
                 End If
                 Return _Mscorlib
             End Get
@@ -66,7 +66,7 @@ Module Program
     End Sub
 End Module
 </text>.Value)
-            Dim vbRuntime = MetadataReference.CreateFromAssembly(GetType(CompilerServices.StandardModuleAttribute).Assembly)
+            Dim vbRuntime = MetadataReference.CreateFromFile(GetType(CompilerServices.StandardModuleAttribute).Assembly.Location)
             Dim comp = VisualBasicCompilation.Create("MyCompilation", syntaxTrees:={tree}, references:={Mscorlib, vbRuntime})
             Dim model = comp.GetSemanticModel(tree)
 
@@ -405,9 +405,9 @@ End Module
             ' Get MethodBlockSyntax corresponding to method C1.M2() above.
             Dim methodDeclaration As MethodBlockSyntax =
                     Aggregate c In tree.GetRoot().DescendantNodes.OfType(Of ClassBlockSyntax)()
-                    Where c.Begin.Identifier.ValueText = "C1"
+                    Where c.ClassStatement.Identifier.ValueText = "C1"
                     From m In c.Members.OfType(Of MethodBlockSyntax)()
-                    Where CType(m.Begin, MethodStatementSyntax).Identifier.ValueText = "M2"
+                    Where CType(m.SubOrFunctionStatement, MethodStatementSyntax).Identifier.ValueText = "M2"
                     Select m
                     Into [Single]()
 
@@ -478,7 +478,7 @@ End Module</text>.Value
             ' Get MethodBlockSyntax corresponding to the 'MethodThatWeAreTryingToFind'.
             Dim methodBlock As MethodBlockSyntax = document1.GetSyntaxRootAsync().Result.DescendantNodes.
                                                                              OfType(Of MethodBlockSyntax).
-                                                                             Single(Function(m) m.Begin.Identifier.ValueText = "MethodThatWeAreTryingToFind")
+                                                                             Single(Function(m) m.SubOrFunctionStatement.Identifier.ValueText = "MethodThatWeAreTryingToFind")
 
             ' Get MethodSymbol corresponding to the 'MethodThatWeAreTryingToFind'.
             Dim method = document1.GetSemanticModelAsync().Result.GetDeclaredSymbol(methodBlock)
@@ -624,7 +624,7 @@ Module Program
 End Module
 </text>.Value)
 
-            Dim vbRuntime = MetadataReference.CreateFromAssembly(GetType(CompilerServices.StandardModuleAttribute).Assembly)
+            Dim vbRuntime = MetadataReference.CreateFromFile(GetType(CompilerServices.StandardModuleAttribute).Assembly.Location)
             Dim comp = VisualBasicCompilation.Create("MyCompilation", syntaxTrees:={tree}, references:={Mscorlib, vbRuntime})
             Dim results = New StringBuilder()
 
@@ -842,7 +842,7 @@ End Module
                     Results.Append(")")
 
                     If trivia.Kind() = SyntaxKind.DocumentationCommentTrivia Then
-                        ' Trivia for xml documentation comments have addditional 'structure'
+                        ' Trivia for xml documentation comments have additional 'structure'
                         ' available under a child DocumentationCommentSyntax.
                         Assert.IsTrue(trivia.HasStructure)
                         Dim documentationComment = CType(trivia.GetStructure(), DocumentationCommentTriviaSyntax)
@@ -1727,9 +1727,9 @@ End Module
 
             Dim model = compilation.GetSemanticModel(tree)
 
-            Dim getMethod As Func(Of String, IMethodSymbol) = Function(name) Aggregate declration In tree.GetRoot().DescendantNodes().OfType(Of MethodStatementSyntax)
-                                                                             Where 0 = String.Compare(name, declration.Identifier.Text, True)
-                                                                             Select model.GetDeclaredSymbol(declration)
+            Dim getMethod As Func(Of String, IMethodSymbol) = Function(name) Aggregate declaration In tree.GetRoot().DescendantNodes().OfType(Of MethodStatementSyntax)
+                                                                             Where 0 = String.Compare(name, declaration.Identifier.Text, True)
+                                                                             Select model.GetDeclaredSymbol(declaration)
                                                                              Into [Single]
 
             Dim methodSymbol As IMethodSymbol
@@ -1894,7 +1894,7 @@ End Class
             ' Get the ClassBlockSyntax corresponding to 'Class C' above.
             Dim classDeclaration As ClassBlockSyntax = tree.GetRoot().DescendantNodes.
                                                                       OfType(Of ClassBlockSyntax).
-                                                                      Single(Function(c) c.Begin.Identifier.ToString() = "C")
+                                                                      Single(Function(c) c.ClassStatement.Identifier.ToString() = "C")
 
             ' Get Symbol corresponding to class C above.
             Dim searchSymbol = model.GetDeclaredSymbol(classDeclaration)
@@ -2230,7 +2230,7 @@ End Module
             Dim newRoot = CType(rewriter.Visit(oldRoot), CompilationUnitSyntax)
             newRoot = newRoot.NormalizeWhitespace() ' normalize all the whitespace to make it legible
             Dim newTree = tree.WithRootAndOptions(newRoot, tree.Options)
-            Dim vbRuntime = MetadataReference.CreateFromAssembly(GetType(CompilerServices.StandardModuleAttribute).Assembly)
+            Dim vbRuntime = MetadataReference.CreateFromFile(GetType(CompilerServices.StandardModuleAttribute).Assembly.Location)
             Dim comp = VisualBasicCompilation.Create("MyCompilation", syntaxTrees:={newTree}, references:={Mscorlib, vbRuntime})
             Dim output As String = Execute(comp)
 
@@ -2377,7 +2377,7 @@ End Module
             Dim _documentId = DocumentId.CreateNewId(_projectId)
 
             Dim systemReference = AppDomain.CurrentDomain.GetAssemblies().Where(Function(x) String.Equals(x.GetName().Name, "System", StringComparison.OrdinalIgnoreCase)).
-                Select(AddressOf MetadataReference.CreateFromAssembly).Single()
+                Select(Function(a) MetadataReference.CreateFromFile(a.Location)).Single()
 
             Dim vbOptions = New VisualBasicCompilationOptions(OutputKind.ConsoleApplication).WithEmbedVbCoreRuntime(True)
 

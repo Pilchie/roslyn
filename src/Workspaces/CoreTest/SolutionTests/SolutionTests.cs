@@ -22,12 +22,13 @@ using Microsoft.CodeAnalysis.Text;
 using Microsoft.CodeAnalysis.VisualBasic;
 using Roslyn.Test.Utilities;
 using Xunit;
+using CS = Microsoft.CodeAnalysis.CSharp;
 
 namespace Microsoft.CodeAnalysis.UnitTests
 {
     public partial class SolutionTests : TestBase
     {
-        private static readonly MetadataReference mscorlib = TestReferences.NetFx.v4_0_30319.mscorlib;
+        private static readonly MetadataReference s_mscorlib = TestReferences.NetFx.v4_0_30319.mscorlib;
 
         public static byte[] GetResourceBytes(string fileName)
         {
@@ -166,7 +167,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
         {
             return this.CreateSolution()
                        .AddProject("foo", "foo.dll", LanguageNames.CSharp)
-                       .AddMetadataReference(mscorlib)
+                       .AddMetadataReference(s_mscorlib)
                        .AddDocument("foo.cs", "public class Foo { }")
                        .Project.Solution;
         }
@@ -191,9 +192,9 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var pm2 = ProjectId.CreateNewId();
             return this.CreateSolution()
                        .AddProject(pm1, "foo", "foo.dll", LanguageNames.CSharp)
-                       .AddMetadataReference(pm1, mscorlib)
+                       .AddMetadataReference(pm1, s_mscorlib)
                        .AddProject(pm2, "bar", "bar.dll", LanguageNames.VisualBasic)
-                       .AddMetadataReference(pm2, mscorlib)
+                       .AddMetadataReference(pm2, s_mscorlib)
                        .AddProjectReference(pm2, new ProjectReference(pm1))
                        .AddDocument(DocumentId.CreateNewId(pm1), "foo.cs", "public class X { }")
                        .AddDocument(DocumentId.CreateNewId(pm2), "bar.vb", "Public Class Y\r\nInherits X\r\nEnd Class");
@@ -319,7 +320,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var solution = CreateSolution();
             var project1 = ProjectId.CreateNewId();
             solution = solution.AddProject(project1, "foo", "foo.dll", LanguageNames.CSharp);
-            solution = solution.AddMetadataReference(project1, mscorlib);
+            solution = solution.AddMetadataReference(project1, s_mscorlib);
 
             // For CSharp Reference
             solution = solution.AddMetadataReference(project1, csharpReference);
@@ -361,7 +362,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
 
             DiagnosticAnalyzer analyzer = new MockDiagnosticAnalyzer();
             var analyzerReference = new AnalyzerImageReference(ImmutableArray.Create(analyzer));
-            
+
             // Test AddAnalyzer
             var newSolution = solution.AddAnalyzerReference(project1, analyzerReference);
             var actualAnalyzerReferences = newSolution.Projects.Single().AnalyzerReferences;
@@ -370,7 +371,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var actualAnalyzers = actualAnalyzerReferences[0].GetAnalyzersForAllLanguages();
             Assert.Equal(1, actualAnalyzers.Length);
             Assert.Equal(analyzer, actualAnalyzers[0]);
-            
+
             // Test ProjectChanges
             var changes = newSolution.GetChanges(solution).GetProjectChanges().Single();
             var addedAnalyzerReference = changes.GetAddedAnalyzerReferences().Single();
@@ -383,7 +384,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             solution = solution.RemoveAnalyzerReference(project1, analyzerReference);
             actualAnalyzerReferences = solution.Projects.Single().AnalyzerReferences;
             Assert.Empty(actualAnalyzerReferences);
-            
+
             // Test AddAnalyzers
             analyzerReference = new AnalyzerImageReference(ImmutableArray.Create(analyzer));
             DiagnosticAnalyzer secondAnalyzer = new MockDiagnosticAnalyzer();
@@ -394,7 +395,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             Assert.Equal(2, actualAnalyzerReferences.Count);
             Assert.Equal(analyzerReference, actualAnalyzerReferences[0]);
             Assert.Equal(secondAnalyzerReference, actualAnalyzerReferences[1]);
-            
+
             solution = solution.RemoveAnalyzerReference(project1, analyzerReference);
             actualAnalyzerReferences = solution.Projects.Single().AnalyzerReferences;
             Assert.Equal(1, actualAnalyzerReferences.Count);
@@ -414,7 +415,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var solution = CreateSolution();
             var project1 = ProjectId.CreateNewId();
             solution = solution.AddProject(project1, "foo", "foo.dll", LanguageNames.CSharp);
-            solution = solution.AddMetadataReference(project1, mscorlib);
+            solution = solution.AddMetadataReference(project1, s_mscorlib);
 
             // Compilation Options
             var oldCompOptions = solution.GetProject(project1).CompilationOptions;
@@ -431,7 +432,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var solution = CreateSolution();
             var project1 = ProjectId.CreateNewId();
             solution = solution.AddProject(project1, "foo", "foo.dll", LanguageNames.CSharp);
-            solution = solution.AddMetadataReference(project1, mscorlib);
+            solution = solution.AddMetadataReference(project1, s_mscorlib);
 
             // Parse Options
             var oldParseOptions = solution.GetProject(project1).ParseOptions;
@@ -998,7 +999,14 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var pid = ProjectId.CreateNewId();
             var did = DocumentId.CreateNewId(pid);
 
-            var text = "public class C {}";
+            var text = @"public class C {
+    public void Method1() {}
+    public void Method2() {}
+    public void Method3() {}
+    public void Method4() {}
+    public void Method5() {}
+    public void Method6() {}
+}";
 
             var sol = CreateNotKeptAliveSolution()
                         .AddProject(pid, "foo", "foo.dll", LanguageNames.CSharp)
@@ -1014,7 +1022,20 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var pid = ProjectId.CreateNewId();
             var did = DocumentId.CreateNewId(pid);
 
-            var text = @"Public Class C\r\nEnd Class";
+            var text = @"Public Class C
+    Sub Method1()
+    End Sub
+    Sub Method2()
+    End Sub
+    Sub Method3()
+    End Sub
+    Sub Method4()
+    End Sub
+    Sub Method5()
+    End Sub
+    Sub Method6()
+    End Sub
+End Class";
 
             var sol = CreateNotKeptAliveSolution()
                         .AddProject(pid, "foo", "foo.dll", LanguageNames.VisualBasic)
@@ -1048,7 +1069,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
             var observed2 = GetObservedSyntaxTreeRootAsync(doc2.Project.Solution, did);
             StopObservingAndWaitForReferenceToGo(observed2);
 
-            // access the tree & root again (recovert it)
+            // access the tree & root again (recover it)
             var tree2 = doc2.GetSyntaxTreeAsync().Result;
 
             // this should cause deserialization
@@ -1299,13 +1320,13 @@ public class C : A {
             var solution = new AdhocWorkspace().CurrentSolution
                 .AddProject(pid1, "FooA", "Foo.dll", LanguageNames.VisualBasic)
                 .AddDocument(did1, "A.vb", text1)
-                .AddMetadataReference(pid1, mscorlib)
+                .AddMetadataReference(pid1, s_mscorlib)
                 .AddProject(pid2, "FooB", "Foo2.dll", LanguageNames.VisualBasic)
                 .AddDocument(did2, "B.vb", text2)
-                .AddMetadataReference(pid2, mscorlib)
+                .AddMetadataReference(pid2, s_mscorlib)
                 .AddProject(pid3, "Bar", "Bar.dll", LanguageNames.CSharp)
                 .AddDocument(did3, "C.cs", text3)
-                .AddMetadataReference(pid3, mscorlib)
+                .AddMetadataReference(pid3, s_mscorlib)
                 .AddProjectReference(pid3, new ProjectReference(pid1))
                 .AddProjectReference(pid3, new ProjectReference(pid2));
 
@@ -1322,6 +1343,24 @@ public class C : A {
             classC = comp3.GetTypeByMetadataName("C");
             projectForBaseType = solution2.GetProject(classC.BaseType.ContainingAssembly);
             Assert.Equal(pid1, projectForBaseType.Id);
+        }
+
+        [WorkItem(1088127, "DevDiv")]
+        [Fact]
+        public void TestEncodingRetainedAfterTreeChanged()
+        {
+            var ws = new AdhocWorkspace();
+            var proj = ws.AddProject("proj", LanguageNames.CSharp);
+            var doc = ws.AddDocument(proj.Id, "a.cs", SourceText.From("public class c { }", Encoding.UTF32));
+
+            Assert.Equal(Encoding.UTF32, doc.GetTextAsync().Result.Encoding);
+
+            // updating root doesn't change original encoding
+            var root = doc.GetSyntaxRootAsync().Result;
+            var newRoot = root.WithLeadingTrivia(root.GetLeadingTrivia().Add(CS.SyntaxFactory.Whitespace("    ")));
+            var newDoc = doc.WithSyntaxRoot(newRoot);
+
+            Assert.Equal(Encoding.UTF32, newDoc.GetTextAsync().Result.Encoding);
         }
     }
 }

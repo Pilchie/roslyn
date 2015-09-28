@@ -481,6 +481,44 @@ a + b";
             Assert.Equal(SyntaxKind.IfKeyword, token.Kind());
         }
 
+        [Fact]
+        public void TestFindTokenInLargeList()
+        {
+            var identifier = SyntaxFactory.Identifier("x");
+            var missingIdentifier = SyntaxFactory.MissingToken(SyntaxKind.IdentifierToken);
+            var name = SyntaxFactory.IdentifierName(identifier);
+            var missingName = SyntaxFactory.IdentifierName(missingIdentifier);
+            var comma = SyntaxFactory.Token(SyntaxKind.CommaToken);
+            var missingComma = SyntaxFactory.MissingToken(SyntaxKind.CommaToken);
+            var argument = SyntaxFactory.Argument(name);
+            var missingArgument = SyntaxFactory.Argument(missingName);
+
+            // make a large list that has lots of zero-length nodes (that shouldn't be found)
+            var nodesAndTokens = SyntaxFactory.NodeOrTokenList(
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                missingArgument, missingComma,
+                argument);
+
+            var argumentList = SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList<ArgumentSyntax>(SyntaxFactory.NodeOrTokenList(nodesAndTokens)));
+            var invocation = SyntaxFactory.InvocationExpression(name, argumentList);
+            CheckFindToken(invocation);
+        }
+
+        private void CheckFindToken(SyntaxNode node)
+        {
+            for (int i = 0; i < node.FullSpan.End; i++)
+            {
+                var token = node.FindToken(i);
+                Assert.Equal(true, token.FullSpan.Contains(i));
+            }
+        }
+
         [WorkItem(755236, "DevDiv")]
         [Fact]
         public void TestFindNode()
@@ -1179,33 +1217,7 @@ class C {
 class A { }
 #elif BAR
 class B { }
-#else 
-class C { }
-#endif
-");
-            var d = tree.GetCompilationUnitRoot().GetFirstDirective();
-            Assert.NotNull(d);
-            Assert.Equal(SyntaxKind.DefineDirectiveTrivia, d.Kind());
-            d = d.GetNextDirective();
-            Assert.NotNull(d);
-            Assert.Equal(SyntaxKind.IfDirectiveTrivia, d.Kind());
-            var related = d.GetRelatedDirectives();
-            Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
-            Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
-            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
-        }
-
-        [Fact]
-        public void TestGetDirectivesRelatedToIfElements()
-        {
-            var tree = SyntaxFactory.ParseSyntaxTree(
-@"#define FOO
-#if FOO
-class A { }
-#elif BAR
+#elif BAZ
 class B { }
 #else 
 class C { }
@@ -1219,18 +1231,50 @@ class C { }
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, d.Kind());
             var related = d.GetRelatedDirectives();
             Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
+            Assert.Equal(5, related.Count);
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
             Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
+        }
+
+        [Fact]
+        public void TestGetDirectivesRelatedToIfElements()
+        {
+            var tree = SyntaxFactory.ParseSyntaxTree(
+@"#define FOO
+#if FOO
+class A { }
+#elif BAR
+class B { }
+#elif BAZ
+class B { }
+#else 
+class C { }
+#endif
+");
+            var d = tree.GetCompilationUnitRoot().GetFirstDirective();
+            Assert.NotNull(d);
+            Assert.Equal(SyntaxKind.DefineDirectiveTrivia, d.Kind());
+            d = d.GetNextDirective();
+            Assert.NotNull(d);
+            Assert.Equal(SyntaxKind.IfDirectiveTrivia, d.Kind());
+            var related = d.GetRelatedDirectives();
+            Assert.NotNull(related);
+            Assert.Equal(5, related.Count);
+            Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
 
             // get directives related to elif
             var related2 = related[1].GetRelatedDirectives();
             Assert.True(related.SequenceEqual(related2));
 
-            // get directives realted to else
-            var related3 = related[2].GetRelatedDirectives();
+            // get directives related to else
+            var related3 = related[3].GetRelatedDirectives();
             Assert.True(related.SequenceEqual(related3));
         }
 
@@ -1243,6 +1287,8 @@ class C { }
 class A { }
 #elif BAR
 class B { }
+#elif BAZ
+class B { }
 #else 
 class C { }
 #endif
@@ -1252,11 +1298,12 @@ class C { }
             Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, d.Kind());
             var related = d.GetRelatedDirectives();
             Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
+            Assert.Equal(5, related.Count);
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
             Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
         }
 
         [Fact]
@@ -1271,6 +1318,8 @@ class A { }
 #endif
 #elif BAR
 class B { }
+#elif BAZ
+class B { }
 #else 
 class C { }
 #endif
@@ -1283,11 +1332,12 @@ class C { }
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, d.Kind());
             var related = d.GetRelatedDirectives();
             Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
+            Assert.Equal(5, related.Count);
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
             Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
         }
 
         [Fact]
@@ -1302,6 +1352,8 @@ class A { }
 #endregion
 #elif BAR
 class B { }
+#elif BAZ
+class B { }
 #else 
 class C { }
 #endif
@@ -1314,11 +1366,12 @@ class C { }
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, d.Kind());
             var related = d.GetRelatedDirectives();
             Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
+            Assert.Equal(5, related.Count);
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
             Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
         }
 
         [Fact]
@@ -1333,6 +1386,8 @@ class A { }
 #endif
 #elif BAR
 class B { }
+#elif BAZ
+class B { }
 #else 
 class C { }
 #endif
@@ -1342,11 +1397,12 @@ class C { }
             Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, d.Kind());
             var related = d.GetRelatedDirectives();
             Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
+            Assert.Equal(5, related.Count);
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
             Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
         }
 
         [Fact]
@@ -1360,6 +1416,8 @@ class A { }
 #endregion
 #elif BAR
 class B { }
+#elif BAZ
+class B { }
 #else 
 class C { }
 #endif
@@ -1369,11 +1427,12 @@ class C { }
             Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, d.Kind());
             var related = d.GetRelatedDirectives();
             Assert.NotNull(related);
-            Assert.Equal(4, related.Count);
+            Assert.Equal(5, related.Count);
             Assert.Equal(SyntaxKind.IfDirectiveTrivia, related[0].Kind());
             Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[1].Kind());
-            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[2].Kind());
-            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.ElifDirectiveTrivia, related[2].Kind());
+            Assert.Equal(SyntaxKind.ElseDirectiveTrivia, related[3].Kind());
+            Assert.Equal(SyntaxKind.EndIfDirectiveTrivia, related[4].Kind());
         }
 
         [Fact]
@@ -1417,7 +1476,8 @@ class A { }
             Assert.Equal(SyntaxKind.EndRegionDirectiveTrivia, related[1].Kind());
         }
 
-        [Fact, WorkItem(536995, "DevDiv")]
+        [WorkItem(536995, "DevDiv")]
+        [ClrOnlyFact]
         public void TestTextAndSpanWithTrivia1()
         {
             var tree = SyntaxFactory.ParseSyntaxTree(
@@ -1434,7 +1494,8 @@ class A { }
             Assert.Equal(false, rootNode.ToString().Contains("/*START*/"));
         }
 
-        [Fact, WorkItem(536996, "DevDiv")]
+        [WorkItem(536996, "DevDiv")]
+        [ClrOnlyFact]
         public void TestTextAndSpanWithTrivia2()
         {
             var tree = SyntaxFactory.ParseSyntaxTree(
@@ -1778,7 +1839,7 @@ class Test
             Assert.Equal("m(a, c,d)", newNode.ToFullString());
 
             // replace first with empty list
-            newNode = invocation.ReplaceNode(invocation.ArgumentList.Arguments[0], new SyntaxNode[] {});
+            newNode = invocation.ReplaceNode(invocation.ArgumentList.Arguments[0], new SyntaxNode[] { });
             Assert.Equal("m(b)", newNode.ToFullString());
 
             // replace last with empty list
@@ -2265,7 +2326,7 @@ class C
             Assert.Equal(expectedText, text);
         }
 
-        [Fact]
+        [ClrOnlyFact]
         public void TestRemove_KeepUnbalancedDirectives()
         {
             var cu = SyntaxFactory.ParseCompilationUnit(@"
@@ -2298,7 +2359,7 @@ class C
             Assert.Equal(expectedText, text);
         }
 
-        [Fact]
+        [ClrOnlyFact]
         public void TestRemove_KeepDirectives()
         {
             var cu = SyntaxFactory.ParseCompilationUnit(@"
@@ -2419,7 +2480,7 @@ class Base<T>
     public virtual int Property
     {
         get { return 0; }
-        // Note: Repro for bug 7990 requires a missing close brace token i.e. misisng } below
+        // Note: Repro for bug 7990 requires a missing close brace token i.e. missing } below
         set { 
     }
     public virtual void Method()
@@ -2441,9 +2502,9 @@ class Base<T>
         [Fact]
         public void GetDiagnosticsOnMissingToken3()
         {
-            string code = @"class c2 4";
+            const string code = @"class c2 4";
             var syntaxTree = SyntaxFactory.ParseSyntaxTree(code);
-            var token = syntaxTree.GetCompilationUnitRoot().FindToken(code.IndexOf("4"));
+            var token = syntaxTree.GetCompilationUnitRoot().FindToken(code.IndexOf('4'));
             var diag = syntaxTree.GetDiagnostics(token).ToList();
 
             Assert.True(token.IsMissing);
@@ -2465,7 +2526,7 @@ public class Test1
 }
 }";
             var syntaxTree = SyntaxFactory.ParseSyntaxTree(code);
-            var token = syntaxTree.GetCompilationUnitRoot().FindToken(code.IndexOf("using Lib;"));
+            var token = syntaxTree.GetCompilationUnitRoot().FindToken(code.IndexOf("using Lib;", StringComparison.Ordinal));
             var diag = syntaxTree.GetDiagnostics(token).ToList();
 
             Assert.True(token.IsMissing);
@@ -2484,7 +2545,7 @@ public class Test1
     }
 }";
             var tree = SyntaxFactory.ParseSyntaxTree(code);
-            var trivia = tree.GetCompilationUnitRoot().FindTrivia(code.IndexOf("#r")); // ReferenceDirective.
+            var trivia = tree.GetCompilationUnitRoot().FindTrivia(code.IndexOf("#r", StringComparison.Ordinal)); // ReferenceDirective.
 
             foreach (var diag in tree.GetDiagnostics(trivia))
             {
@@ -2584,7 +2645,7 @@ class Program
             Assert.Equal("class A { }", nodeOrToken.ToString());
             Assert.Equal(text, nodeOrToken.ToString());
 
-            var node = (SyntaxNode) children.First(n => n.IsNode);
+            var node = (SyntaxNode)children.First(n => n.IsNode);
             Assert.Equal("class A { }", node.ToString());
             Assert.Equal(text, node.ToFullString());
 
@@ -2649,15 +2710,15 @@ class C
         {
             // Invalid arguments - Validate Exceptions     
             Assert.Throws<System.ArgumentNullException>(delegate
-            {                
-                var treeFromSource_invalid2 = SyntaxFactory.ParseSyntaxTree("", path:null);
+            {
+                var treeFromSource_invalid2 = SyntaxFactory.ParseSyntaxTree("", path: null);
             });
-            
+
             Assert.Throws<System.ArgumentNullException>(delegate
             {
                 SourceText st = null;
                 var treeFromSource_invalid2 = SyntaxFactory.ParseSyntaxTree(st);
-            });                       
+            });
         }
 
         [Fact]
@@ -2770,7 +2831,7 @@ namespace HelloWorld
 
             var ChangesForDifferentTrees = FirstUsingClause.SyntaxTree.GetChangedSpans(SecondUsingClause.SyntaxTree);
             Assert.Equal(0, ChangesForDifferentTrees.Count);
-            
+
             // With null tree
             SyntaxTree BlankTree = null;
             Assert.Throws<ArgumentNullException>(() => FirstUsingClause.SyntaxTree.GetChangedSpans(BlankTree));

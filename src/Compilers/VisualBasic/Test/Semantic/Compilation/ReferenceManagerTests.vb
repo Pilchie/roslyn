@@ -10,21 +10,18 @@ Namespace Microsoft.CodeAnalysis.VisualBasic.UnitTests
     Public Class ReferenceManagerTests
         Inherits BasicTestBase
 
-        Private Shared ReadOnly SignedDll As VisualBasicCompilationOptions =
-            New VisualBasicCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
-                                              optimizationLevel:=OptimizationLevel.Release,
-                                              cryptoKeyFile:=SigningTestHelpers.KeyPairFile,
-                                              strongNameProvider:=New SigningTestHelpers.VirtualizedStrongNameProvider(ImmutableArray.Create(Of String)()))
+        Private Shared ReadOnly s_signedDll As VisualBasicCompilationOptions =
+            TestOptions.ReleaseDll.WithCryptoPublicKey(TestResources.TestKeys.PublicKey_ce65828c82a341f2)
 
         <WorkItem(5483, "DevDiv_Projects/Roslyn")>
         <WorkItem(527917, "DevDiv")>
         <Fact>
         Public Sub ReferenceBinding_SymbolUsed()
             ' Identity: C, Version=1.0.0.0, Culture=neutral, PublicKeyToken=374d0c2befcd8cc9
-            Dim v1 = MetadataReference.CreateFromImage(TestResources.SymbolsTests.General.C1.AsImmutableOrNull())
+            Dim v1 = MetadataReference.CreateFromImage(TestResources.General.C1.AsImmutableOrNull())
 
             ' Identity: C, Version=2.0.0.0, Culture=neutral, PublicKeyToken=374d0c2befcd8cc9
-            Dim v2 = MetadataReference.CreateFromImage(TestResources.SymbolsTests.General.C2.AsImmutableOrNull())
+            Dim v2 = MetadataReference.CreateFromImage(TestResources.General.C2.AsImmutableOrNull())
 
             Dim refSource =
 <text>
@@ -48,10 +45,10 @@ End Class
 </text>
 
             ' reference asks for a lower version than available:
-            Dim testRefV1 = CreateCompilationWithMscorlib({testRefSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV1), v2}, compOptions:=TestOptions.ReleaseDll)
+            Dim testRefV1 = CreateCompilationWithMscorlib({testRefSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV1), v2}, options:=TestOptions.ReleaseDll)
 
             ' reference asks for a higher version than available:
-            Dim testRefV2 = CreateCompilationWithMscorlib({testRefSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV2), v1}, compOptions:=TestOptions.ReleaseDll)
+            Dim testRefV2 = CreateCompilationWithMscorlib({testRefSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV2), v1}, options:=TestOptions.ReleaseDll)
 
             testRefV1.VerifyDiagnostics()
 
@@ -70,8 +67,8 @@ BC32207: The project currently contains references to more than one version of '
         <Fact>
         <WorkItem(546080, "DevDiv")>
         Public Sub ReferenceBinding_SymbolNotUsed()
-            Dim v1 = MetadataReference.CreateFromImage(TestResources.SymbolsTests.General.C1.AsImmutableOrNull())
-            Dim v2 = MetadataReference.CreateFromImage(TestResources.SymbolsTests.General.C2.AsImmutableOrNull())
+            Dim v1 = MetadataReference.CreateFromImage(TestResources.General.C1.AsImmutableOrNull())
+            Dim v2 = MetadataReference.CreateFromImage(TestResources.General.C2.AsImmutableOrNull())
 
             Dim refSource =
 <text>
@@ -89,10 +86,10 @@ End Class
 </text>
 
             ' reference asks for a lower version than available:
-            Dim testRefV1 = CreateCompilationWithMscorlib({refSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV1), v2}, compOptions:=TestOptions.ReleaseDll)
+            Dim testRefV1 = CreateCompilationWithMscorlib({refSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV1), v2}, options:=TestOptions.ReleaseDll)
 
             ' reference asks for a higher version than available:
-            Dim testRefV2 = CreateCompilationWithMscorlib({refSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV2), v1}, compOptions:=TestOptions.ReleaseDll)
+            Dim testRefV2 = CreateCompilationWithMscorlib({refSource.Value}, New MetadataReference() {New VisualBasicCompilationReference(refV2), v1}, options:=TestOptions.ReleaseDll)
 
             testRefV1.VerifyDiagnostics()
             testRefV2.VerifyDiagnostics()
@@ -110,7 +107,7 @@ End Class
     </file>
 </compilation>
 
-            Dim libV1 = CreateCompilationWithMscorlib(sourceLibV1, options:=SignedDll)
+            Dim libV1 = CreateCompilationWithMscorlib(sourceLibV1, options:=s_signedDll)
 
             Dim sourceLibV2 =
 <compilation name="Lib">
@@ -122,7 +119,7 @@ End Class
     </file>
 </compilation>
 
-            Dim libV2 = CreateCompilationWithMscorlib(sourceLibV1, options:=SignedDll)
+            Dim libV2 = CreateCompilationWithMscorlib(sourceLibV1, options:=s_signedDll)
 
             Dim sourceLibV3 =
 <compilation name="Lib">
@@ -134,7 +131,7 @@ End Class
     </file>
 </compilation>
 
-            Dim libV3 = CreateCompilationWithMscorlib(sourceLibV3, options:=SignedDll)
+            Dim libV3 = CreateCompilationWithMscorlib(sourceLibV3, options:=s_signedDll)
 
             Dim sourceRefLibV2 =
 <compilation name="RefLibV2">
@@ -150,7 +147,7 @@ End Class
 
             Dim refLibV2 = CreateCompilationWithMscorlibAndReferences(
                 sourceRefLibV2,
-                references:={New VisualBasicCompilationReference(libV2)}, options:=SignedDll)
+                references:={New VisualBasicCompilationReference(libV2)}, options:=s_signedDll)
 
             Dim sourceMain =
 <compilation name="Main">
@@ -204,7 +201,7 @@ End Class
         </file>
     </compilation>
 
-            Dim libV1 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV1, options:=SignedDll)
+            Dim libV1 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV1, options:=s_signedDll)
 
             Dim sourceLibV2 =
     <compilation name="Lib">
@@ -222,7 +219,7 @@ End Interface
         </file>
     </compilation>
 
-            Dim libV2 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV2, options:=SignedDll)
+            Dim libV2 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV2, options:=s_signedDll)
 
             Dim sourceRefLibV2 =
     <compilation name="RefLibV2">
@@ -284,7 +281,7 @@ End Class
             Dim refLibV2 = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
                 sourceRefLibV2,
                 {New VisualBasicCompilationReference(libV2)},
-                options:=SignedDll)
+                options:=s_signedDll)
 
             refLibV2.VerifyDiagnostics()
 
@@ -309,7 +306,7 @@ End Class
             Dim x = CreateCompilationWithMscorlibAndVBRuntimeAndReferences(
                 sourceX,
                 {New VisualBasicCompilationReference(refLibV2), New VisualBasicCompilationReference(libV2)},
-                options:=SignedDll)
+                options:=s_signedDll)
 
             x.AssertNoDiagnostics()
 
@@ -414,7 +411,7 @@ End Class
     </file>
 </compilation>
 
-            Dim a1 = CreateCompilationWithMscorlib(sourceA1, options:=SignedDll)
+            Dim a1 = CreateCompilationWithMscorlib(sourceA1, options:=s_signedDll)
 
             Dim sourceA2 =
 <compilation name="A">
@@ -426,7 +423,7 @@ End Class
     </file>
 </compilation>
 
-            Dim a2 = CreateCompilationWithMscorlib(sourceA2, options:=SignedDll)
+            Dim a2 = CreateCompilationWithMscorlib(sourceA2, options:=s_signedDll)
 
             Dim sourceB1 =
 <compilation name="B">
@@ -438,7 +435,7 @@ End Class
     </file>
 </compilation>
 
-            Dim b1 = CreateCompilationWithMscorlib(sourceB1, options:=SignedDll)
+            Dim b1 = CreateCompilationWithMscorlib(sourceB1, options:=s_signedDll)
 
             Dim sourceB2 =
 <compilation name="B">
@@ -450,7 +447,7 @@ End Class
     </file>
 </compilation>
 
-            Dim b2 = CreateCompilationWithMscorlib(sourceB2, options:=SignedDll)
+            Dim b2 = CreateCompilationWithMscorlib(sourceB2, options:=s_signedDll)
 
             Dim sourceRefA1B2 =
 <compilation name="RefA1B2">
@@ -472,7 +469,7 @@ End Class
             Dim refA1B2 = CreateCompilationWithMscorlibAndReferences(
                 sourceRefA1B2,
                 references:={New VisualBasicCompilationReference(a1), New VisualBasicCompilationReference(b2)},
-                options:=SignedDll)
+                options:=s_signedDll)
 
             Dim sourceMain =
 <compilation name="Main">
@@ -508,7 +505,7 @@ End Class
     </file>
 </compilation>
 
-            Dim libV1 = CreateCompilationWithMscorlib(sourceLibV1, options:=SignedDll)
+            Dim libV1 = CreateCompilationWithMscorlib(sourceLibV1, options:=s_signedDll)
 
             Dim sourceLibV2 =
 <compilation name="Lib">
@@ -520,7 +517,7 @@ End Class
     </file>
 </compilation>
 
-            Dim libV2 = CreateCompilationWithMscorlib(sourceLibV2, options:=SignedDll)
+            Dim libV2 = CreateCompilationWithMscorlib(sourceLibV2, options:=s_signedDll)
 
             Dim sourceRefLibV1 =
 <compilation name="RefLibV1">
@@ -536,7 +533,7 @@ End Class
             Dim refLibV1 = CreateCompilationWithMscorlibAndReferences(
                 sourceRefLibV1,
                 references:={New VisualBasicCompilationReference(libV1)},
-                options:=SignedDll)
+                options:=s_signedDll)
 
             Dim sourceMain =
 <compilation name="Main">
@@ -559,8 +556,8 @@ End Class
             main.VerifyDiagnostics()
 
             ' Disable PE verification, it would need .config file with Lib v1 -> Lib v2 binding redirect.
-            CompileAndVerify(main, emitOptions:=TestEmitters.CCI, verify:=False, validator:=
-                Sub(assembly, _omitted)
+            CompileAndVerify(main, verify:=False, validator:=
+                Sub(assembly)
                     Dim reader = assembly.GetMetadataReader()
                     Dim refs As List(Of String) = New List(Of String)()
 
@@ -588,7 +585,7 @@ End Class
         </file>
     </compilation>
 
-            Dim libV1 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV1, options:=SignedDll)
+            Dim libV1 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV1, options:=s_signedDll)
 
             Dim sourceLibV2 =
     <compilation name="Lib">
@@ -601,7 +598,7 @@ End Class
         </file>
     </compilation>
 
-            Dim libV2 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV2, options:=SignedDll)
+            Dim libV2 = CreateCompilationWithMscorlibAndVBRuntime(sourceLibV2, options:=s_signedDll)
 
             Dim sourceRefLibV1 =
     <compilation name="RefLibV1">
@@ -675,8 +672,8 @@ BC31539: Cannot find the interop type that matches the embedded type 'IB'. Are y
         Public Sub DuplicateReferences()
             Dim c As VisualBasicCompilation
             Dim source As String
-            Dim r1 = AssemblyMetadata.CreateFromImage(TestResources.SymbolsTests.General.C1).GetReference(filePath:="c:\temp\a.dll", display:="R1")
-            Dim r2 = AssemblyMetadata.CreateFromImage(TestResources.SymbolsTests.General.C1).GetReference(filePath:="c:\temp\a.dll", display:="R2")
+            Dim r1 = AssemblyMetadata.CreateFromImage(TestResources.General.C1).GetReference(filePath:="c:\temp\a.dll", display:="R1")
+            Dim r2 = AssemblyMetadata.CreateFromImage(TestResources.General.C1).GetReference(filePath:="c:\temp\a.dll", display:="R2")
             Dim rEmbed = r1.WithEmbedInteropTypes(True)
 
             source =
@@ -685,7 +682,7 @@ Class D
 End Class
 </text>.Value
 
-            c = CreateCompilationWithMscorlib({source}, {r1, r2}, compOptions:=TestOptions.ReleaseDll)
+            c = CreateCompilationWithMscorlib({source}, {r1, r2}, options:=TestOptions.ReleaseDll)
             c.AssertTheseDiagnostics()
             Assert.Null(c.GetReferencedAssemblySymbol(r1))
             Assert.NotNull(c.GetReferencedAssemblySymbol(r2))
@@ -697,12 +694,12 @@ Class D
 End Class
 </text>.Value
 
-            c = CreateCompilationWithMscorlib({source}, {r1, r2}, compOptions:=TestOptions.ReleaseDll)
+            c = CreateCompilationWithMscorlib({source}, {r1, r2}, options:=TestOptions.ReleaseDll)
             Assert.Null(c.GetReferencedAssemblySymbol(r1))
             Assert.NotNull(c.GetReferencedAssemblySymbol(r2))
             c.AssertTheseDiagnostics()
 
-            c = CreateCompilationWithMscorlib({source}, {r1, rEmbed}, compOptions:=TestOptions.ReleaseDll)
+            c = CreateCompilationWithMscorlib({source}, {r1, rEmbed}, options:=TestOptions.ReleaseDll)
             c.AssertTheseDiagnostics(<errors>
 BC31549: Cannot embed interop types from assembly 'C, Version=1.0.0.0, Culture=neutral, PublicKeyToken=374d0c2befcd8cc9' because it is missing the 'System.Runtime.InteropServices.GuidAttribute' attribute.
 BC31553: Cannot embed interop types from assembly 'C, Version=1.0.0.0, Culture=neutral, PublicKeyToken=374d0c2befcd8cc9' because it is missing either the 'System.Runtime.InteropServices.ImportedFromTypeLibAttribute' attribute or the 'System.Runtime.InteropServices.PrimaryInteropAssemblyAttribute' attribute.
@@ -713,7 +710,7 @@ BC31541: Reference to class 'C' is not allowed when its assembly is configured t
             Assert.Null(c.GetReferencedAssemblySymbol(r1))
             Assert.NotNull(c.GetReferencedAssemblySymbol(rEmbed))
 
-            c = CreateCompilationWithMscorlib({source}, {rEmbed, r1}, compOptions:=TestOptions.ReleaseDll)
+            c = CreateCompilationWithMscorlib({source}, {rEmbed, r1}, options:=TestOptions.ReleaseDll)
             c.AssertTheseDiagnostics()
             Assert.Null(c.GetReferencedAssemblySymbol(rEmbed))
             Assert.NotNull(c.GetReferencedAssemblySymbol(r1))
@@ -748,7 +745,7 @@ End class
 
             Dim sourceRefLibV1 =
 <compilation name="RefLibV1">
-<file>
+    <file>
 Public Class P
     Dim x = new C()
 End Class
@@ -757,7 +754,7 @@ End Class
 
             Dim sourceMain =
 <compilation name="Main">
-<file>        
+    <file>        
 Class Q
     Dim x = new P()
 End Class
@@ -1617,22 +1614,43 @@ End Class
             Assert.NotEqual(mca1, Copymca1)
             Assert.Equal(mca1.ToString, Copymca1.ToString)
             Assert.Equal(mca1.Kind, Copymca1.Kind)
-
-            'With no alias this will result in hashcode of 0
-            Dim mrp1 As MetadataReferenceProperties = refa.Properties
-            Assert.Equal(0, mrp1.GetHashCode)
-
-            'With the use of the alias this will generate a hashcode
-            Dim refb = AssemblyMetadata.CreateFromImage(a.EmitToArray()).GetReference(display:="A", aliases:=ImmutableArray.Create("Alias1"))
-            Dim mrp2 As MetadataReferenceProperties = refb.Properties
-            Assert.NotEqual(0, mrp2.GetHashCode)
         End Sub
 
         <Fact, WorkItem(905495, "DevDiv")>
         Public Sub ReferenceWithNoMetadataSection()
-            Dim c = CreateCompilationWithMscorlib({}, {New TestImageReference(TestResources.MetadataTests.Basic.NativeApp, "NativeApp.exe")}, TestOptions.ReleaseDll)
+            Dim c = CreateCompilationWithMscorlib(New String() {}, {New TestImageReference(TestResources.Basic.NativeApp, "NativeApp.exe")}, TestOptions.ReleaseDll)
             c.VerifyDiagnostics(
                 Diagnostic(ERRID.ERR_BadMetaDataReference1).WithArguments("NativeApp.exe", CodeAnalysisResources.PEImageDoesntContainManagedMetadata))
+        End Sub
+
+        <Fact, WorkItem(2988, "https://github.com/dotnet/roslyn/issues/2988")>
+        Public Sub EmptyReference()
+            Dim source =
+<compilation>
+    <file>        
+Public Class C 
+    Shared Sub Main() 
+    End Sub
+End Class
+    </file>
+</compilation>
+
+            Dim c = CreateCompilationWithMscorlibAndReferences(source, {AssemblyMetadata.CreateFromImage({}).GetReference(display:="Empty.dll")}, TestOptions.ReleaseDll)
+            c.VerifyDiagnostics(
+                Diagnostic(ERRID.ERR_BadMetaDataReference1).WithArguments("Empty.dll", CodeAnalysisResources.PEImageDoesntContainManagedMetadata))
+        End Sub
+
+        <Fact, WorkItem(2992, "https://github.com/dotnet/roslyn/issues/2992")>
+        Public Sub MetadataDisposed()
+            Dim md = AssemblyMetadata.CreateFromImage(TestResources.NetFX.Minimal.mincorlib)
+            Dim c = VisualBasicCompilation.Create("test", references:={md.GetReference()})
+
+            ' Use the Compilation once to force lazy initialization of the underlying MetadataReader
+            c.GetTypeByMetadataName("System.Int32").GetMembers()
+
+            md.Dispose()
+
+            Assert.Throws(Of ObjectDisposedException)(Function() c.GetTypeByMetadataName("System.Int64").GetMembers())
         End Sub
 
         <Fact, WorkItem(43)>

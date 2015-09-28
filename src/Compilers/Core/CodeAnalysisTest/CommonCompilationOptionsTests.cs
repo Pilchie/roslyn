@@ -23,10 +23,12 @@ namespace Microsoft.CodeAnalysis.UnitTests
                 "ConcurrentBuild",
                 "CryptoKeyContainer",
                 "CryptoKeyFile",
+                "CryptoPublicKey",
                 "DelaySign",
                 "EnableEditAndContinue",
                 "Errors",
                 "ExtendedCustomDebugInformation",
+                "DebugPlusMode",
                 "Features",
                 "GeneralDiagnosticOption",
                 "MainTypeName",
@@ -40,6 +42,7 @@ namespace Microsoft.CodeAnalysis.UnitTests
                 "SourceReferenceResolver",
                 "SpecificDiagnosticOptions",
                 "StrongNameProvider",
+                "ReportSuppressedDiagnostics",
                 "WarningLevel",
                 "XmlReferenceResolver");
         }

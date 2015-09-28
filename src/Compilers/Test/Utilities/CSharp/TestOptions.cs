@@ -1,5 +1,9 @@
 ﻿// Copyright (c) Microsoft.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
+
 namespace Microsoft.CodeAnalysis.CSharp.Test.Utilities
 {
     public static class TestOptions
@@ -11,12 +15,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Test.Utilities
         public static readonly CSharpParseOptions Regular = new CSharpParseOptions(kind: SourceCodeKind.Regular, documentationMode: DocumentationMode.None);
         public static readonly CSharpParseOptions RegularWithDocumentationComments = new CSharpParseOptions(kind: SourceCodeKind.Regular, documentationMode: DocumentationMode.Diagnose);
 
-        private static readonly SmallDictionary<string, string> experimentalFeatures = new SmallDictionary<string, string>(); // no experimental features to enable
-        public static readonly CSharpParseOptions ExperimentalParseOptions = 
-            new CSharpParseOptions(kind: SourceCodeKind.Regular, documentationMode: DocumentationMode.None, languageVersion: LanguageVersion.CSharp6).WithFeatures(experimentalFeatures);
+        private static readonly SmallDictionary<string, string> s_experimentalFeatures = new SmallDictionary<string, string>(); // no experimental features to enable
+        public static readonly CSharpParseOptions ExperimentalParseOptions =
+            new CSharpParseOptions(kind: SourceCodeKind.Regular, documentationMode: DocumentationMode.None, languageVersion: LanguageVersion.CSharp6).WithFeatures(s_experimentalFeatures);
 
         public static readonly CSharpCompilationOptions ReleaseDll = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release).WithExtendedCustomDebugInformation(true);
         public static readonly CSharpCompilationOptions ReleaseExe = new CSharpCompilationOptions(OutputKind.ConsoleApplication, optimizationLevel: OptimizationLevel.Release).WithExtendedCustomDebugInformation(true);
+
+        public static readonly CSharpCompilationOptions ReleaseDebugDll = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release).
+            WithExtendedCustomDebugInformation(true).
+            WithDebugPlusMode(true);
+
+        public static readonly CSharpCompilationOptions ReleaseDebugExe = new CSharpCompilationOptions(OutputKind.ConsoleApplication, optimizationLevel: OptimizationLevel.Release).
+            WithExtendedCustomDebugInformation(true).
+            WithDebugPlusMode(true);
 
         public static readonly CSharpCompilationOptions DebugDll = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Debug).WithExtendedCustomDebugInformation(true);
         public static readonly CSharpCompilationOptions DebugExe = new CSharpCompilationOptions(OutputKind.ConsoleApplication, optimizationLevel: OptimizationLevel.Debug).WithExtendedCustomDebugInformation(true);
@@ -32,5 +44,20 @@ namespace Microsoft.CodeAnalysis.CSharp.Test.Utilities
 
         public static readonly CSharpCompilationOptions UnsafeDebugDll = DebugDll.WithAllowUnsafe(true);
         public static readonly CSharpCompilationOptions UnsafeDebugExe = DebugExe.WithAllowUnsafe(true);
+
+        public static CSharpParseOptions WithFeature(this CSharpParseOptions options, string feature, string value)
+        {
+            return options.WithFeatures(options.Features.Concat(new[] { new KeyValuePair<string, string>(feature, value) }));
+        }
+
+        public static CSharpParseOptions WithStrictFeature(this CSharpParseOptions options)
+        {
+            return options.WithFeature("strict", "true");
+        }
+
+        public static CSharpParseOptions WithDeterministicFeature(this CSharpParseOptions options)
+        {
+            return options.WithFeature("deterministic", "true");
+        }
     }
 }

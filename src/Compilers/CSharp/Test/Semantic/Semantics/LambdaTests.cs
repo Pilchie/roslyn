@@ -445,7 +445,7 @@ class Program
 }
 ";
             var metadataStream = new MemoryStream();
-            var emitResult = vbProject.Emit(metadataStream, options:new EmitOptions(metadataOnly:true));
+            var emitResult = vbProject.Emit(metadataStream, options: new EmitOptions(metadataOnly: true));
             Assert.True(emitResult.Success);
 
             var csProject = CreateCompilationWithMscorlib(
@@ -972,7 +972,7 @@ class TestDataPointBase
 
 ";
             var compilation = CreateCompilationWithMscorlibAndSystemCore(source);
-            
+
             var tree = compilation.SyntaxTrees.Single();
             var model = compilation.GetSemanticModel(tree);
             var oReference =
@@ -982,12 +982,12 @@ class TestDataPointBase
                 .OfType<ExpressionSyntax>()
                 .OrderByDescending(s => s.SpanStart);
 
-            foreach(var name in oReference)
+            foreach (var name in oReference)
             {
                 CSharpExtensions.GetSymbolInfo(model, name);
             }
 
-            // We shoudl get a bunch of errors, but no asserts.
+            // We should get a bunch of errors, but no asserts.
             compilation.VerifyDiagnostics(
     // (6,22): error CS0246: The type or namespace name 'IVisualStudioIntegrationService' could not be found (are you missing a using directive or an assembly reference?)
     //     private readonly IVisualStudioIntegrationService integrationService;
@@ -1094,6 +1094,231 @@ class C
             Assert.Equal("void System.Collections.Generic.ICollection<C>.Add(C item)", symbolInfo.Symbol.ToTestDisplayString());
             Assert.Equal(0, symbolInfo.CandidateSymbols.Length);
             Assert.Equal(CandidateReason.None, symbolInfo.CandidateReason);
+        }
+
+        [WorkItem(1112875, "DevDiv")]
+        [Fact]
+        public void Bug1112875_1()
+        {
+            var comp = CreateCompilationWithMscorlib(@"
+using System;
+ 
+class Program
+{
+    static void Main()
+    {
+        ICloneable c = """";
+        Foo(() => (c.Clone()), null);
+    }
+ 
+    static void Foo(Action x, string y) { }
+    static void Foo(Func<object> x, object y) { Console.WriteLine(42); }
+}", options: TestOptions.ReleaseExe);
+            comp.VerifyDiagnostics();
+
+            CompileAndVerify(comp, expectedOutput: "42");
+        }
+
+        [WorkItem(1112875, "DevDiv")]
+        [Fact]
+        public void Bug1112875_2()
+        {
+            var comp = CreateCompilationWithMscorlib(@"
+class Program
+{
+    void M()
+    {
+        var d = new System.Action(() => (new object()));
+    }
+}
+");
+            comp.VerifyDiagnostics(
+                // (6,41): error CS0201: Only assignment, call, increment, decrement, and new object expressions can be used as a statement
+                //         var d = new System.Action(() => (new object()));
+                Diagnostic(ErrorCode.ERR_IllegalStatement, "(new object())").WithLocation(6, 41));
+        }
+
+        [WorkItem(1830, "https://github.com/dotnet/roslyn/issues/1830")]
+        [Fact]
+        public void FuncOfVoid()
+        {
+            var comp = CreateCompilationWithMscorlib(@"
+using System;
+class Program
+{
+    void M1<T>(Func<T> f) {}
+    void Main(string[] args)
+    {
+        M1(() => { return System.Console.Beep(); });
+    }
+}
+");
+            comp.VerifyDiagnostics(
+                // (8,27): error CS4029: Cannot return an expression of type 'void'
+                //         M1(() => { return System.Console.Beep(); });
+                Diagnostic(ErrorCode.ERR_CantReturnVoid, "System.Console.Beep()").WithLocation(8, 27)
+                );
+        }
+
+        [Fact, WorkItem(1179899, "DevDiv")]
+        public void ParameterReference_01()
+        {
+            var src = @"
+using System;
+
+class Program
+{
+    static Func<Program, string> stuff()
+    {
+        return a => a.
+    }
+}
+";
+            var compilation = CreateCompilationWithMscorlib(src);
+            compilation.VerifyDiagnostics(
+    // (8,23): error CS1001: Identifier expected
+    //         return a => a.
+    Diagnostic(ErrorCode.ERR_IdentifierExpected, "").WithLocation(8, 23),
+    // (8,23): error CS1002: ; expected
+    //         return a => a.
+    Diagnostic(ErrorCode.ERR_SemicolonExpected, "").WithLocation(8, 23)
+                );
+
+            var tree = compilation.SyntaxTrees.Single();
+            var node = tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.ValueText == "a").Single();
+
+            Assert.Equal("a.", node.Parent.ToString().Trim());
+
+            var semanticModel = compilation.GetSemanticModel(tree);
+            var symbolInfo = semanticModel.GetSymbolInfo(node);
+
+            Assert.Equal("Program a", symbolInfo.Symbol.ToTestDisplayString());
+        }
+
+        [Fact, WorkItem(1179899, "DevDiv")]
+        public void ParameterReference_02()
+        {
+            var src = @"
+using System;
+
+class Program
+{
+    static void stuff()
+    {
+        Func<Program, string> l = a => a.
+    }
+}
+";
+            var compilation = CreateCompilationWithMscorlib(src);
+            compilation.VerifyDiagnostics(
+    // (8,42): error CS1001: Identifier expected
+    //         Func<Program, string> l = a => a.
+    Diagnostic(ErrorCode.ERR_IdentifierExpected, "").WithLocation(8, 42),
+    // (8,42): error CS1002: ; expected
+    //         Func<Program, string> l = a => a.
+    Diagnostic(ErrorCode.ERR_SemicolonExpected, "").WithLocation(8, 42)
+                );
+
+            var tree = compilation.SyntaxTrees.Single();
+            var node = tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.ValueText == "a").Single();
+
+            Assert.Equal("a.", node.Parent.ToString().Trim());
+
+            var semanticModel = compilation.GetSemanticModel(tree);
+            var symbolInfo = semanticModel.GetSymbolInfo(node);
+
+            Assert.Equal("Program a", symbolInfo.Symbol.ToTestDisplayString());
+        }
+
+        [Fact, WorkItem(1179899, "DevDiv")]
+        public void ParameterReference_03()
+        {
+            var src = @"
+using System;
+
+class Program
+{
+    static void stuff()
+    {
+         M1(a => a.);
+    }
+
+    static void M1(Func<Program, string> l){}
+}
+";
+            var compilation = CreateCompilationWithMscorlib(src);
+            compilation.VerifyDiagnostics(
+    // (8,20): error CS1001: Identifier expected
+    //          M1(a => a.);
+    Diagnostic(ErrorCode.ERR_IdentifierExpected, ")").WithLocation(8, 20)
+                );
+
+            var tree = compilation.SyntaxTrees.Single();
+            var node = tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.ValueText == "a").Single();
+
+            Assert.Equal("a.", node.Parent.ToString().Trim());
+
+            var semanticModel = compilation.GetSemanticModel(tree);
+            var symbolInfo = semanticModel.GetSymbolInfo(node);
+
+            Assert.Equal("Program a", symbolInfo.Symbol.ToTestDisplayString());
+        }
+
+        [Fact, WorkItem(1179899, "DevDiv")]
+        public void ParameterReference_04()
+        {
+            var src = @"
+using System;
+
+class Program
+{
+    static void stuff()
+    {
+        var l = (Func<Program, string>) (a => a.);
+    }
+}
+";
+            var compilation = CreateCompilationWithMscorlib(src);
+            compilation.VerifyDiagnostics(
+    // (8,49): error CS1001: Identifier expected
+    //         var l = (Func<Program, string>) (a => a.);
+    Diagnostic(ErrorCode.ERR_IdentifierExpected, ")").WithLocation(8, 49)
+                );
+
+            var tree = compilation.SyntaxTrees.Single();
+            var node = tree.GetRoot().DescendantNodes().OfType<IdentifierNameSyntax>().Where(id => id.Identifier.ValueText == "a").Single();
+
+            Assert.Equal("a.", node.Parent.ToString().Trim());
+
+            var semanticModel = compilation.GetSemanticModel(tree);
+            var symbolInfo = semanticModel.GetSymbolInfo(node);
+
+            Assert.Equal("Program a", symbolInfo.Symbol.ToTestDisplayString());
+        }
+
+        [Fact]
+        [WorkItem(3826, "https://github.com/dotnet/roslyn/issues/3826")]
+        public void ExpressionTreeSelfAssignmentShouldError()
+        {
+            var source = @"
+using System;
+using System.Linq.Expressions;
+
+class Program
+{
+    static void Main()
+    {
+        Expression<Func<int, int>> x = y => y = y;
+    }
+}";
+            var compilation = CreateCompilationWithMscorlibAndSystemCore(source);
+            compilation.VerifyDiagnostics(
+                // (9,45): warning CS1717: Assignment made to same variable; did you mean to assign something else?
+                //         Expression<Func<int, int>> x = y => y = y;
+                Diagnostic(ErrorCode.WRN_AssignmentToSelf, "y = y").WithLocation(9, 45),
+                // (9,45): error CS0832: An expression tree may not contain an assignment operator
+                //         Expression<Func<int, int>> x = y => y = y;
+                Diagnostic(ErrorCode.ERR_ExpressionTreeContainsAssignment, "y = y").WithLocation(9, 45));
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis.CodeGeneration;
-using Microsoft.CodeAnalysis.Editting;
+using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Microsoft.CodeAnalysis.Simplification;
 using Roslyn.Utilities;
@@ -247,7 +247,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
             {
                 // Call accessors directly if C# overriding VB
                 if (document.Project.Language == LanguageNames.CSharp
-                    && SymbolFinder.FindSourceDefinitionAsync(overriddenProperty, document.Project.Solution)
+                    && SymbolFinder.FindSourceDefinitionAsync(overriddenProperty, document.Project.Solution, cancellationToken)
                                     .WaitAndGetResult(CancellationToken.None).Language == LanguageNames.VisualBasic)
                 {
                     var getName = overriddenProperty.GetMethod != null ? overriddenProperty.GetMethod.Name : null;
@@ -383,7 +383,7 @@ namespace Microsoft.CodeAnalysis.Shared.Extensions
                     method: overriddenMethod,
                     accessibility: overriddenMethod.ComputeResultantAccessibility(newContainingType),
                     modifiers: modifiers,
-                    statements: ((IMethodSymbol)overriddenMethod).ReturnsVoid
+                    statements: overriddenMethod.ReturnsVoid
                         ? new SyntaxNode[] { codeFactory.ExpressionStatement(body) }
                         : new SyntaxNode[] { codeFactory.ReturnStatement(body) });
             }
