@@ -42,7 +42,7 @@ namespace Microsoft.CodeAnalysis.CSharp.InlineDeclaration
             Document document, ImmutableArray<Diagnostic> diagnostics, 
             SyntaxEditor editor, CancellationToken cancellationToken)
         {
-            var options = document.Project.Solution.Options;
+            var options = await document.GetOptionsAsync(cancellationToken).ConfigureAwait(false);
 
             // Attempt to use an out-var declaration if that's the style the user prefers.
             // Note: if using 'var' would cause a problem, we will use the actual type
@@ -142,7 +142,7 @@ namespace Microsoft.CodeAnalysis.CSharp.InlineDeclaration
             // it for apperant types
 
             var local = (ILocalSymbol)semanticModel.GetDeclaredSymbol(declarator);
-            var newType = local.Type.GenerateTypeSyntaxOrVar(options, typeIsApperant: false);
+            var newType = local.Type.GenerateTypeSyntaxOrVar(options, typeIsApparent: false);
 
             var declarationExpression = GetDeclarationExpression(
                 sourceText, identifier, newType, singleDeclarator ? null : declarator);
