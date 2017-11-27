@@ -1058,7 +1058,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 
                 if (!_pushingChangesToWorkspaceHosts && document.IsOpen)
                 {
-                    StartPushingToWorkspaceAndNotifyOfOpenDocuments();
+                    StartPushingToWorkspaceAndNotifyOfOpenDocuments(this);
                 }
             }
         }
@@ -1105,7 +1105,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 
             if (!_pushingChangesToWorkspaceHosts && document.IsOpen)
             {
-                StartPushingToWorkspaceAndNotifyOfOpenDocuments();
+                StartPushingToWorkspaceAndNotifyOfOpenDocuments(this);
             }
         }
 
@@ -1336,19 +1336,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             _pushingChangesToWorkspaceHosts = false;
         }
 
-        internal void StartPushingToWorkspaceAndNotifyOfOpenDocuments()
-        {
-            AssertIsForeground();
-            StartPushingToWorkspaceAndNotifyOfOpenDocuments(this);
-        }
-
         internal bool PushingChangesToWorkspaceHosts
-        {
-            get
-            {
-                return _pushingChangesToWorkspaceHosts;
-            }
-        }
+            => _pushingChangesToWorkspaceHosts;
 
         protected void UpdateRuleSetError(IRuleSetFile ruleSetFile)
         {
@@ -1476,7 +1465,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             }
         }
 
-        private static void StartPushingToWorkspaceAndNotifyOfOpenDocuments(AbstractProject project)
+        internal static void StartPushingToWorkspaceAndNotifyOfOpenDocuments(AbstractProject project)
         {
             project.AssertIsForeground();
 

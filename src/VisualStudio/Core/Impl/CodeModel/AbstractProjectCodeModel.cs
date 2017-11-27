@@ -43,7 +43,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.CodeModel
                     if (project == null && !VSProject.PushingChangesToWorkspaceHosts)
                     {
                         // if this project hasn't been pushed yet, push it now so that the user gets a useful experience here.
-                        VSProject.StartPushingToWorkspaceAndNotifyOfOpenDocuments();
+                        AbstractProject.StartPushingToWorkspaceAndNotifyOfOpenDocuments(VSProject);
 
                         // re-check to see whether we now has the project in the workspace
                         project = VisualStudioWorkspace.CurrentSolution.GetProject(VSProject.Id);
