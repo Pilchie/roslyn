@@ -453,20 +453,20 @@ namespace Microsoft.CodeAnalysis.Diagnostics
             }
 
             var diagnostic = Diagnostic.Create(descriptor, Location.None, messageArguments);
-            if (project.SupportsCompilation)
-            {
-                // Get diagnostic with effective severity.
-                // Additionally, if the diagnostic was suppressed by a source suppression, effectiveDiagnostics will have a diagnostic with IsSuppressed = true.
-                var compilation = project.GetCompilationAsync(cancellationToken).WaitAndGetResult(cancellationToken);
-                var effectiveDiagnostics = CompilationWithAnalyzers.GetEffectiveDiagnostics(SpecializedCollections.SingletonEnumerable(diagnostic), compilation);
-                if (effectiveDiagnostics == null || effectiveDiagnostics.IsEmpty())
-                {
-                    // Rule is disabled by compilation options.
-                    return false;
-                }
+            //if (project.SupportsCompilation)
+            //{
+            //    // Get diagnostic with effective severity.
+            //    // Additionally, if the diagnostic was suppressed by a source suppression, effectiveDiagnostics will have a diagnostic with IsSuppressed = true.
+            //    var compilation = project.GetCompilationAsync(cancellationToken).WaitAndGetResult(cancellationToken);
+            //    var effectiveDiagnostics = CompilationWithAnalyzers.GetEffectiveDiagnostics(SpecializedCollections.SingletonEnumerable(diagnostic), compilation);
+            //    if (effectiveDiagnostics == null || effectiveDiagnostics.IsEmpty())
+            //    {
+            //        // Rule is disabled by compilation options.
+            //        return false;
+            //    }
 
-                diagnostic = effectiveDiagnostics.Single();
-            }
+            //    diagnostic = effectiveDiagnostics.Single();
+            //}
 
             diagnosticData = diagnostic.ToDiagnosticData(project);
             return true;
