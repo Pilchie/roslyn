@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
@@ -1465,7 +1466,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             }
         }
 
-        internal static void StartPushingToWorkspaceAndNotifyOfOpenDocuments(AbstractProject project)
+        internal static void StartPushingToWorkspaceAndNotifyOfOpenDocuments(AbstractProject project, [CallerMemberName] string caller = null)
         {
             project.AssertIsForeground();
 
@@ -1475,7 +1476,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
             // it here. It's important to do this after everything else happens in this method, so we don't get
             // strange ordering issues. It's still possible that this won't actually push changes if the workspace
             // host isn't ready to receive events yet.
-            project.ProjectTracker.StartPushingToWorkspaceAndNotifyOfOpenDocuments(SpecializedCollections.SingletonEnumerable(project));
+            project.ProjectTracker.StartPushingToWorkspaceAndNotifyOfOpenDocuments(SpecializedCollections.SingletonEnumerable(project), caller);
         }
 
         private static MetadataReferenceResolver CreateMetadataReferenceResolver(IMetadataService metadataService, string projectDirectory, string outputDirectory)

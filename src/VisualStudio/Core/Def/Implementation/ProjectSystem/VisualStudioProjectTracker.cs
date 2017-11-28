@@ -19,6 +19,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 {
     internal sealed partial class VisualStudioProjectTracker : ForegroundThreadAffinitizedObject, IVisualStudioHostProjectContainer
     {
+        private IVsOutputWindowPane _pane;
         #region Readonly fields
         private static readonly ConditionalWeakTable<SolutionId, string> s_workingFolderPathMap = new ConditionalWeakTable<SolutionId, string>();
 
@@ -123,6 +124,14 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 {
                     _solutionLoadComplete = true;
                 }
+            }
+
+            var outputWindow = (IVsOutputWindow)_serviceProvider.GetService(typeof(SVsOutputWindow));
+            var paneGuid = new Guid("07aaa8e9-d776-47d6-a1be-5ce00332d74d");
+            if (ErrorHandler.Succeeded(outputWindow.CreatePane(ref paneGuid, "Roslyn log", fInitVisible: 1, fClearWithSolution: 1)) &&
+                ErrorHandler.Succeeded(outputWindow.GetPane(ref paneGuid, out _pane)) && _pane != null)
+            {
+                _pane.Activate();
             }
         }
 
@@ -258,7 +267,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 
             if (_solutionLoadComplete)
             {
-                StartPushingToWorkspaceAndNotifyOfOpenDocuments(SpecializedCollections.SingletonEnumerable(project));
+                //StartPushingToWorkspaceAndNotifyOfOpenDocuments(SpecializedCollections.SingletonEnumerable(project));
             }
             else if (_batchingProjectLoads)
             {
@@ -270,16 +279,23 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
         /// Starts pushing events from the given projects to the workspace hosts and notifies about open documents.
         /// </summary>
         /// <remarks>This method must be called on the foreground thread.</remarks>
-        internal void StartPushingToWorkspaceAndNotifyOfOpenDocuments(IEnumerable<AbstractProject> projects)
+        internal void StartPushingToWorkspaceAndNotifyOfOpenDocuments(IEnumerable<AbstractProject> projects, [CallerMemberName]string caller = null)
         {
+            var start = DateTimeOffset.UtcNow;
             AssertIsForeground();
 
+            var anyPushed = false;
             using (Dispatcher.CurrentDispatcher.DisableProcessing())
             {
                 foreach (var hostState in _workspaceHosts)
                 {
-                    hostState.StartPushingToWorkspaceAndNotifyOfOpenDocuments(projects);
+                    anyPushed |= hostState.StartPushingToWorkspaceAndNotifyOfOpenDocuments(projects);
                 }
+            }
+
+            if (anyPushed)
+            {
+                _pane.OutputString($"Pushed projects from '{caller}' - took '{DateTimeOffset.UtcNow - start}'.\r\n");
             }
         }
 
@@ -562,7 +578,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
         private void FinishLoad()
         {
             // We are now completely done, so let's simply ensure all projects are added.
-            StartPushingToWorkspaceAndNotifyOfOpenDocuments(this.ImmutableProjects);
+            ////StartPushingToWorkspaceAndNotifyOfOpenDocuments(this.ImmutableProjects);
 
             // Also, all remaining project adds need to immediately pushed as well, since we're now "interactive"
             _solutionLoadComplete = true;

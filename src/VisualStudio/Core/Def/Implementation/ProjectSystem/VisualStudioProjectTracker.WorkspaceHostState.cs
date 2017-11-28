@@ -80,7 +80,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 _pushedProjects.Clear();
             }
 
-            internal void StartPushingToWorkspaceAndNotifyOfOpenDocuments(
+            internal bool StartPushingToWorkspaceAndNotifyOfOpenDocuments(
                 IEnumerable<AbstractProject> projects)
             {
                 AssertIsForeground();
@@ -91,7 +91,7 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                 // opened in the middle of the solution close operation.
                 if (!this.HostReadyForEvents || _tracker._solutionIsClosing)
                 {
-                    return;
+                    return false;
                 }
 
                 // We need to push these projects and any project dependencies we already know about. Therefore, compute the
@@ -167,6 +167,8 @@ namespace Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
                         }
                     }
                 }
+
+                return true;
             }
 
             internal void RemoveProject(AbstractProject project)
